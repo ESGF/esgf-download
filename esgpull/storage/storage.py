@@ -6,8 +6,7 @@ from typing import overload, Literal, Any
 from enum import Enum, auto
 
 from esgpull.utils import Semver, errors
-from esgpull.storage import json
-from esgpull.storage import sqlite
+from esgpull.storage import json, sqlite
 
 
 class StorageMode(Enum):
@@ -45,7 +44,7 @@ class Storage(abc.ABC):
             case StorageMode.Json:
                 return super().__new(JsonStorage)
             case _:
-                raise errors.ModeError(mode)
+                raise errors.UnknownMode(mode)
 
     # @abc.abstractmethod
     # def get_file(self):
@@ -74,6 +73,6 @@ class JsonStorage(StorageModeCatcher, json.JsonStorage, Storage):
     """
     Inherits, in this order for method resolution:
         - from StorageModeCatcher to remove `mode` argument
-        - from json.SqliteStorage for actual implementation
+        - from json.JsonStorage for actual implementation
         - from Storage to tell mypy it is a concrete subclass.
     """

@@ -1,0 +1,214 @@
+from __future__ import annotations
+from typing import Iterator, Optional, NewType
+
+from pyesgf.search import SearchContext
+
+from esgpull.context.constants import (
+    DEFAULT_CONSTRAINTS,
+    DEFAULT_CONSTRAINTS_WITH_VALUE,
+)
+from esgpull.utils import errors
+
+FacetName = NewType("FacetName", str)
+FacetValue = NewType("FacetValue", str)
+
+
+class Facet:
+    def __init__(self, *, name: str = None, default: str = "*") -> None:
+        if name is not None:
+            self.name: FacetName = FacetName(name)
+        self.default: FacetValue = FacetValue(default)
+
+    def __set_name__(self, owner, name: str) -> None:
+        self.name = FacetName(name)
+
+    def __get__(self, instance, owner=None) -> Facet | FacetValue:
+        if instance is None:
+            return self
+        match instance.__dict__.get(self.name):
+            case str(value):
+                return FacetValue(value)
+            case None:
+                instance.__dict__[self.name] = self.default
+                return instance.__dict__[self.name]
+            case _:
+                raise ValueError
+
+    def __set__(self, instance, value: FacetValue) -> None:
+        match value:
+            case str():
+                instance.__dict__[self.name] = value
+            case _:
+                iname = instance.__class__.__name__
+                raise TypeError(
+                    f"'{iname}.{self.name} = {value}' should be a string."
+                )
+
+
+class Facets:
+    """
+    Interface to get/set facet values.
+
+    Each facet is defined using a data descriptor
+    to restrict usage to a CV (controlled vocabulary).
+
+    New facets can be added as class attributes with:
+    `Facet(name=<facet-name>, default=<default-value>)`
+    """
+
+    SETUP_DONE = False
+
+    # Add custom facets here
+    experiment_id = Facet(default="r1i1p1f1")
+
+    def __init__(self, ctx: Optional[SearchContext] = None) -> None:
+        self.__dict__["ctx"] = ctx
+        # setattr(self, "ctx", ctx)
+
+        # Fill `__dict__` by forcing a `getattr` for each facet via __iter__.
+        # list(self)
+        for name, facet in self:
+            ...
+
+    @property
+    def options(self) -> Optional[dict[str, str]]:
+        ctx = self.__dict__.get("ctx")
+        if ctx is not None:
+            return ctx.get_facet_options()
+        else:
+            return None
+
+    def __getitem__(self, name: str) -> str:
+        """
+        Enables dict-like get behaviour.
+
+        Example:
+            ```python
+            facets = Facets()
+            print(facets["variable_id"])
+            # *
+            ```
+        """
+        return getattr(self, name)
+
+    def __setitem__(self, name: str, value: str):
+        """
+        Expands `__setattr__` to dict-like set.
+
+        Example:
+            ```python
+            facets = Facets()
+            facets["not_facet"] = "value"
+            # AttributeError: type object 'Facets' has no attribute 'not_facet'
+            ```
+        """
+        setattr(self, name, value)
+
+    def __getattr__(self, name: str) -> str:
+        """
+        If `name` is a defined Facet, python will return from __getattribute__
+        without ever entering __getattr_.
+
+        Therefore, this method is completely useless but mypy was complaining
+        as it cannot know the attributes defined outside the class definition
+        through `Facets.setattr(...)`.
+        """
+        return getattr(Facets, name).__get__(self)
+
+    def __setattr__(self, name: str, value: str):
+        """
+        Disables the ability to set an attribute that is not a facet.
+
+        Example:
+            ```python
+            facets = Facets()
+            facets.not_facet = "value"
+            # AttributeError: type object 'Facets' has no attribute 'not_facet'
+            ```
+        """
+        options = self.options
+        if options is not None:
+            if name not in options:
+                raise errors.ImpossibleFacetName(name, self.nondefault)
+            if value != "*" and value not in options[name]:
+                raise errors.UnknownFacetValue(value, name)
+        getattr(Facets, name).__set__(self, value)
+
+    def __iter__(self) -> Iterator[tuple[str, str]]:
+        """
+        Iterate over all facets, yielding tuples of `(name, value)`
+
+        Example:
+            ```python
+            facets = Facets()
+            for name, value in facets:
+                print(name, value)
+                break
+            # experiment_id *
+            ```
+        """
+        for name, facet in vars(Facets).items():
+            if isinstance(facet, Facet):
+                yield (name, getattr(self, name))
+
+    @property
+    def nondefault(self) -> Constraints:
+        return Constraints(self)
+
+    @staticmethod
+    def tostring(it: Iterator[tuple[str, str]]) -> str:
+        return "[" + ", ".join(f"{name}={facet}" for name, facet in it) + "]"
+
+    @staticmethod
+    def todict(iterator: Iterator[tuple[str, str]]) -> dict[str, str]:
+        result = {}
+        for name, facet in iterator:
+            result[name] = facet
+        return result
+
+    def __repr__(self) -> str:
+        return self.__class__.tostring(iter(self))
+
+    def __hash__(self) -> int:
+        return hash(frozenset(iter(self)))
+
+    def asdict(self) -> dict[str, str]:
+        return self.__class__.todict(iter(self))
+
+
+class Constraints:
+    def __init__(self, facets: Facets = None):
+        self._facets = facets or Facets()
+
+    def __iter__(self) -> Iterator[tuple[str, str]]:
+        for name, facet in self._facets:
+            default = getattr(Facets, name).default
+            if facet != default:
+                yield (name, facet)
+
+    def __repr__(self) -> str:
+        return Facets.tostring(iter(self))
+
+    def __hash__(self) -> int:
+        return hash(frozenset(iter(self)))
+
+    def asdict(self) -> dict[str, str]:
+        return Facets.todict(iter(self))
+
+
+def setup_facets(
+    default: list[str] = DEFAULT_CONSTRAINTS,
+    default_with_value: dict[str, str] = DEFAULT_CONSTRAINTS_WITH_VALUE,
+) -> None:
+    if Facets.SETUP_DONE:
+        raise ValueError("Cannot setup twice.")
+    for name in default:
+        setattr(Facets, name, Facet(name=name, default="*"))
+    for name, value in default_with_value.items():
+        setattr(Facets, name, Facet(name=name, default=value))
+    Facets.SETUP_DONE = True
+
+
+setup_facets()
+
+__all__ = ["Facet", "Facets", "setup_facets"]

@@ -1,0 +1,12 @@
+project: CMIP6
+mip_era: CMIP6
+experiment_id: historical
+# frequency: day
+variable:
+  - tas
+  - tasmin
+  - tasmax
+  - pr
+# start: "1850-01-01"
+# end: "2014-12-31"
+query: variant_label:r1i*

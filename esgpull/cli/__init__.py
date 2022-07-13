@@ -5,6 +5,7 @@ import click
 
 from esgpull import __version__
 from esgpull.cli.autoremove import autoremove
+from esgpull.cli.config import config
 from esgpull.cli.download import download
 from esgpull.cli.get import get
 from esgpull.cli.login import login
@@ -12,6 +13,7 @@ from esgpull.cli.install import install
 from esgpull.cli.param import param
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
+from esgpull.cli.search import search
 from esgpull.cli.upgrade import upgrade
 
 # TODO: add metric
@@ -20,6 +22,7 @@ __all__ = ["cli"]
 
 SUBCOMMANDS: list[click.Command] = [
     autoremove,
+    config,
     download,
     get,
     install,
@@ -27,6 +30,7 @@ SUBCOMMANDS: list[click.Command] = [
     param,
     remove,
     retry,
+    search,
     upgrade,
 ]
 
@@ -41,3 +45,7 @@ def cli():
 
 for subcmd in SUBCOMMANDS:
     cli.add_command(subcmd)
+
+
+def main():
+    cli()

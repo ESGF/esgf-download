@@ -1,0 +1,7 @@
+experiment_id: dcppC-ipv-neg
+project: CMIP6
+table_id: Emon
+requests:
+- variable_id: raGrass,raTree,prhmax
+- +table_id: fx
+  variable_id: orog

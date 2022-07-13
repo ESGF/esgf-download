@@ -1,42 +1,39 @@
-from typing import NewType
+# from typing import TypeAlias
 
-import aiohttp
+import asyncio
+import httpx
 
-# import asyncio
-from pathlib import Path
-
-# from urllib.parse import quote
-from dataclasses import dataclass, field
+from esgpull.context import Context
 
 
-UrlParams = NewType("UrlParams", dict)
+# UrlParams = NewType("UrlParams", dict)
 
 
-@dataclass
-class Url:
-    server: Path
-    route: Path = field(default=Path(""))
+# @dataclass
+# class Url:
+#     server: Path
+#     route: Path = field(default=Path(""))
 
-    def __post_init__(self):
-        if isinstance(self.server, str):
-            self.server = Path(self.server)
-        if isinstance(self.route, str):
-            self.route = Path(self.route)
+#     def __post_init__(self):
+#         if isinstance(self.server, str):
+#             self.server = Path(self.server)
+#         if isinstance(self.route, str):
+#             self.route = Path(self.route)
 
-    def __str__(self):
-        return self.server / self.route
+#     def __str__(self):
+#         return self.server / self.route
 
 
 # TODO: re-implement (async) pyesgf ? or pull request to its repo ?
-@dataclass
-class EsgfClient:
-    url: Url
-    params: UrlParams
+class AsyncDownloader:
+    def __init__(self, ctx: Context):
+        self.ctx = ctx
 
-    @property
-    async def session(self):
-        return await aiohttp.ClientSession()
+    async def _download(
+        self, client: httpx.AsyncClient, sem: asyncio.Semaphore
+    ):
+        ...
 
-    async def fetch(self):
+    async def _fetch(self):
         async with self.session.get(self.url, params=self.params) as response:
             return await response.content

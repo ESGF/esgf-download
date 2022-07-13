@@ -1,9 +1,38 @@
-DefaultEsgfUrl: str = "http://esgf-node.ipsl.upmc.fr/esg-search"
+DEFAULT_ESGF_URL: str = "http://esgf-node.ipsl.upmc.fr/esg-search"
+DEFAULT_ESGF_INDEX: str = "esgf-node.ipsl.upmc.fr"
+
+# DEFAULT_ESGF_INDEX: str = "esgf-data.dkrz.de"
+
 
 # TODO: fetch these from database table `param`
-DefaultConstraints: list[str] = [
+DEFAULT_FACETS = [
+    "project",
     "mip_era",
-    "variable_id",
+    "experiment",
+    "experiment_id",
+    "institute",
     "institution_id",
+    "model",
+    "table_id",
+    "activity_id",
+    "ensemble",
+    "variant_label",
+    "realm",
+    "frequency",
+    "time_frequency",
+    "variable",
+    "variable_id",
+    "dataset_id",
+    "source_id",
 ]
-DefaultConstraintsWithValue: dict[str, str] = {"type": "Dataset"}
+EXTRA_FACETS = [
+    "start",
+    "end",
+    "query",
+    # "fields",
+    "facets",
+    "url",
+    "index_node",
+    "instance_id",  # search does not work with instance_id
+]
+DEFAULT_CONSTRAINTS_WITH_VALUE: dict[str, str] = {}

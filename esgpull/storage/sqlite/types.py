@@ -1,6 +1,6 @@
 from __future__ import annotations
 import abc
-from typing import TypeAlias, Optional
+from typing import TypeAlias, Optional, Type
 
 import sqlalchemy as sa
 
@@ -11,7 +11,7 @@ Registry: TypeAlias = sa.orm.registry
 Engine: TypeAlias = sa.future.engine.Engine
 Session: TypeAlias = sa.orm.session.Session
 Result: TypeAlias = sa.engine.result.Result
-Columns: TypeAlias = Optional[list[sa.Column]]
+Columns: TypeAlias = Optional[list[sa.Column | sa.UniqueConstraint]]
 SelectStmt: TypeAlias = sa.sql.selectable.Select
 
 
@@ -69,16 +69,16 @@ class Table(AbstractTable):
         cls.__table__.metadata.create_all(engine, tables=[cls.__table__])
 
     @classmethod
-    def map(cls, mapper: Registry, version: Semver) -> Table:
+    def map(cls, mapper: Registry, version: Semver) -> Type[Table]:
         if cls.is_mapped:
             raise errors.AlreadyMappedError(cls.__name__)
-        print(f"mapping {cls.__name__} table...")
+        # print(f"mapping {cls.__name__} table...")
         mapped = type(cls.__name__, (cls,), {})
         columns = cls.get_columns(version)
         if columns is None:
             match version:
                 case Semver():
-                    raise errors.UnsupportedSemverError(version)
+                    raise errors.NotSupportedVersion(version)
                 case _:
                     raise errors.NotASemverError(version)
         table = sa.Table(cls.__name__.lower(), mapper.metadata, *columns)
