@@ -1,5 +1,6 @@
-from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import TypeAlias, Optional
+from collections.abc import AsyncIterator
 
 import asyncio
 import httpx
@@ -64,6 +65,7 @@ class Context:
         latest: bool = None,
         replica: bool = None,
         distrib: bool = False,
+        retracted: bool = False,
         max_concurrent: int = 5,
         search_batchsize: int = 50,
         last_update: Optional[str | datetime.datetime] = None,
@@ -76,6 +78,7 @@ class Context:
         self.latest = latest
         self.replica = replica
         self.distrib = distrib
+        self.retracted = retracted
         self.max_concurrent = max_concurrent
         self.search_batchsize = search_batchsize
         self.last_update = format_date(last_update)
@@ -105,6 +108,7 @@ class Context:
             "latest": self.latest,
             "distrib": self.distrib,
             "replica": self.replica,
+            "retracted": self.retracted,
             "from": self.last_update,
             "format": "application/solr+json",
             **dump,
@@ -140,13 +144,49 @@ class Context:
                 query["facets"] = "*"
         return queries
 
-    def _build_queries_search(self, hits: list[int], file: bool) -> list[dict]:
-        batchsize = self.search_batchsize
-        queries = self._build_queries(limit=batchsize, offset=0, file=file)
-        for i, query in list(enumerate(queries)):
-            offsets = range(batchsize, hits[i], batchsize)
-            for offset in offsets:
-                queries.append(query | dict(offset=str(offset)))
+    def _adjust_hits(self, hits: list[int], max_results: int) -> list[int]:
+        hits = list(hits)
+        indices = list(range(len(hits)))
+        i_idx = 0
+        total = sum(hits)
+        while total > max_results and max_results > 0:
+            # `or 1` here to account for the case `max_results < len(hits)`
+            max_hit = (max_results // len(indices)) or 1
+            i = indices[i_idx]
+            count = hits[i]
+            if count <= max_hit:
+                total -= count
+                max_results -= count
+                indices.pop(i_idx)
+            else:
+                diff = min(count % max_hit or max_hit, total - max_results)
+                hits[i] -= diff
+                total -= diff
+                i_idx += 1
+            i_idx %= len(indices)
+        if total > max_results:
+            for i in indices:
+                hits[i] = 0
+        return hits
+
+    def _build_queries_search(
+        self,
+        hits: list[int],
+        file: bool,
+        max_results: int = 200,
+        batchsize: int = None,
+    ) -> list[dict]:
+        if batchsize is None:
+            batchsize = self.search_batchsize
+        hits = self._adjust_hits(hits, max_results)
+        raw_queries = self._build_queries(offset=0, file=file)
+        queries = []
+        for i, query in list(enumerate(raw_queries)):
+            nb_queries = (hits[i] - 1) // batchsize + 1
+            for j in range(nb_queries):
+                offset = j * batchsize
+                limit = min(batchsize, hits[i] - offset)
+                queries.append(query | dict(limit=limit, offset=offset))
         return queries
 
     async def _fetch_one(self, query, client, sem) -> httpx.Response:
@@ -200,11 +240,9 @@ class Context:
             hit_counts.append(hit_count)
         return hit_counts, facet_counts
 
-    async def _search(self, file: bool) -> list[dict]:
+    async def _search(self, file: bool, max_results: int = 200) -> list[dict]:
         hits = await self._hits(file)
-        if sum(hits) > 200:
-            raise ValueError(f"Too many: {sum(hits)}")
-        queries = self._build_queries_search(hits, file)
+        queries = self._build_queries_search(hits, file, max_results)
         ids = set()
         result = []
         async for json in self._fetch(queries):
@@ -212,7 +250,7 @@ class Context:
                 if doc["id"] not in ids:
                     result.append(doc)
                     ids.add(doc["id"])
-        nb_dropped = sum(hits) - len(ids)
+        nb_dropped = min(sum(hits), max_results) - len(ids)
         if nb_dropped:
             print(f"Dropped {nb_dropped} duplicate results.")
         return result
@@ -220,6 +258,10 @@ class Context:
     @property
     def hits(self) -> list[int]:
         return asyncio.run(self._hits())
+
+    @property
+    def file_hits(self) -> list[int]:
+        return asyncio.run(self._hits(file=True))
 
     @property
     def facet_counts(self) -> list[FacetCounts]:
@@ -246,9 +288,9 @@ class Context:
         return result
 
     def search(
-        self, *, file=False, todf=True
+        self, *, file=False, todf=True, max_results: int = 200
     ) -> list[dict] | pandas.DataFrame:
-        results = asyncio.run(self._search(file))
+        results = asyncio.run(self._search(file, max_results=max_results))
         if todf:
             return pandas.DataFrame(results)
         else:
