@@ -211,3 +211,19 @@ class SqliteStorage:
             yield SelectContext(self.session, *selectable)
         finally:
             ...
+
+    def install(self, files: list[File]) -> None:
+        to_install = []
+        for file in files:
+            with self.select(File) as sel:
+                sel.where(File.file_id == file.file_id)
+                if len(sel.scalars) == 0:
+                    file.status = Status.waiting
+                    to_install.append(file)
+        self.session.add_all(to_install)
+        self.session.commit()
+        print(f"Installed {len(to_install)} new files.")
+
+    def get_files_with_status(self, status: Status) -> list[File]:
+        with self.select(File) as sel:
+            return sel.where(File.status == status).scalars
