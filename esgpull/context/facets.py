@@ -76,39 +76,6 @@ class Facet:
             self.values |= values
         self.appended = True
 
-    # def __lt__(self, values: FacetValues | Facet) -> None:
-    #     """
-    #     We cannot overload the `=` operator directly, so I chose `<` as the
-    #     main assignment operator (though `=` works fine with properties).
-
-    #     Example:
-    #         ```python
-    #         f = Facet("name", default="*")
-    #         print(f.tostring())
-    #         # name: *
-    #         f < "value"
-    #         print(f.tostring())
-    #         # name: new_value
-    #         ```
-    #     """
-    #     self._set(values)
-
-    # def __lshift__(self, values: FacetValues) -> Facet:
-    #     """
-    #     Define `<<` as appending operator.
-    #     Can be chained to append multiple values. (keep?)
-
-    #     Example:
-    #         ```python
-    #         f = Facet("name", default="*")
-    #         f << "first" << "second"
-    #         print(f.tostring())
-    #         # name: [second,first]
-    #         ```
-    #     """
-    #     self._append(values)
-    #     return self  # enable chain `<<`, only works for this operator
-
     def __iadd__(self, values: FacetValues) -> Facet:
         """
         Define `+=` as appending operator.
@@ -213,15 +180,8 @@ class Facets:
         self,
         state: Optional[State | dict] = None,
         /,
-        # ctx: SearchContext = None,
-        # validations: bool = True,
     ) -> None:
-        """
-        `validations=True` only works when `ctx` is also provided.
-        """
         object.__setattr__(self, "_initialized", False)
-        # self._ctx = ctx
-        # self._validations = validations
         self._stack: list[Facets] = []
         self.requests: list[Facets] = []
         self._facets: dict[str, Facet] = {}
@@ -231,36 +191,6 @@ class Facets:
         self._initialized = True
         if state is not None:
             self.load(state)
-
-    # def _fetch_options(
-    #     self,
-    # ) -> Optional[dict[str, set[str]]]:
-    #     match self._ctx:
-    #         case None:
-    #             opts = None
-    #         case ctx:
-    #             raw_opts = ctx.get_facet_options()
-    #             opts = {}
-    #             for key, value_dict in raw_opts.items():
-    #                 opts[key] = set(value_dict.keys())
-    #     return opts
-
-    # def _maybe_validate(
-    #     self, name: str, values: set[str]) -> None:
-    #     if not self._validations:
-    #         return
-    #     match self._fetch_options():
-    #         case dict(opts):
-    #             if name not in opts:
-    #                 raise errors.ImpossibleFacet(name, self)
-    #             val_opts = {FacetDefault} | opts[name]
-    #             if isinstance(values, str):
-    #                 values = {values}
-    #             for val in values:
-    #                 if val not in val_opts:
-    #                     raise errors.UnknownFacetValue(val, name)
-    #         case None:
-    #             ...
 
     def __iter__(self) -> Iterator[Facet]:
         """
