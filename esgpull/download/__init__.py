@@ -1,3 +1,3 @@
-from esgpull.download.async_download import AsyncDownloader
+from esgpull.download.download import Download
 
-__all__ = ["AsyncDownloader"]
+__all__ = ["Download"]
