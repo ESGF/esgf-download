@@ -8,7 +8,7 @@ import datetime
 from urllib.parse import urlparse
 
 from esgpull.context.facets import Facets
-from esgpull.context.constants import DEFAULT_ESGF_INDEX
+from esgpull.utils.constants import DEFAULT_ESGF_INDEX
 
 
 # workaround for notebooks with running event loop
@@ -50,12 +50,12 @@ def format_date(
 
 class Context:
     """
-    TODO: add storage query builder from this
+    [+]TODO: add storage query builder from this
     """
 
     def __init__(
         self,
-        selection_file_path: str = None,
+        selection_file_path: Optional[str | Path] = None,
         /,
         *,
         # index: str = DEFAULT_ESGF_INDEX,
@@ -119,8 +119,8 @@ class Context:
             query["start"] = format_date(query["start"])
         if "end" in query:
             query["end"] = format_date(query["end"])
-        # TODO: add coverage temporal constraints `start/end`
-        # TODO: add nominal temporal constraints `to`
+        # [?]TODO: add coverage temporal constraints `start/end`
+        # [?]TODO: add nominal temporal constraints `to`
         return {k: v for k, v in query.items() if v is not None}
 
     def _build_queries(self, **extra) -> list[dict]:
@@ -266,7 +266,7 @@ class Context:
 
 
 if __name__ == "__main__":
-    # TODO: use these as unit tests
+    # [?]TODO: use these as unit tests
     c1 = Context()
     print("c1:", c1)
     print("c1.query:", c1.query)

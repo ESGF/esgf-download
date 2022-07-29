@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-# TODO: this should be placeholder for now..
+# [?]TODO: implement Storage as abstract class -> swap backend?
 class JsonStorage:
     def __init__(self, json_path: Path):
         self.json_path = json_path
@@ -12,4 +12,4 @@ class JsonStorage:
         return False
 
     def create(self):
-        print("coucou")
+        ...

@@ -4,9 +4,9 @@ from typing import Optional
 import rich
 import click
 import pandas
-from humanize import naturalsize
 
 from esgpull import Context
+from esgpull.utils import naturalsize
 from esgpull.cli.utils import SliceParam
 
 
@@ -46,30 +46,42 @@ def totable(
 
 @click.command()
 @click.option("--selection-file", "-s")
+@click.option("--file", "-f", is_flag=True)
+@click.option("--distrib", "-d", is_flag=True)
 @click.option("--dry-run", "-z", is_flag=True)
-@click.option("--latest", "-l/-L", is_flag=True, default=None)
-@click.option("--print-node", "-n", is_flag=True, default=False)
+@click.option("--latest/--no-latest", "-l/-L", is_flag=True, default=None)
+@click.option("--data-node", "-n", is_flag=True, default=False)
 @click.option("--print-slice", "-S", type=SliceParam(), default="0-20")
 @click.argument("facets", nargs=-1)
 def search(
     facets: list[str],
     selection_file: Optional[str],
+    file: bool,
+    distrib: bool,
     dry_run: bool,
-    print_node: bool,
+    data_node: bool,
     print_slice: slice,
     latest: bool = None,
 ) -> None:
-    ctx = Context(latest=latest)
+    # TODO: bug with print_slice:
+    # -> `offset=0`, will always return nothing result on `start < size`
+    ctx = Context(distrib=distrib, latest=latest)
+    size = print_slice.stop - print_slice.start
     for facet in facets:
-        name, value = facet.split(":")
+        name, value = facet.split(":", 1)
         ctx.query[name] = value
     if selection_file is not None:
         ctx.query.load(selection_file)
+    if file:
+        hits = ctx.file_hits
+    else:
+        hits = ctx.hits
     if dry_run:
-        queries = ctx._build_queries_search(ctx.hits, file=False)
+        queries = ctx._build_queries_search(hits, file=file, max_results=size)
         rich.print(queries)
     else:
-        df = ctx.search(todf=True)
-        rich.print(f"Found {len(df)} results.")
+        df = ctx.search(file=file, todf=True, max_results=size)
+        nb = sum(hits)
+        rich.print(f"Found {nb} result{'s' if nb > 1 else ''}.")
         if len(df):
-            rich.print(totable(df, print_node, print_slice))
+            rich.print(totable(df, data_node, print_slice))

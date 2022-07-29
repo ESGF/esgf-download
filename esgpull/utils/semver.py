@@ -58,7 +58,7 @@ class Semver:
         return other > self
 
 
-# # TODO: these as unit tests
+# # [?]TODO: these as unit tests
 # if __name__ == "__main__":
 #     assert str(Semver(1)) == "1"
 #     assert str(Semver(1, 2)) == "1.2"

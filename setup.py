@@ -17,7 +17,12 @@ setup(
     platforms="Linux",
     maintainer="Sven Rodriguez",
     maintainer_email="srodriguez@ipsl.fr",
-    install_requires=["sqlalchemy", "click", "click-params", "esgf-pyclient"],
+    install_requires=[
+        "sqlalchemy",
+        "click",
+        "click-params",
+        "click-default-group",
+    ],
     extras_require={
         "dev": ["pytest", "flake8", "sphinx", "mypy", "sqlalchemy[mypy]"]
     },

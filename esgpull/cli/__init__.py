@@ -16,7 +16,10 @@ from esgpull.cli.retry import retry
 from esgpull.cli.search import search
 from esgpull.cli.upgrade import upgrade
 
-# TODO: add metric
+# [-]TODO: stats
+#   - speed per index/data node
+#   - total disk usage
+#   - per-setting stats for optimisation purpose ?
 
 __all__ = ["cli"]
 
@@ -31,6 +34,7 @@ SUBCOMMANDS: list[click.Command] = [
     remove,
     retry,
     search,
+    # stats,
     upgrade,
 ]
 

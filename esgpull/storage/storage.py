@@ -14,7 +14,7 @@ class StorageMode(Enum):
     Json = auto()
 
 
-# TODO: figure out how to do nice+easy interfacing / backend swap.
+# [--]TODO: figure out how to do nice+easy interfacing / backend swap.
 class Storage(abc.ABC):
     """
     Abstract storage class.

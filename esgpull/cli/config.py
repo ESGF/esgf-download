@@ -1,6 +1,7 @@
 import rich
 import yaml
 import click
+from click_default_group import DefaultGroup
 
 SKIP_PARAMS = ["help", "version", "yes"]
 
@@ -26,10 +27,8 @@ def get_defaults(d: dict) -> dict:
         if name not in SKIP_PARAMS and is_option and default is not None:
             result[name] = default
     for command, info in d.get("commands", {}).items():
-        # result.setdefault("commands", [])
         params = get_defaults(info)
         if params:
-            # result["commands"].append({command: params})
             result[command] = params
     return result
 
@@ -43,12 +42,9 @@ def print_yaml(d: dict) -> None:
         rich.print("Nothing to configure.")
 
 
-@click.group(invoke_without_command=True)
-@click.pass_context
-def config(ctx):
-    if ctx.invoked_subcommand is None:
-        info = get_info_dict(ctx)
-        print_yaml(get_defaults(info))
+@click.group(cls=DefaultGroup, default="show", default_if_no_args=True)
+def config():
+    ...
 
 
 @config.command()

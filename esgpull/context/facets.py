@@ -4,10 +4,8 @@ from typing import Iterator, Optional, TypeAlias, Any, cast
 import yaml
 from pathlib import Path
 
-# from pyesgf.search import SearchContext
-
-from esgpull.context.constants import DEFAULT_FACETS, EXTRA_FACETS
 from esgpull.utils import errors
+from esgpull.utils.constants import DEFAULT_FACETS, EXTRA_FACETS
 
 FacetDefault: str = "*"
 FacetValues: TypeAlias = str | set[str] | list[str]
@@ -166,9 +164,10 @@ class Facets:
     Each facet is defined dynamically as a property
     to restrict usage to the controlled vocabulary.
 
-    TODO: recode validations?
-    TODO: use `query=<facet>:<pattern>` instead of `<facet>=<value>[,<value>]`
-        with pattern atoms: `<value>`, `*`, `OR`, `AND`
+    [--]TODO: recode validations? -> in `Context` directly
+    [-]TODO: use `query=<facet>:<pattern>` instead of
+        `<facet>=<value>[,<value>]` with pattern atoms:
+        `<value>`, `*`, `OR`, `AND`
     """
 
     SETUP_DONE = False
@@ -342,7 +341,7 @@ class Facets:
         elif name not in self._facets:
             raise errors.UnknownFacetName(name)
         else:
-            # self._maybe_validate(name, values)
+            # validation here
             object.__setattr__(self, name, values)
 
     def __getattr__(self, name: str) -> Facet:
@@ -536,7 +535,7 @@ class Facets:
         hack would consequently require additional keywords (`-<facet>`?) for
         the yaml/json syntax and clutter the readability/interpretability.
 
-        TODO: Optimize on reducing number of +facets:
+        [--]TODO: Optimize on reducing number of +facets:
             ```python
             {'requests': [{'time_frequency': 'mon', 'variable': 'tasmin'},
                           {'variable': 'tas,ua'},

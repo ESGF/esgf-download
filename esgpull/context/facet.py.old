@@ -3,11 +3,11 @@ from typing import Iterator, Optional, NewType
 
 from pyesgf.search import SearchContext
 
-from esgpull.context.constants import (
-    DEFAULT_CONSTRAINTS,
+from esgpull.utils import errors
+from esgpull.utils.constants import (
+    DEFAULT_FACETS,
     DEFAULT_CONSTRAINTS_WITH_VALUE,
 )
-from esgpull.utils import errors
 
 FacetName = NewType("FacetName", str)
 FacetValue = NewType("FacetValue", str)
