@@ -1,18 +1,20 @@
 from __future__ import annotations
 from typing import Any, Callable, Type
 
-import os
+# import os
 import logging
+from pathlib import Path
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import sqlalchemy as sa
 import sqlalchemy.orm
+import alembic.config
+import alembic.command
+from alembic.migration import MigrationContext
 
 import esgpull
-from esgpull.utils import Semver
 from esgpull.storage.sqlite.types import (
-    Registry,
     Engine,
     Session,
     Row,
@@ -20,11 +22,11 @@ from esgpull.storage.sqlite.types import (
     SelectStmt,
 )
 from esgpull.storage.sqlite.tables import (
+    Status,
+    Table,
     Version,
     File,
-    Dataset,
     Param,
-    Table,
 )
 
 
@@ -44,7 +46,7 @@ class SelectContext:
     Example:
         ```python
         from esgpull.storage.sqlite import SqliteStorage, SelectContext
-        from humanize import naturalsize
+        from esgpull.utils import naturalsize
 
         storage = SqliteStorage(...)
 
@@ -62,9 +64,9 @@ class SelectContext:
                 print(param)
 
         # version:  3.10
-        # id: 1, size: 1.9 GB
-        # id: 2, size: 2.2 GB
-        # id: 3, size: 2.2 GB
+        # id: 1, size: 1.9 GiB
+        # id: 2, size: 2.2 GiB
+        # id: 3, size: 2.2 GiB
         # Param(id=1, name='access', value='Globus', last_updated=None)
         # Param(id=2, name='access', value='GridFTP', last_updated=None)
         # Param(id=3, name='access', value='HTTPServer', last_updated=None)
@@ -132,17 +134,14 @@ class SelectContext:
         return result[0]
 
 
-# TODO: finish this implementation with `rebuild_from_filesystem`
 @dataclass
 class SqliteStorage:
     """
     Main class to interact with esgpull's sqlite storage.
     """
 
-    path: str = "sqlite:////home/srodriguez/ipsl/data/synda/db/sdt_copy.db"
-    mapper: Registry = field(default_factory=sa.orm.registry)
+    path: str = "sqlite:////home/srodriguez/ipsl/data/synda/db/sdt_new.db"
     verbosity: int = 0
-    semver: Semver = field(init=False)
 
     def __post_init__(self) -> None:
         self.setup_verbosity()
@@ -151,21 +150,15 @@ class SqliteStorage:
         session_cls = sa.orm.sessionmaker(bind=self.engine, future=True)
         self.session: Session = session_cls()
 
-        self.Version: Type[Version] = Version.map(self.mapper, Semver(4))
-        self.init_version()
-        self.check_semver_against_module()
-
-        self.File: Type[File] = File.map(self.mapper, self.semver)
-        self.Dataset: Type[Dataset] = Dataset.map(self.mapper, self.semver)
-        self.Param: Type[Param] = Param.map(self.mapper, self.semver)
-
+        self.Version = Version
+        self.File = File
+        self.Param = Param
         self.tables: dict[str, Type[Table]] = {
             "Version": self.Version,
             "File": self.File,
-            "Dataset": self.Dataset,
             "Param": self.Param,
         }
-        self.create_missing_tables()
+        self.update_db()
 
     def setup_verbosity(self) -> None:
         logging.basicConfig()
@@ -187,32 +180,30 @@ class SqliteStorage:
         elif not self.path.startswith(prefix):
             # assert os.path.exists(self.path)
             self.path = prefix + self.path
-        else:
-            assert os.path.exists(self.path.removeprefix(prefix))
+        # else:
+        #     assert os.path.exists(self.path.removeprefix(prefix))
 
-    def init_version(self) -> None:
-        inspector = sa.inspect(self.engine)
-        if not inspector.has_table("version"):
-            self.semver = esgpull.__semver__
-            self.Version.create_table(self.session)
-            self.session.add(self.Version(version=str(self.semver)))
-            self.session.commit()
-        else:
-            with self.select(self.Version.version) as stmt:
-                self.semver: Semver = Semver(stmt.scalar)
+    def update_db(self) -> None:
+        pkg_version = esgpull.__version__
+        with self.engine.begin() as conn:
+            opts = {"version_table": "version"}
+            ctx = MigrationContext.configure(conn, opts=opts)
+            revision = ctx.get_current_revision()
+        config_path = Path(esgpull.__file__).parent.parent / "alembic.ini"
+        config = alembic.config.Config(str(config_path))
+        if revision != pkg_version:
+            alembic.command.upgrade(config, pkg_version)
 
-    def check_semver_against_module(self) -> None:
-        if False:
-            if esgpull.__semver__ != self.semver:
-                raise Exception(
-                    "Module is out of sync with database schema, migrate?"
-                )
-
-    def create_missing_tables(self) -> None:
-        inspector = sa.inspect(self.engine)
-        for table in self.tables.values():
-            if not inspector.has_table(table.__table__.name):
-                table.create_table(self.session)
+        # from alembic.script import ScriptDirectory
+        # from alembic.runtime.environment import EnvironmentContext
+        # script = ScriptDirectory.from_config(alembic_config)
+        # with EnvironmentContext(
+        #     alembic_config,
+        #     script,
+        #     fn=my_function,
+        #     destination_rev=pkg_version,
+        # ):
+        #     script.run_env()
 
     @contextmanager
     def select(self, *selectable):

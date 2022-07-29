@@ -197,7 +197,7 @@ class Constraints:
 
 
 def setup_facets(
-    default: list[str] = DEFAULT_CONSTRAINTS,
+    default: list[str] = DEFAULT_FACETS,
     default_with_value: dict[str, str] = DEFAULT_CONSTRAINTS_WITH_VALUE,
 ) -> None:
     if Facets.SETUP_DONE:
