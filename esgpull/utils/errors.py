@@ -6,6 +6,10 @@ class EsgpullException(Exception):
         super().__init__(self.message)
 
 
+class NoRootError(EsgpullException):
+    msg = "`ST_HOME` not set."
+
+
 class NotSupportedVersion(EsgpullException):
     msg = "The version {} is not supported."
 
@@ -49,6 +53,7 @@ class OutsideContext(EsgpullException):
 
 
 __all__ = [
+    "NoRootError",
     "NotSupportedVersion",
     "NotASemverError",
     "AlreadyMappedError",

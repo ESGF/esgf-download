@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Type
+from typing import Any, Callable, Type, TypeAlias, Optional
 
 # import os
 import logging
@@ -14,26 +14,101 @@ import alembic.command
 from alembic.migration import MigrationContext
 
 import esgpull
-from esgpull.storage.sqlite.types import (
-    Engine,
-    Session,
-    Row,
-    Result,
-    SelectStmt,
-)
-from esgpull.storage.sqlite.tables import (
+
+from esgpull.types import (
     Status,
-    Table,
     Version,
-    File,
     Param,
+    File,
+    Table,
 )
+
+
+Row: TypeAlias = sa.engine.row.Row
+Registry: TypeAlias = sa.orm.registry
+Engine: TypeAlias = sa.future.engine.Engine
+Session: TypeAlias = sa.orm.session.Session
+Result: TypeAlias = sa.engine.result.Result
+Columns: TypeAlias = Optional[list[sa.Column | sa.UniqueConstraint]]
+SelectStmt: TypeAlias = sa.sql.selectable.Select
+
+Mapper = sa.orm.registry()
+
+TABLES: dict[str, list[sa.Column | sa.Constraint]] = dict(
+    version=[sa.Column("version_num", sa.String(32), primary_key=True)],
+    param=[
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("value", sa.String(255), nullable=False),
+        sa.Column(
+            "last_updated",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now(),
+        ),
+        sa.UniqueConstraint("name", "value"),
+    ],
+    file=[
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("file_id", sa.Text, unique=True, nullable=False),
+        sa.Column("dataset_id", sa.Text),
+        sa.Column("url", sa.Text),
+        sa.Column("version", sa.String(16)),
+        sa.Column("filename", sa.String(255)),
+        sa.Column("local_path", sa.String(255)),
+        sa.Column("data_node", sa.String(40)),
+        sa.Column("checksum", sa.String(64)),
+        sa.Column("checksum_type", sa.String(16)),
+        sa.Column("size", sa.Integer),
+        sa.Column("status", sa.Enum(Status)),
+        sa.Column("metadata", sa.JSON),
+        # sa.Column("start_date", sa.Text),
+        # sa.Column("end_date", sa.Text),
+        # sa.Column(
+        #     "dataset_id",
+        #     sa.Integer,
+        #     sa.ForeignKey("dataset.dataset_id"),
+        #     nullable=False,
+        # ),
+        # sa.Column(
+        #     "raw_url",
+        #     sa.Text,
+        #     sa.Computed(
+        #         "json_extract(metadata,'$.url[0]')",
+        #         persisted=False,
+        #     ),
+        # ),
+        # sa.Column(
+        #     "raw_url_delim_pos",
+        #     sa.Integer,
+        #     sa.Computed("instr(raw_url, '|')", persisted=False),
+        # ),
+        # sa.Column(
+        #     "url",
+        #     sa.Text,
+        #     sa.Computed(
+        #         "substr(raw_url, 1, raw_url_delim_pos-1)",
+        #         persisted=True,
+        #     ),
+        # ),
+    ],
+)
+
+
+def map_table(name: str, table_type: Type[Table]) -> None:
+    table = sa.Table(name, Mapper.metadata, *TABLES[name])
+    Mapper.map_imperatively(table_type, table)
+
+
+map_table("version", Version)
+map_table("param", Param)
+map_table("file", File)
 
 
 class SelectContext:
     """
     Interface to simplify `sqlalchemy.select` usage with custom
-    `SqliteStorage` objects.
+    `Database` objects.
 
     The query must start with a `select` method to register an initial
     statement in the context. Any new `select` will erase previous statements.
@@ -45,22 +120,22 @@ class SelectContext:
 
     Example:
         ```python
-        from esgpull.storage.sqlite import SqliteStorage, SelectContext
+        from esgpull.db.core import Database, SelectContext
         from esgpull.utils import naturalsize
 
-        storage = SqliteStorage(...)
+        db = Database(...)
 
 
-        with storage.select(storage.Version.version) as stmt:
+        with db.select(db.Version.version) as stmt:
             print("version: ", stmt.scalar)
 
-        with storage.select(stmt.File.file_id, stmt.File.size) as stmt:
-            stmt.where(storage.File.file_id >= 1)
+        with db.select(stmt.File.file_id, stmt.File.size) as stmt:
+            stmt.where(db.File.file_id >= 1)
             for id, size in stmt.result:
                 print(f"id: {id}, size: {naturalsize(size)})")
 
-        with storage.select(storage.Param) as stmt:
-            for param in stmt.where(storage.Param.name.like("%ess")).scalars:
+        with db.select(db.Param) as stmt:
+            for param in stmt.where(db.Param.name.like("%ess")).scalars:
                 print(param)
 
         # version:  3.10
@@ -79,7 +154,7 @@ class SelectContext:
         self.session = session
         self.stmt: SelectStmt = sa.select(*tables)
 
-        # for name, table in storage.tables.items():
+        # for name, table in db.tables.items():
         #     setattr(self, name, table)
 
     def __getattr__(self, attr) -> Callable[..., SelectContext]:
@@ -135,12 +210,12 @@ class SelectContext:
 
 
 @dataclass
-class SqliteStorage:
+class Database:
     """
-    Main class to interact with esgpull's sqlite storage.
+    Main class to interact with esgpull's sqlite db.
     """
 
-    path: str = "sqlite:////home/srodriguez/ipsl/data/synda/db/sdt_new.db"
+    path: str
     verbosity: int = 0
 
     def __post_init__(self) -> None:
@@ -153,11 +228,6 @@ class SqliteStorage:
         self.Version = Version
         self.File = File
         self.Param = Param
-        self.tables: dict[str, Type[Table]] = {
-            "Version": self.Version,
-            "File": self.File,
-            "Param": self.Param,
-        }
         self.update_db()
 
     def setup_verbosity(self) -> None:
@@ -212,18 +282,46 @@ class SqliteStorage:
         finally:
             ...
 
-    def install(self, files: list[File]) -> None:
-        to_install = []
+    def add(self, *items: Table) -> None:
+        for item in items:
+            self.session.add(item)
+        self.session.commit()
+
+    def delete(self, *items: Table) -> None:
+        for item in items:
+            self.session.delete(item)
+        self.session.commit()
+
+    def install(
+        self, files: list[File], status: Status = Status.waiting
+    ) -> list[File]:
+        installed = []
         for file in files:
             with self.select(File) as sel:
                 sel.where(File.file_id == file.file_id)
                 if len(sel.scalars) == 0:
-                    file.status = Status.waiting
-                    to_install.append(file)
-        self.session.add_all(to_install)
+                    file.status = status
+                    installed.append(file)
+        self.session.add_all(installed)
         self.session.commit()
-        print(f"Installed {len(to_install)} new files.")
+        return installed
 
     def get_files_with_status(self, status: Status) -> list[File]:
         with self.select(File) as sel:
             return sel.where(File.status == status).scalars
+
+    def has(self, /, file: File = None, filepath: Path = None) -> bool:
+        if file is not None:
+            table = File
+            condition = File.file_id == file.file_id
+        elif filepath is not None:
+            table = File
+            condition = File.filename == filepath.name
+        else:
+            raise ValueError
+        with self.select(table) as sel:
+            matching = sel.where(condition).scalars
+        return any(matching)
+
+
+__all__ = ["Database"]

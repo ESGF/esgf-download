@@ -7,11 +7,11 @@ esgpull is a minimal command line utility for local management of ESGF datasets 
 It helps with discovery, download and version control of datasets uploaded on ESGF nodes.
 
 ```python
-from esgpull import Storage
+from esgpull import Database
 
 ## Open a `:memory:` sqlite database
-storage = Storage(path="path/to/db.db")
-print(storage.semver)
+db = Database(path="path/to/db.db")
+print(db.version)
 # 4.0.0
 ```
 

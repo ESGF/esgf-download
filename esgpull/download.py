@@ -9,8 +9,8 @@ import asyncio
 from urllib.parse import urlsplit
 from httpx import AsyncClient, RequestError
 
+from esgpull.types import File
 from esgpull.context import Context
-from esgpull.storage.sqlite.tables import File
 from esgpull.utils.constants import DOWNLOAD_CHUNK_SIZE
 
 
@@ -194,5 +194,8 @@ class MultiSourceChunkedDownload:
                 completed[chunk_idx] = True
                 chunks[chunk_idx] = chunk
         if not all(completed):
-            raise ValueError("TODO: progressive storage (with .part file)")
+            raise ValueError("TODO: progressive write (with .part file)")
         return b"".join(chunks)
+
+
+__all__ = ["Download"]

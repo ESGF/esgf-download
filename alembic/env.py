@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from esgpull.storage.sqlite.tables import Mapper
+from esgpull.db import Mapper
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

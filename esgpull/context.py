@@ -8,7 +8,7 @@ import pandas
 import datetime
 from urllib.parse import urlparse
 
-from esgpull.context.facets import Facets
+from esgpull.facets import Facets
 from esgpull.utils.constants import DEFAULT_ESGF_INDEX
 
 
@@ -306,6 +306,8 @@ class Context:
     #     """
     #     return hash(self.index) ^ hash(self.query)
 
+
+__all__ = ["Context"]
 
 if __name__ == "__main__":
     # [?]TODO: use these as unit tests
