@@ -1,4 +1,5 @@
 import os
+import asyncio
 from pathlib import Path
 
 import esgpull
@@ -12,6 +13,12 @@ from esgpull.utils import *
 MAJOR, MINOR, PATCH = 4, 0, 0
 __semver__ = Semver(MAJOR, MINOR, PATCH)
 __version__ = str(__semver__)
+
+# # workaround for notebooks with running event loop
+# if asyncio.get_event_loop().is_running():
+#     import nest_asyncio
+
+#     nest_asyncio.apply()
 
 
 class Esgpull:
@@ -89,12 +96,52 @@ class Esgpull:
                 file = File.from_metadata(metadata)
                 if file.version == filename_version_dict[file.filename]:
                     new_files.append(file)
-            self.db.install(new_files, Status.done)
+            self.install(new_files, Status.done)
             nb_remaining = len(filename_version_dict) - len(new_files)
             print(f"Installed {len(new_files)} new files.")
             print(f"{nb_remaining} files remain installed (another index?).")
         else:
             print("No new files.")
+
+    def install(
+        self, files: list[File], status: Status = Status.waiting
+    ) -> list[File]:
+        # def install(
+        #     self, files: list[File], status: Status = Status.waiting
+        # ) -> list[File]:
+        installed = []
+        for file in files:
+            with self.db.select(File) as stmt:
+                stmt.where(File.file_id == file.file_id)
+                if len(stmt.scalars) == 0:
+                    file.status = status
+                    installed.append(file)
+        self.db.add(*installed)
+        return installed
+
+    def remove(self, files: list[File]) -> list[File]:
+        deleted = []
+        for file in files:
+            path = self.fs.path_of(file)
+            path.unlink(missing_ok=True)
+            if path.parent.is_dir():
+                path.parent.rmdir()
+            with self.db.select(File) as stmt:
+                stmt.where(File.file_id == file.file_id)
+                matching = stmt.scalars
+                for m in matching:
+                    deleted.append(m)
+        self.db.delete(*deleted)
+        return deleted
+
+    async def download_waiting(self, use_bar=True) -> tuple[int, int]:
+        waiting = self.db.get_files_with_status(Status.waiting)
+        processor = Processor(waiting)
+        async for file, data in processor.process(use_bar):
+            await self.fs.write(file, data)
+            file.status = Status.done
+            self.db.add(file)
+        return len(waiting), sum(file.size for file in waiting)
 
 
 __all__ = (

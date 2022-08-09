@@ -5,7 +5,6 @@ from typing import Any, Callable, Type, TypeAlias, Optional
 import logging
 from pathlib import Path
 from contextlib import contextmanager
-from dataclasses import dataclass
 
 import sqlalchemy as sa
 import sqlalchemy.orm
@@ -209,7 +208,6 @@ class SelectContext:
         return result[0]
 
 
-@dataclass
 class Database:
     """
     Main class to interact with esgpull's sqlite db.
@@ -218,9 +216,11 @@ class Database:
     path: str
     verbosity: int = 0
 
-    def __post_init__(self) -> None:
-        self.setup_verbosity()
+    def __init__(self, path: str, verbosity: int = 0) -> None:
+        self.path = path
+        self.verbosity = verbosity
         self.setup_path()
+        self.apply_verbosity()
         self.engine: Engine = sa.create_engine(self.path, future=True)
         session_cls = sa.orm.sessionmaker(bind=self.engine, future=True)
         self.session: Session = session_cls()
@@ -228,19 +228,18 @@ class Database:
         self.Version = Version
         self.File = File
         self.Param = Param
-        self.update_db()
+        self.update()
 
-    def setup_verbosity(self) -> None:
+    def apply_verbosity(self) -> None:
         logging.basicConfig()
         engine = logging.getLogger("sqlalchemy.engine")
-        engine_lvl = logging.NOTSET
         match self.verbosity:
-            case 0:
-                ...
             case 1:
                 engine_lvl = logging.INFO
             case 2:
                 engine_lvl = logging.DEBUG
+            case _:
+                engine_lvl = logging.NOTSET
         engine.setLevel(engine_lvl)
 
     def setup_path(self) -> None:
@@ -253,7 +252,7 @@ class Database:
         # else:
         #     assert os.path.exists(self.path.removeprefix(prefix))
 
-    def update_db(self) -> None:
+    def update(self) -> None:
         pkg_version = esgpull.__version__
         with self.engine.begin() as conn:
             opts = {"version_table": "version"}
@@ -291,20 +290,8 @@ class Database:
         for item in items:
             self.session.delete(item)
         self.session.commit()
-
-    def install(
-        self, files: list[File], status: Status = Status.waiting
-    ) -> list[File]:
-        installed = []
-        for file in files:
-            with self.select(File) as sel:
-                sel.where(File.file_id == file.file_id)
-                if len(sel.scalars) == 0:
-                    file.status = status
-                    installed.append(file)
-        self.session.add_all(installed)
-        self.session.commit()
-        return installed
+        for item in items:
+            sa.orm.session.make_transient(item)
 
     def get_files_with_status(self, status: Status) -> list[File]:
         with self.select(File) as sel:

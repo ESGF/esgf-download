@@ -30,7 +30,7 @@ class Filesystem:
         for path in self.data.glob("**/*.nc"):
             yield path
 
-    async def write_file(self, file: File, data: bytes) -> None:
+    async def write(self, file: File, data: bytes) -> None:
         path = self.path_of(file)
         path.parent.mkdir(parents=True, exist_ok=True)
         async with aiofiles.open(path, "wb") as f:

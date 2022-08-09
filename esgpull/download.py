@@ -1,8 +1,10 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, TypeAlias
+from collections.abc import AsyncIterator
 
 import math
 from pathlib import Path
+from tqdm.auto import tqdm
 from dataclasses import dataclass
 
 import asyncio
@@ -14,47 +16,46 @@ from esgpull.context import Context
 from esgpull.utils.constants import DOWNLOAD_CHUNK_SIZE
 
 
-@dataclass(init=False)
 class Download:
     """
     Simple async download class.
     """
 
-    url: str
-    size: int
-    # output_path: str | Path = "/tmp/file.nc"
-
     def __init__(
         self,
         file: File = None,
-        /,
         url: str = None,
-        size: int = None,
     ) -> None:
         if file is not None:
-            self.url = file.url
-            self.size = file.size
+            self.file = file
         elif url is not None:
-            self.url = url
-            if size is None:
-                ctx = Context()
-                # TODO: define map data_node->index_node to find url-file
-                # ctx.query.index_node = ...
-                ctx.query.title = Path(url).name
-                results = ctx.search(todf=False, file=True)
-                if len(results) == 1:
-                    size = results[0]["size"]
-                elif len(results) > 1:
-                    for res in results:
-                        f = File.from_metadata(res)
-                        if f.version in url:
-                            size = f.size
-                            break
-            if size is None:
+            ctx = Context()
+            # TODO: define map data_node->index_node to find url-file
+            # ctx.query.index_node = ...
+            ctx.query.title = Path(url).name
+            results = ctx.search(todf=False, file=True)
+            if len(results) == 1:
+                self.file = File.from_metadata(results[0])
+            elif len(results) > 1:
+                found_file = False
+                for res in results:
+                    file = File.from_metadata(res)
+                    if file.version in url:
+                        self.file = file
+                        found_file = True
+                        break
+            if not found_file:
                 raise ValueError(f"{url} is not valid")
-            self.size = size
         else:
             raise ValueError("no arguments")
+
+    @property
+    def url(self) -> str:
+        return self.file.url
+
+    @property
+    def size(self) -> int:
+        return self.file.size
 
     async def aget(self) -> bytes:
         async with AsyncClient(follow_redirects=True) as client:
@@ -63,7 +64,6 @@ class Download:
         return resp.content
 
 
-@dataclass(init=False)
 class ChunkedDownload(Download):
     """
     Sequential async chunked download class.
@@ -71,7 +71,14 @@ class ChunkedDownload(Download):
     Can be extended to download chunks concurrently (Semaphore for caution).
     """
 
-    chunk_size: int = DOWNLOAD_CHUNK_SIZE
+    def __init__(
+        self,
+        file: File = None,
+        url: str = None,
+        chunk_size: int = DOWNLOAD_CHUNK_SIZE,
+    ) -> None:
+        super().__init__(file, url)
+        self.chunk_size = chunk_size
 
     # TODO: decide whether:
     # 1. await-get directly as classmethod (e.g. `file`)
@@ -106,27 +113,24 @@ class ChunkedDownload(Download):
 
 
 @dataclass(init=False)
-class MultiSourceChunkedDownload:
+class MultiSourceChunkedDownload(Download):
     """
     Concurrent chunked downloader that resolves chunks from multiple URLs
     pointing to the same file. These URLs are fetched during `__init__`.
     """
 
-    urls: list[str]
-    size: int
-    chunk_size: int = DOWNLOAD_CHUNK_SIZE
-    # output_path: str | Path = "/tmp/file.nc"
-
     def __init__(
         self,
         file: File,
         max_ping=5.0,
+        chunk_size: int = DOWNLOAD_CHUNK_SIZE,
     ) -> None:
+        self.file = file
         self.max_ping = max_ping
+        self.chunk_size = chunk_size
         c = Context(distrib=True, fields="id,size,url")
         c.query.instance_id = file.file_id
         results = c.search(file=True, todf=False)
-        self.size = results[0]["size"]
         self.urls = [r["url"][0].split("|")[0] for r in results]
 
     async def try_url(self, url: str, client: AsyncClient) -> Optional[str]:
@@ -198,4 +202,38 @@ class MultiSourceChunkedDownload:
         return b"".join(chunks)
 
 
-__all__ = ["Download"]
+Process: TypeAlias = Download | ChunkedDownload | MultiSourceChunkedDownload
+ResultData: TypeAlias = tuple[File, bytes]
+
+
+@dataclass
+class Processor:
+    files: list[File]
+    max_concurrent: int = 5
+
+    async def process_one(
+        self, process: Process, semaphore: asyncio.Semaphore
+    ) -> ResultData:
+        async with semaphore:
+            data = await process.aget()
+        return process.file, data
+
+    async def process(self, use_bar=False) -> AsyncIterator[ResultData]:
+        if use_bar:
+            total_size = sum(file.size for file in self.files)
+            bar = tqdm(
+                total=total_size, unit="iB", unit_scale=True, unit_divisor=1024
+            )
+        semaphore = asyncio.Semaphore(self.max_concurrent)
+        processes = [Download(file) for file in self.files]
+        tasks = [self.process_one(process, semaphore) for process in processes]
+        for future in asyncio.as_completed(tasks):
+            file, data = await future
+            yield file, data
+            if use_bar:
+                bar.update(file.size)
+        if use_bar:
+            bar.close()
+
+
+__all__ = ["Download", "Processor"]

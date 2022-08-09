@@ -19,6 +19,7 @@ setup(
     maintainer_email="srodriguez@ipsl.fr",
     install_requires=[
         "sqlalchemy",
+        "tqdm",
         "click",
         "click-params",
         "click-default-group",

@@ -1,3 +1,5 @@
+from typing import TypeAlias
+
 from enum import Enum, auto
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -116,6 +118,6 @@ class File:
         )
 
 
-Table = Version | Param | File
+Table: TypeAlias = Version | Param | File
 
 __all__ = ["Status", "Version", "Param", "File", "Table"]
