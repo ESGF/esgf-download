@@ -8,7 +8,8 @@ import pandas
 import datetime
 from urllib.parse import urlparse
 
-from esgpull.facets import Facets
+from esgpull.query import Query
+from esgpull.types import FacetDict
 from esgpull.utils.constants import DEFAULT_ESGF_INDEX
 
 
@@ -83,22 +84,20 @@ class Context:
         self.search_batchsize = search_batchsize
         self.last_update = format_date(last_update)
         self.show_url = show_url
-        self._facets = Facets()
         if selection_file_path is not None:
-            self._facets.load(selection_file_path)
-
-    @property
-    def query(self) -> Facets:
-        return self._facets
+            self.query = Query.from_file(selection_file_path)
+        else:
+            self.query = Query()
 
     def _build_query(
         self,
-        dump: dict[str, str],
+        facets: FacetDict,
         file=False,
         limit=50,
         offset=None,
         **extra,
     ) -> dict:
+        # raw_query = format_
         query = {
             "fields": self.fields,
             # "facets": self.facets,
@@ -111,7 +110,7 @@ class Context:
             "retracted": self.retracted,
             "from": self.last_update,
             "format": "application/solr+json",
-            **dump,
+            **facets,
             **extra,
         }
         if "index_node" in query:
@@ -129,8 +128,8 @@ class Context:
 
     def _build_queries(self, **extra) -> list[dict]:
         result = []
-        for dump in self.query.dump_flat():
-            query = self._build_query(dump, **extra)
+        for flat in self.query.flatten():
+            query = self._build_query(flat.dump(), **extra)
             result.append(query)
         return result
 

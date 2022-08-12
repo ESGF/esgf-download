@@ -7,27 +7,7 @@ class EsgpullException(Exception):
 
 
 class NoRootError(EsgpullException):
-    msg = "`ST_HOME` not set."
-
-
-class NotSupportedVersion(EsgpullException):
-    msg = "The version {} is not supported."
-
-
-class NotASemverError(EsgpullException):
-    msg = "Expected a version but got '{}'."
-
-
-class AlreadyMappedError(EsgpullException):
-    msg = "This instance of '{}' already has a mapping."
-
-
-class NotMappedError(EsgpullException):
-    msg = "{} has no mapping."
-
-
-class UnknownMode(EsgpullException):
-    msg = "Unknown mode: '{}'."
+    msg = "Environment variable `ST_HOME` must be set."
 
 
 class UnknownFacetName(AttributeError, EsgpullException):
@@ -38,29 +18,25 @@ class UnknownFacetName(AttributeError, EsgpullException):
     msg = "'{}' is not a valid facet."
 
 
-class ImpossibleFacet(EsgpullException):
-    msg = """{} cannot be set with the current facets:
-    {}"""
+# # error to be used with validation implemented
+# class ImpossibleFacet(EsgpullException):
+#     msg = """Facet '{}' is not available with this query:
+#     {}"""
 
 
 class UnknownFacetValue(EsgpullException):
     msg = "'{}' is not valid for {}."
 
 
-class OutsideContext(EsgpullException):
-    msg = """Facets should only be set/appended to inside a `with` contextG
+class UnsupportedSource(EsgpullException):
+    msg = """This source cannot be loaded as a query:
     {}"""
 
 
 __all__ = [
     "NoRootError",
-    "NotSupportedVersion",
-    "NotASemverError",
-    "AlreadyMappedError",
-    "NotMappedError",
-    "UnknownMode",
     "UnknownFacetName",
-    "ImpossibleFacet",
+    # "ImpossibleFacet",
     "UnknownFacetValue",
-    "OutsideContext",
+    "UnsupportedSource",
 ]

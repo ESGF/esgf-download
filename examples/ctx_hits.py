@@ -1,60 +1,61 @@
-from esgpull import Context
+from esgpull.context import Context
 
 c = Context(distrib=False, latest=True)
-f = c.facets
+q = c.query
 
-f.project = "CMIP5"
-f.experiment = "historical"
-f.ensemble = "r1i1p1"
-f.realm = "atmos"
-f.time_frequency = "day"
+q.project = "CMIP5"
+q.experiment = "historical"
+q.ensemble = "r1i1p1"
+q.realm = "atmos"
+q.time_frequency = "day"
 
-with f:
-    # Add to already set experiment with `+=`
-    f.experiment += "rcp26"
-    f.time_frequency = "mon"
-    f.variable = "tasmin"
+qq = q.add()
+# Add to already set experiment with `+=`
+qq.experiment += "rcp26"
+qq.time_frequency = "mon"
+qq.variable = "tasmin"
 
-with f:
-    f.experiment = "rcp85"
-    f.variable = ["tas", "ua"]
+qq = q.add()
+qq.experiment = "rcp85"
+qq.variable = ["tas", "ua"]
 
-with f:
-    f.time_frequency += ["mon", "fx"]
-    f.variable = "tasmax"
+qq = q.add()
+qq.time_frequency += ["mon", "fx"]
+qq.variable = "tasmax"
 
-f.reduce()
-print(f)
+# q.reduce()
+print(q)
 print(c.hits)
 print(len(c.search()))
 
+######################
 
-f._setdefault(full=True)
+c = Context(distrib=False, latest=True)
+q = c.query
 
-f.project = "CMIP6"
-f.experiment_id = "historical"
-f.variant_label = "r1i1p1f1"
-# f.realm = "atmos"
-f.frequency = "day"
+q.project = "CMIP6"
+q.experiment_id = "historical"
+q.variant_label = "r1i1p1f1"
+# q.realm = "atmos"
+q.frequency = "day"
 
-with f:
-    # Add to already set experiment with `+=`
-    # f.experiment_id += "rcp26"
-    f.experiment_id += "ssp245"
-    f.frequency = "mon"
-    f.variable_id = "tasmin"
+qq = q.add()
+# Add to already set experiment with `+=`
+# q.experiment_id += "rcp26"
+q.experiment_id += "ssp245"
+q.frequency = "mon"
+q.variable_id = "tasmin"
 
-with f:
-    # f.experiment_id = "rcp85"
-    f.experiment_id = "ssp126"
-    f.variable_id = ["tas", "ua"]
+qq = q.add()
+# q.experiment_id = "rcp85"
+q.experiment_id = "ssp126"
+q.variable_id = ["tas", "ua"]
 
-with f:
-    f.frequency += ["mon", "fx"]
-    f.variable_id = "tasmax"
+qq = q.add()
+q.frequency += ["mon", "fx"]
+q.variable_id = "tasmax"
 
-
-f.reduce()
-print(f)
+# q.reduce()
+print(q)
 print(c.hits)
 print(len(c.search()))

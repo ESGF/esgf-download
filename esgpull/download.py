@@ -35,11 +35,11 @@ class Download:
             ctx.query.title = Path(url).name
             results = ctx.search(todf=False, file=True)
             if len(results) == 1:
-                self.file = File.from_metadata(results[0])
+                self.file = File.from_dict(results[0])
             elif len(results) > 1:
                 found_file = False
                 for res in results:
-                    file = File.from_metadata(res)
+                    file = File.from_dict(res)
                     if file.version in url:
                         self.file = file
                         found_file = True

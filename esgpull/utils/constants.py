@@ -35,6 +35,7 @@ EXTRA_FACETS = [
     "index_node",
     "instance_id",  # search does not work with instance_id
     "title",
+    "variable_long_name",
 ]
 DEFAULT_CONSTRAINTS_WITH_VALUE: dict[str, str] = {}
 

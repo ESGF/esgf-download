@@ -5,7 +5,8 @@ import rich
 import click
 import pandas
 
-from esgpull import Context
+from esgpull.query import Query
+from esgpull.context import Context
 from esgpull.utils import naturalsize
 from esgpull.cli.utils import SliceParam
 
@@ -71,7 +72,8 @@ def search(
         name, value = facet.split(":", 1)
         ctx.query[name] = value
     if selection_file is not None:
-        ctx.query.load(selection_file)
+        other = Query.from_file(selection_file)
+        ctx.query.update(other)
     if file:
         hits = ctx.file_hits
     else:

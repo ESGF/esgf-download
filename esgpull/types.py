@@ -1,8 +1,47 @@
-from typing import TypeAlias
+from typing import TypeAlias, TypeGuard, Any
 
 from enum import Enum, auto
 from datetime import datetime
 from dataclasses import dataclass, field
+
+FacetValues: TypeAlias = str | set[str] | list[str] | tuple[str]
+FacetDict: TypeAlias = dict[str, FacetValues]
+NestedFacetDict: TypeAlias = dict[str, FacetValues | list[FacetDict]]
+
+
+def is_facet_values(values: Any) -> TypeGuard[FacetValues]:
+    if isinstance(values, str):
+        return True
+    elif isinstance(values, (list, tuple, set)) and all(
+        isinstance(x, str) for x in values
+    ):
+        return True
+    else:
+        return False
+
+
+def is_facet_dict(d: dict[str, Any]) -> TypeGuard[FacetDict]:
+    return all(is_facet_values(x) for x in d.values())
+
+
+def split_nested_facet_dict(
+    d: dict[str, Any]
+) -> tuple[FacetDict, list[FacetDict]]:
+    simple = dict(d)
+    requests = simple.pop("requests", [])
+    if not is_facet_dict(simple) or not isinstance(requests, list):
+        raise TypeError
+    if any(not is_facet_dict(x) for x in requests):
+        raise TypeError
+    return simple, requests
+
+
+def is_nested_facet_dict(d: dict[str, Any]) -> TypeGuard[NestedFacetDict]:
+    try:
+        simple, requests = split_nested_facet_dict(d)
+        return True
+    except TypeError:
+        return False
 
 
 class Status(Enum):
@@ -82,7 +121,7 @@ class File:
         return template.format(version=version, **metadata)
 
     @classmethod
-    def from_metadata(cls, raw_metadata: dict) -> "File":
+    def from_dict(cls, raw_metadata: dict) -> "File":
         metadata = {}
         for k, v in raw_metadata.items():
             if isinstance(v, list) and len(v) == 1:

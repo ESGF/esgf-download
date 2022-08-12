@@ -1,8 +1,13 @@
 import os
-import asyncio
+
+# import asyncio
+# # workaround for notebooks with running event loop
+# if asyncio.get_event_loop().is_running():
+#     import nest_asyncio
+#     nest_asyncio.apply()
+
 from pathlib import Path
 
-import esgpull
 from esgpull.types import *
 from esgpull.context import *
 from esgpull.db import *
@@ -13,12 +18,6 @@ from esgpull.utils import *
 MAJOR, MINOR, PATCH = 4, 0, 0
 __semver__ = Semver(MAJOR, MINOR, PATCH)
 __version__ = str(__semver__)
-
-# # workaround for notebooks with running event loop
-# if asyncio.get_event_loop().is_running():
-#     import nest_asyncio
-
-#     nest_asyncio.apply()
 
 
 class Esgpull:
@@ -54,8 +53,8 @@ class Esgpull:
         index_nodes = list(ctx.facet_counts[0]["index_node"])
         ctx = Context(distrib=False)
         for index_node in index_nodes:
-            with ctx.query:
-                ctx.query.index_node = index_node
+            query = ctx.query.add()
+            query.index_node = index_node
         index_facets = ctx.facet_counts
         facet_counts: dict[str, set[str]] = {}
         for facets in index_facets:
@@ -87,13 +86,13 @@ class Esgpull:
             filename = path.name
             version = path.parent.name
             filename_version_dict[filename] = version
-            with context.query:
-                context.query.title = filename
+            query = context.query.add()
+            query.title = filename
         if filename_version_dict:
             search_results = context.search(file=True, todf=False)
             new_files = []
             for metadata in search_results:
-                file = File.from_metadata(metadata)
+                file = File.from_dict(metadata)
                 if file.version == filename_version_dict[file.filename]:
                     new_files.append(file)
             self.install(new_files, Status.done)
@@ -144,12 +143,12 @@ class Esgpull:
         return len(waiting), sum(file.size for file in waiting)
 
 
-__all__ = (
-    ["Esgpull"]
-    + esgpull.types.__all__
-    + esgpull.context.__all__
-    + esgpull.db.__all__
-    + esgpull.fs.__all__
-    + esgpull.download.__all__
-    + esgpull.utils.__all__
-)
+__all__ = ["Esgpull"]
+# (
+#     +esgpull.types.__all__
+#     + esgpull.context.__all__
+#     + esgpull.db.__all__
+#     + esgpull.fs.__all__
+#     + esgpull.download.__all__
+#     + esgpull.utils.__all__
+# )
