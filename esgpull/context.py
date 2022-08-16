@@ -45,10 +45,7 @@ class Context:
         show_url: bool = False,
         new_style: bool = True,
     ):
-        # self.index = url_to_index(index)
-        # self.url = index_to_url(self.index)
         self.fields = fields
-        # self.facets = facets
         self.latest = latest
         self.replica = replica
         self.distrib = distrib
@@ -69,15 +66,13 @@ class Context:
     def _build_query(
         self,
         facets: FacetDict,
-        file=False,
-        limit=50,
-        offset=None,
+        file: bool = False,
+        limit: int = 50,
+        offset: int = None,
         **extra,
     ) -> dict:
-        # raw_query = format_
         query = {
             "fields": self.fields,
-            # "facets": self.facets,
             "type": "File" if file else "Dataset",
             "limit": limit,
             "offset": offset,
@@ -90,16 +85,16 @@ class Context:
             **extra,
         }
         if "index_node" in facets:
-            url = index_to_url(str(facets.pop("index_node")))
+            url = index2url(str(facets.pop("index_node")))
             query["url"] = url
         elif "url" in facets:
             query["url"] = facets.pop("url")
         else:
-            query["url"] = index_to_url(DEFAULT_ESGF_INDEX)
-        # if "start" in facets:
-        #     facets["start"] = format_date(str(facets["start"]))
-        # if "end" in facets:
-        #     facets["end"] = format_date(str(facets["end"]))
+            query["url"] = index2url(DEFAULT_ESGF_INDEX)
+        if "start" in facets:
+            facets["start"] = format_date(str(facets["start"]))
+        if "end" in facets:
+            facets["end"] = format_date(str(facets["end"]))
         if self.new_style:
             facets_: list[str] = []
             for name, values in facets.items():
@@ -114,10 +109,13 @@ class Context:
         # [?]TODO: add nominal temporal constraints `to`
         return {k: v for k, v in query.items() if v is not None}
 
-    def _build_queries(self, **extra) -> list[dict]:
+    def _build_queries(self, offsets: list[int] = None, **extra) -> list[dict]:
         result = []
-        for flat in self.query.flatten():
-            query = self._build_query(flat.dump(), **extra)
+        offset: Optional[int] = None
+        for i, flat in enumerate(self.query.flatten()):
+            if offsets is not None:
+                offset = offsets[i]
+            query = self._build_query(flat.dump(), offset=offset, **extra)
             result.append(query)
         return result
 
@@ -161,18 +159,26 @@ class Context:
         hits: list[int],
         file: bool,
         max_results: int = 200,
+        offset: int = 0,
         batchsize: int = None,
     ) -> list[dict]:
         if batchsize is None:
             batchsize = self.search_batchsize
-        hits = self._adjust_hits(hits, max_results)
-        raw_queries = self._build_queries(offset=0, file=file)
+        if offset:
+            offsets = self._adjust_hits(hits, offset)
+            hits = [h - o for h, o in zip(hits, offsets)]
+            hits = self._adjust_hits(hits, max_results)
+        else:
+            offsets = [0 for _ in hits]
+            hits = self._adjust_hits(hits, max_results)
+        raw_queries = self._build_queries(offsets=offsets, file=file)
         queries = []
         for i, query in list(enumerate(raw_queries)):
             nb_queries = (hits[i] - 1) // batchsize + 1
+            query_offset = offsets[i]
             for j in range(nb_queries):
-                offset = j * batchsize
-                limit = min(batchsize, hits[i] - offset)
+                offset = query_offset + j * batchsize
+                limit = min(batchsize, hits[i] + query_offset - offset)
                 queries.append(query | dict(limit=limit, offset=offset))
         return queries
 
@@ -227,9 +233,13 @@ class Context:
             hit_counts.append(hit_count)
         return hit_counts, facet_counts
 
-    async def _search(self, file: bool, max_results: int = 200) -> list[dict]:
+    async def _search(
+        self, file: bool, max_results: int = 200, offset: int = 0
+    ) -> list[dict]:
         hits = await self._hits(file)
-        queries = self._build_queries_search(hits, file, max_results)
+        queries = self._build_queries_search(
+            hits=hits, file=file, max_results=max_results, offset=offset
+        )
         ids = set()
         result = []
         async for json in self._fetch(queries):
@@ -275,9 +285,11 @@ class Context:
         return result
 
     def search(
-        self, *, file=False, todf=True, max_results: int = 200
+        self, *, file=False, todf=True, max_results: int = 200, offset: int = 0
     ) -> list[dict] | pandas.DataFrame:
-        results = asyncio.run(self._search(file, max_results=max_results))
+        results = asyncio.run(
+            self._search(file, max_results=max_results, offset=offset)
+        )
         if todf:
             return pandas.DataFrame(results)
         else:

@@ -32,6 +32,7 @@ def totable(
     table.add_column("date", justify="right")
     timestamp = df.get("timestamp", df["_timestamp"])
     numids = map(str, range(_slice.start, _slice.stop))
+    _slice = slice(0, _slice.stop - _slice.start)
     sizes = map(naturalsize, df["size"][_slice])
     ids = map(pretty_id, df["id"][_slice])
     dates = timestamp[_slice]
@@ -67,6 +68,7 @@ def search(
     # TODO: bug with print_slice:
     # -> `offset=0`, will always return nothing result on `start < size`
     ctx = Context(distrib=distrib, latest=latest)
+    offset = print_slice.start
     size = print_slice.stop - print_slice.start
     for facet in facets:
         name, value = facet.split(":", 1)
@@ -79,10 +81,12 @@ def search(
     else:
         hits = ctx.hits
     if dry_run:
-        queries = ctx._build_queries_search(hits, file=file, max_results=size)
+        queries = ctx._build_queries_search(
+            hits, file=file, max_results=size, offset=offset
+        )
         rich.print(queries)
     else:
-        df = ctx.search(file=file, todf=True, max_results=size)
+        df = ctx.search(file=file, todf=True, max_results=size, offset=offset)
         nb = sum(hits)
         rich.print(f"Found {nb} result{'s' if nb > 1 else ''}.")
         if len(df):
