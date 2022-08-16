@@ -66,7 +66,7 @@ def search(
     latest: bool = None,
 ) -> None:
     # TODO: bug with print_slice:
-    # -> `offset=0`, will always return nothing result on `start < size`
+    # -> numeric ids are not consistent due to sort by instance_id
     ctx = Context(distrib=distrib, latest=latest)
     offset = print_slice.start
     size = print_slice.stop - print_slice.start
