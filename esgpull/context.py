@@ -34,12 +34,7 @@ def index_to_url(index: str) -> str:
     return "https://" + url_to_index(index) + "/esg-search/search"
 
 
-def format_date(
-    date: Optional[str | datetime.datetime], fmt: str = "%Y-%m-%d"
-) -> Optional[str]:
-    result: Optional[str]
-    if date is None:
-        return None
+def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
     match date:
         case datetime.datetime():
             ...
@@ -71,6 +66,7 @@ class Context:
         search_batchsize: int = 50,
         last_update: Optional[str | datetime.datetime] = None,
         show_url: bool = False,
+        new_style: bool = True,
     ):
         # self.index = url_to_index(index)
         # self.url = index_to_url(self.index)
@@ -82,8 +78,12 @@ class Context:
         self.retracted = retracted
         self.max_concurrent = max_concurrent
         self.search_batchsize = search_batchsize
-        self.last_update = format_date(last_update)
+        if last_update is None:
+            self.last_update = last_update
+        else:
+            self.last_update = format_date(last_update)
         self.show_url = show_url
+        self.new_style = new_style
         if selection_file_path is not None:
             self.query = Query.from_file(selection_file_path)
         else:
@@ -110,19 +110,30 @@ class Context:
             "retracted": self.retracted,
             "from": self.last_update,
             "format": "application/solr+json",
-            **facets,
             **extra,
         }
-        if "index_node" in query:
-            url = index_to_url(query.pop("index_node"))
+        if "index_node" in facets:
+            url = index_to_url(str(facets.pop("index_node")))
             query["url"] = url
-        if "url" not in query:
+        elif "url" in facets:
+            query["url"] = facets.pop("url")
+        else:
             query["url"] = index_to_url(DEFAULT_ESGF_INDEX)
-        if "start" in query:
-            query["start"] = format_date(query["start"])
-        if "end" in query:
-            query["end"] = format_date(query["end"])
-        # [?]TODO: add coverage temporal constraints `start/end`
+        # if "start" in facets:
+        #     facets["start"] = format_date(str(facets["start"]))
+        # if "end" in facets:
+        #     facets["end"] = format_date(str(facets["end"]))
+        if self.new_style:
+            facets_: list[str] = []
+            for name, values in facets.items():
+                if isinstance(values, list):
+                    values = "(" + " ".join(values) + ")"
+                facets_.append(f"{name}:{values}")
+            query_ = " AND ".join(facets_)
+            if query_:
+                query["query"] = query_
+        else:
+            query.update(facets)
         # [?]TODO: add nominal temporal constraints `to`
         return {k: v for k, v in query.items() if v is not None}
 
