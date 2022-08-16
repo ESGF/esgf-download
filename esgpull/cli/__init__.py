@@ -3,7 +3,7 @@
 # https://click.palletsprojects.com/en/latest/
 import click
 
-from esgpull import __version__
+from esgpull import __versionstr__
 from esgpull.cli.autoremove import autoremove
 from esgpull.cli.config import config
 from esgpull.cli.download import download
@@ -42,7 +42,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(__version__, "--version", "-v")
+@click.version_option(__versionstr__, "--version", "-v")
 def cli():
     ...
 

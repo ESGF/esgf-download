@@ -13,8 +13,8 @@ from esgpull.types import (
     split_nested_facet_dict,
     is_nested_facet_dict,
 )
-from esgpull.utils import errors
-from esgpull.utils.constants import DEFAULT_FACETS, EXTRA_FACETS
+from esgpull.exceptions import UnknownFacetName
+from esgpull.constants import DEFAULT_FACETS, EXTRA_FACETS
 
 DEFAULT_FACET_VALUE: FacetValues = "*"
 
@@ -90,7 +90,7 @@ class QueryBase:
             ```
         """
         if name not in self._facets:
-            raise errors.UnknownFacetName(name)
+            raise UnknownFacetName(name)
         else:
             return object.__getattribute__(self, name)
 
@@ -127,7 +127,7 @@ class QueryBase:
         if name in self.__dict__:
             object.__setattr__(self, name, values)
         elif name not in self._facets:
-            raise errors.UnknownFacetName(name)
+            raise UnknownFacetName(name)
         else:
             # validation here
             object.__setattr__(self, name, values)
@@ -191,9 +191,6 @@ class SimpleQuery(QueryBase):
     to restrict usage to the controlled vocabulary.
 
     [--]TODO: recode validations? -> in `Context` directly
-    [-]TODO: use `query=<facet>:<pattern>` instead of
-        `<facet>=<value>[,<value>]` with pattern atoms:
-        `<value>`, `*`, `OR`, `AND`
     """
 
     def update(self: QueryBase, other: QueryBase) -> None:

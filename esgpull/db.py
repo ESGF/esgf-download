@@ -249,15 +249,16 @@ class Database:
         #     assert os.path.exists(self.path.removeprefix(prefix))
 
     def update(self) -> None:
-        pkg_version = esgpull.__version__
+        pkg_version = esgpull.__versionstr__
         with self.engine.begin() as conn:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
-            revision = ctx.get_current_revision()
+            self.version = ctx.get_current_revision()
         config_path = Path(esgpull.__file__).parent.parent / "alembic.ini"
         config = alembic.config.Config(str(config_path))
-        if revision != pkg_version:
+        if self.version != pkg_version:
             alembic.command.upgrade(config, pkg_version)
+            self.version = pkg_version
 
         # from alembic.script import ScriptDirectory
         # from alembic.runtime.environment import EnvironmentContext

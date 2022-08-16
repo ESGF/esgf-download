@@ -6,11 +6,11 @@ import asyncio
 import httpx
 import pandas
 import datetime
-from urllib.parse import urlparse
 
 from esgpull.query import Query
 from esgpull.types import FacetDict
-from esgpull.utils.constants import DEFAULT_ESGF_INDEX
+from esgpull.constants import DEFAULT_ESGF_INDEX
+from esgpull.utils import format_date, index2url
 
 
 # workaround for notebooks with running event loop
@@ -20,29 +20,6 @@ if asyncio.get_event_loop().is_running():
     nest_asyncio.apply()
 
 FacetCounts: TypeAlias = dict[str, dict[str, int]]
-
-
-def url_to_index(url: str) -> str:
-    parsed = urlparse(url)
-    if parsed.netloc == "":
-        return parsed.path
-    else:
-        return parsed.netloc
-
-
-def index_to_url(index: str) -> str:
-    return "https://" + url_to_index(index) + "/esg-search/search"
-
-
-def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
-    match date:
-        case datetime.datetime():
-            ...
-        case str():
-            date = datetime.datetime.strptime(date, fmt)
-        case _:
-            raise ValueError(date)
-    return date.replace(microsecond=0).isoformat() + "Z"
 
 
 class Context:

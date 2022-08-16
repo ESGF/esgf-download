@@ -1,7 +1,5 @@
-from esgpull import Storage, StorageMode, Semver
+from esgpull.db import Database
 
 # Open a `:memory:` sqlite database
-storage = Storage(
-    mode=StorageMode.Sqlite, path=None, verbosity=1, semver=Semver(4, 0)
-)
-print(storage.semver)
+db = Database(path="~/ipsl/synda/data/db/sdt_new.db", verbosity=1)
+print(db.version)

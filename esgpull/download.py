@@ -13,7 +13,7 @@ from httpx import AsyncClient, RequestError
 
 from esgpull.types import File
 from esgpull.context import Context
-from esgpull.utils.constants import DOWNLOAD_CHUNK_SIZE
+from esgpull.constants import DOWNLOAD_CHUNK_SIZE
 
 
 class Download:

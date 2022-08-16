@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
-from esgpull import __version__
+from esgpull import __versionstr__
 
 setup(
     name="esgpull",
     packages=find_packages(),
     package_data={"esgpull": ["py.typed"]},
     include_package_data=True,
-    version=__version__,
+    version=__versionstr__,
     entry_points={"console_scripts": ["esgpull=esgpull.cli:main"]},
     # url='https://github.com/Prodiguer/synda',
     description="ESGF Data transfer Program",
