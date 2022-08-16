@@ -106,7 +106,7 @@ class QueryBase:
             query["project"] = "CMIP5"
             query.variable = "ta"
             print(query)
-            # Query(project: CMIP5, variable: ta)
+            # Query(project={CMIP5}, variable={ta})
             ```
 
         Example:
@@ -116,7 +116,7 @@ class QueryBase:
             ctx.query.project = "CMIP5"
             ctx.update()
 
-            ctx.query["mip_era"] = "CMIP6"
+            ctx.query["mip_era"] = "CMIP6" # TODO: not implemented yet
             # ImpossibleFacet: mip_era cannot be set with the current query:
             #     Query(project: CMIP5)
 
@@ -133,12 +133,14 @@ class QueryBase:
             object.__setattr__(self, name, values)
 
     def __getattr__(self, name: str) -> Facet:
+        """See `help(__getitem__).`"""
         if self._initialized:
             return self[name]
         else:
             return object.__getattribute__(self, name)
 
     def __setattr__(self, name: str, values: FacetValues) -> None:
+        """See `help(__setitem__).`"""
         if self._initialized:
             self[name] = values
         else:
@@ -153,8 +155,8 @@ class QueryBase:
             query = Query()
             query.project = "CMIP6"
             for facet in query:
-                print(facet.tostring())
-            # project: CMIP6
+                print(facet)
+            # project={CMIP6}
             ```
         """
         for facet in self._facets.values():
@@ -228,15 +230,9 @@ class SimpleQuery(QueryBase):
             else:
                 self[name] = values
 
-    def _tostring(self, brackets=False) -> str:
-        facets = [f.tostring() for f in iter(self)]
-        result = ", ".join(facets)
-        if brackets:
-            result = "{" + result + "}"
-        return result
-
     def __repr__(self) -> str:
-        return f"SimpleQuery({self._tostring()})"
+        facets = ", ".join(map(str, self))
+        return f"SimpleQuery({facets})"
 
 
 @dataclass(repr=False)
@@ -307,18 +303,10 @@ class Query(QueryBase):
             query.load(request)
             self.requests.append(query)
 
-    def _tostring(self, brackets=False) -> str:
-        facets = [f.tostring() for f in iter(self)]
-        if self.requests:
-            requests = [r._tostring(brackets=True) for r in self.requests]
-            facets.append(f"requests: {', '.join(requests)}")
-        result = ", ".join(facets)
-        if brackets:
-            result = "{" + result + "}"
-        return result
-
     def __repr__(self) -> str:
-        return f"Query({self._tostring()})"
+        facets = ", ".join(map(str, self))
+        requests = ", ".join(map(str, self.requests))
+        return f"Query({facets}, requests=[{requests}])"
 
     def add(self, source: Optional[QueryBase] = None) -> SimpleQuery:
         query: SimpleQuery

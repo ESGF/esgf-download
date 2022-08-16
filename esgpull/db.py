@@ -213,11 +213,8 @@ class Database:
     Main class to interact with esgpull's sqlite db.
     """
 
-    path: str
-    verbosity: int = 0
-
-    def __init__(self, path: str, verbosity: int = 0) -> None:
-        self.path = path
+    def __init__(self, path: str | Path, verbosity: int = 0) -> None:
+        self.path = str(path)
         self.verbosity = verbosity
         self.setup_path()
         self.apply_verbosity()
@@ -233,13 +230,12 @@ class Database:
     def apply_verbosity(self) -> None:
         logging.basicConfig()
         engine = logging.getLogger("sqlalchemy.engine")
-        match self.verbosity:
-            case 1:
-                engine_lvl = logging.INFO
-            case 2:
-                engine_lvl = logging.DEBUG
-            case _:
-                engine_lvl = logging.NOTSET
+        if self.verbosity == 1:
+            engine_lvl = logging.INFO
+        elif self.verbosity == 2:
+            engine_lvl = logging.DEBUG
+        else:
+            engine_lvl = logging.NOTSET
         engine.setLevel(engine_lvl)
 
     def setup_path(self) -> None:

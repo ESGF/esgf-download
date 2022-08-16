@@ -30,13 +30,7 @@ class Facet:
         return {self.fmt_name: values}
 
     def __repr__(self) -> str:
-        return ",".join(self.values)
-
-    def tostring(self) -> str:
-        result = str(self)
-        if len(self.values) > 1:
-            result = "[" + result + "]"
-        return f"{self.name}:{result}"
+        return f"{self.fmt_name}={self.values}"
 
     def _cast(self, values: FacetValues) -> set[str]:
         if isinstance(values, (list, set, tuple)):
@@ -49,19 +43,28 @@ class Facet:
 
     def _set(self, values: FacetValues | Facet) -> None:
         """
-        We can only "overload" the `=` operator with a property, so this
-        method implements the replacement, and is called from `__set__`.
+        Overloading assignment requires a class property's setter that calls
+        this method.
         """
         if isinstance(values, Facet):
             return  # Required for `+=` / `__iadd__`.
         self.values = self._cast(values)
         self.appended = False
 
-    def _append(self, values: FacetValues) -> None:
+    def __iadd__(self, values: FacetValues) -> Facet:
         """
-        Append values, replace if default.
-        `appended` is set to `True` in both cases as appending is most likely
-        done on a freshly created query with all defaults.
+        Append to existing values or replace default value using operator `+=`.
+        `appended` is set to `True` in any case as appending is most likely
+        not done on the root query.
+
+        Example:
+            ```python
+            f = Facet("name", default="*")
+            f += "first"
+            f += "second"
+            print(f)
+            # name: [second,first]
+            ```
         """
         values = self._cast(values)
         if self.isdefault():
@@ -69,21 +72,6 @@ class Facet:
         else:
             self.values |= values
         self.appended = True
-
-    def __iadd__(self, values: FacetValues) -> Facet:
-        """
-        Define `+=` as appending operator.
-
-        Example:
-            ```python
-            f = Facet("name", default="*")
-            f += "first"
-            f += "second"
-            print(f.tostring())
-            # name: [second,first]
-            ```
-        """
-        self._append(values)
         return self
 
 

@@ -297,7 +297,7 @@ class Context:
 
     def __repr__(self) -> str:
         # return f"Context(index={self.index}, facets={self.query.flatten()})"
-        return f"Context(facets={self.query.flatten()})"
+        return f"Context(query={self.query})"
 
     # def __hash__(self) -> int:
     #     """
