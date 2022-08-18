@@ -13,7 +13,6 @@ import alembic.command
 from alembic.migration import MigrationContext
 
 import esgpull
-
 from esgpull.types import (
     Status,
     Version,
@@ -249,7 +248,7 @@ class Database:
         #     assert os.path.exists(self.path.removeprefix(prefix))
 
     def update(self) -> None:
-        pkg_version = esgpull.__versionstr__
+        pkg_version = esgpull.__version__
         with self.engine.begin() as conn:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
