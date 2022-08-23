@@ -3,7 +3,6 @@ from typing import Optional
 
 import rich
 import click
-import pandas
 
 from esgpull.query import Query
 from esgpull.context import Context
@@ -20,24 +19,24 @@ def pretty_id(id: str) -> str:
 
 
 def totable(
-    df: pandas.DataFrame, node: bool, _slice: slice
+    results: list[dict], node: bool, _slice: slice
 ) -> rich.table.Table:
     rows: zip[tuple]
     table = rich.table.Table()
-    table.add_column("", justify="right")
+    table.add_column("#", justify="right")
     table.add_column("size", justify="right")
     table.add_column("id", justify="left")
     if node:
         table.add_column("node", justify="right")
     table.add_column("date", justify="right")
-    timestamp = df.get("timestamp", df["_timestamp"])
+    timestamp = [r.get("timestamp", r.get("_timestamp")) for r in results]
     numids = map(str, range(_slice.start, _slice.stop))
     _slice = slice(0, _slice.stop - _slice.start)
-    sizes = map(naturalsize, df["size"][_slice])
-    ids = map(pretty_id, df["id"][_slice])
+    sizes = map(naturalsize, [r["size"] for r in results][_slice])
+    ids = map(pretty_id, [r["id"] for r in results][_slice])
     dates = timestamp[_slice]
     if node:
-        nodes = df["data_node"][_slice]
+        nodes = [r["data_node"] for r in results][_slice]
         rows = zip(numids, sizes, ids, nodes, dates)
     else:
         rows = zip(numids, sizes, ids, dates)
@@ -86,8 +85,8 @@ def search(
         )
         rich.print(queries)
     else:
-        df = ctx.search(file=file, todf=True, max_results=size, offset=offset)
+        results = ctx.search(file=file, max_results=size, offset=offset)
         nb = sum(hits)
         rich.print(f"Found {nb} result{'s' if nb > 1 else ''}.")
-        if len(df):
-            rich.print(totable(df, data_node, print_slice))
+        if len(results):
+            rich.print(totable(results, data_node, print_slice))

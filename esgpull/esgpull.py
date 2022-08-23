@@ -84,7 +84,7 @@ class Esgpull:
             query = context.query.add()
             query.title = filename
         if filename_version_dict:
-            search_results = context.search(file=True, todf=False)
+            search_results = context.search(file=True)
             new_files = []
             for metadata in search_results:
                 file = File.from_dict(metadata)

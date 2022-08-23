@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator
 
 import asyncio
 import httpx
-import pandas
 import datetime
 
 from esgpull.query import Query
@@ -285,51 +284,13 @@ class Context:
         return result
 
     def search(
-        self, *, file=False, todf=True, max_results: int = 200, offset: int = 0
-    ) -> list[dict] | pandas.DataFrame:
-        results = asyncio.run(
-            self._search(file, max_results=max_results, offset=offset)
-        )
-        if todf:
-            return pandas.DataFrame(results)
-        else:
-            return results
+        self, *, file=False, max_results: int = 200, offset: int = 0
+    ) -> list[dict]:
+        coro = self._search(file, max_results=max_results, offset=offset)
+        return asyncio.run(coro)
 
     def __repr__(self) -> str:
-        # return f"Context(index={self.index}, facets={self.query.flatten()})"
         return f"Context(query={self.query})"
-
-    # def __hash__(self) -> int:
-    #     """
-    #     Might be useful to cache pyesgf `hit_count` calls at some point.
-    #     """
-    #     return hash(self.index) ^ hash(self.query)
 
 
 __all__ = ["Context"]
-
-if __name__ == "__main__":
-    # [?]TODO: use these as unit tests
-    c1 = Context()
-    print("c1:", c1)
-    print("c1.query:", c1.query)
-    print("list(c1.query):", list(c1.query))
-    print()
-
-    c2 = Context()
-    c1.query["variable_id"] = "toto"
-    c2.query.variable_id = "tutu"
-
-    try:
-        c1.query["variable"] = "toto"
-    except Exception as e:
-        print(e)
-
-    print("c1.query.variable_id:", c1.query.variable_id)
-    print("c2.query.variable_id:", c2.query.variable_id)
-    print()
-    print("c1.query:", c1.query)
-    print("c2.query:", c2.query)
-    print()
-    print("c1.query.dump()", c1.query.dump())
-    # print(c2.__dict__)

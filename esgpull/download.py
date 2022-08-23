@@ -33,11 +33,12 @@ class Download:
             # TODO: define map data_node->index_node to find url-file
             # ctx.query.index_node = ...
             ctx.query.title = Path(url).name
-            results = ctx.search(todf=False, file=True)
+            results = ctx.search(file=True)
+            found_file = False
             if len(results) == 1:
+                found_file = True
                 self.file = File.from_dict(results[0])
             elif len(results) > 1:
-                found_file = False
                 for res in results:
                     file = File.from_dict(res)
                     if file.version in url:
@@ -130,7 +131,7 @@ class MultiSourceChunkedDownload(Download):
         self.chunk_size = chunk_size
         c = Context(distrib=True, fields="id,size,url")
         c.query.instance_id = file.file_id
-        results = c.search(file=True, todf=False)
+        results = c.search(file=True)
         self.urls = [r["url"][0].split("|")[0] for r in results]
 
     async def try_url(self, url: str, client: AsyncClient) -> Optional[str]:

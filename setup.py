@@ -37,7 +37,6 @@ setup(
         "click-default-group",
         "sqlalchemy",
         "alembic",
-        "pandas",  # maybe useless
         "nest_asyncio",  # allow usage in notebooks
     ],
     extras_require={
