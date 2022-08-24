@@ -1,0 +1,89 @@
+import pytest
+
+from pathlib import Path
+
+from esgpull import __version__
+from esgpull.db import Database
+from esgpull.types import Param, File, Status
+
+
+@pytest.fixture
+def db_path(tmp_path):
+    return tmp_path / "db.db"
+
+
+@pytest.fixture
+def db(db_path):
+    return Database(db_path)
+
+
+@pytest.fixture
+def file_(tmp_path):
+    return File(
+        file_id="file",
+        dataset_id="dataset",
+        url="file",
+        version="v0",
+        filename="file.nc",
+        local_path=str(tmp_path),
+        data_node="data_node",
+        checksum="0",
+        checksum_type="0",
+        size=0,
+        status=Status.waiting,
+    )
+
+
+def test_empty(db_path, db):
+    assert db.path.endswith(str(db_path))
+    assert db.version == __version__
+
+
+def test_CRUD(db):
+    with db.select(Param) as select:
+        assert len(select.scalars) == 0
+    param = Param("name", "value")
+    db.add(param)
+    with db.select(Param) as select:
+        results = select.scalars
+    assert results == [param]
+    param.value = "other"
+    db.add(param)  # this is really UPDATE since `param` is already stored
+    with db.select(Param) as select:
+        results = select.where(Param.name == "name").scalars
+    assert len(results) == 1
+    assert results[0].value == "other"
+    db.delete(param)
+    with db.select(Param) as select:
+        assert len(select.scalars) == 0
+
+
+def test_scalar(db):
+    params = [Param(f"name{i}", "value{i}") for i in range(2)]
+    db.add(*params)
+    with db.select(Param) as select:
+        assert select.results == [(params[0],), (params[1],)]
+        with pytest.raises(AssertionError):
+            select.scalar  # `scalar` expects single result
+        assert select.where(Param.name == "name0").scalar == params[0]
+
+
+def test_get_files_with_status(db, file_):
+    db.add(file_)
+    assert db.get_files_with_status(Status.waiting) == [file_]
+    assert db.get_files_with_status(Status.done) == []
+    assert db.has(file_)
+
+
+def test_has(db, file_):
+    filepath = Path(file_.local_path, file_.filename)
+    assert not db.has(file_)
+    assert not db.has(filepath=filepath)
+    db.add(file_)
+    assert db.has(file_)
+    assert db.has(filepath=filepath)
+    db.delete(file_)
+    assert not db.has(file_)
+    assert not db.has(filepath=filepath)
+    with pytest.raises(ValueError):
+        assert db.has()

@@ -35,3 +35,12 @@ install: distclean
 
 develop: distclean
 	pip install -e .[dev]
+
+test:
+	pytest
+
+covtest:
+	pytest --cov-report term-missing:skip-covered --cov=esgpull -vv
+
+fulltest:
+	pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull -vv

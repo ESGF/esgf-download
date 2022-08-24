@@ -42,6 +42,7 @@ setup(
     extras_require={
         "dev": [
             "pytest >= 6.2.4",
+            "pytest-cov",
             "flake8",
             "sphinx",
             "mypy",
