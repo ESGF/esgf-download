@@ -46,7 +46,7 @@ class Esgpull:
         ctx = Context(distrib=True)
         ctx.query.facets = "index_node"
         index_nodes = list(ctx.facet_counts[0]["index_node"])
-        ctx = Context(distrib=False)
+        ctx = Context(distrib=False, max_concurrent=len(index_nodes))
         for index_node in index_nodes:
             query = ctx.query.add()
             query.index_node = index_node

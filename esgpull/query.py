@@ -47,9 +47,9 @@ class QueryBase:
         setattr(cls, name, property(getter, setter))
 
     @classmethod
-    def configure(cls, facets: list[str]) -> None:
+    def configure(cls, facets=DEFAULT_FACETS, extra=EXTRA_FACETS) -> None:
         cls.reset_facets()
-        for name in facets + EXTRA_FACETS:
+        for name in facets + extra:
             cls.add_facet(name, DEFAULT_FACET_VALUE)
 
     @classmethod
@@ -65,7 +65,7 @@ class QueryBase:
     def __post_init__(
         self,
     ) -> None:
-        for prop in vars(QueryBase).values():
+        for prop in vars(self.__class__).values():
             if isinstance(prop, property):
                 prop.__get__(self)  # Fill _facets with Facet instances
         self._initialized = True
@@ -137,7 +137,8 @@ class QueryBase:
         if self._initialized:
             return self[name]
         else:
-            return object.__getattribute__(self, name)
+            raise TypeError  # TODO: figure out if useful
+            # return object.__getattribute__(self, name)
 
     def __setattr__(self, name: str, values: FacetValues) -> None:
         """See `help(__setitem__).`"""
@@ -453,7 +454,8 @@ class Query(QueryBase):
 #     self.load(state)
 
 
-QueryBase.configure(DEFAULT_FACETS)
+SimpleQuery.configure()
+Query.configure()
 
 
 __all__ = ["Query"]

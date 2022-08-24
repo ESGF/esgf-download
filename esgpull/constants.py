@@ -1,4 +1,4 @@
-DEFAULT_ESGF_URL: str = "http://esgf-node.ipsl.upmc.fr/esg-search"
+DEFAULT_ESGF_URL: str = "https://esgf-node.ipsl.upmc.fr/esg-search/search"
 DEFAULT_ESGF_INDEX: str = "esgf-node.ipsl.upmc.fr"
 
 # DEFAULT_ESGF_INDEX: str = "esgf-data.dkrz.de"
@@ -23,6 +23,9 @@ DEFAULT_FACETS = [
     "variable_id",
     "dataset_id",
     "source_id",
+    "domain",
+    "driving_model",
+    "rcm_name",
 ]
 EXTRA_FACETS = [
     "start",

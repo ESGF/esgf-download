@@ -24,7 +24,7 @@ class Facet:
         return name
 
     def dump(self) -> FacetDict:
-        values: list[str] | str = list(self.values)
+        values: list[str] | str = sorted(self.values)
         if len(values) == 1:
             values = values[0]
         return {self.fmt_name: values}

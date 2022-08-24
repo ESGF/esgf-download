@@ -54,10 +54,6 @@ class Download:
     def url(self) -> str:
         return self.file.url
 
-    @property
-    def size(self) -> int:
-        return self.file.size
-
     async def aget(self) -> bytes:
         async with AsyncClient(follow_redirects=True) as client:
             resp = await client.get(self.url)
@@ -96,7 +92,7 @@ class ChunkedDownload(Download):
 
     async def aget_chunk(self, chunk_idx: int, client: AsyncClient) -> bytes:
         start = chunk_idx * self.chunk_size
-        end = min(self.size, (chunk_idx + 1) * self.chunk_size - 1)
+        end = min(self.file.size, (chunk_idx + 1) * self.chunk_size - 1)
         headers = {"Range": f"bytes={start}-{end}"}
         resp = await client.get(self.url, headers=headers)
         resp.raise_for_status()
@@ -104,7 +100,7 @@ class ChunkedDownload(Download):
 
     async def aget(self) -> bytes:
         client = AsyncClient(follow_redirects=True, timeout=5.0)
-        nb_chunks = math.ceil(self.size / self.chunk_size)
+        nb_chunks = math.ceil(self.file.size / self.chunk_size)
         chunks: list[bytes] = []
         for i in range(nb_chunks):
             chunk = await self.aget_chunk(i, client)
@@ -144,7 +140,10 @@ class MultiSourceChunkedDownload(Download):
             resp.raise_for_status()
             accept_ranges = resp.headers.get("Accept-Ranges")
             content_length = resp.headers.get("Content-Length")
-            if accept_ranges == "bytes" and int(content_length) == self.size:
+            if (
+                accept_ranges == "bytes"
+                and int(content_length) == self.file.size
+            ):
                 result = str(resp.url)
             else:
                 print(dict(resp.headers))
@@ -171,7 +170,7 @@ class MultiSourceChunkedDownload(Download):
             chunk_idx = await queue.get()
             print(f"processing chunk {chunk_idx} on '{node}'")
             start = chunk_idx * self.chunk_size
-            end = min(self.size, (chunk_idx + 1) * self.chunk_size - 1)
+            end = min(self.file.size, (chunk_idx + 1) * self.chunk_size - 1)
             headers = {"Range": f"bytes={start}-{end}"}
             resp = await client.get(url, headers=headers)
             queue.task_done()
@@ -185,7 +184,7 @@ class MultiSourceChunkedDownload(Download):
         return chunks, url
 
     async def aget(self) -> bytes:
-        nb_chunks = math.ceil(self.size / self.chunk_size)
+        nb_chunks = math.ceil(self.file.size / self.chunk_size)
         queue: asyncio.Queue[int] = asyncio.Queue(nb_chunks)
         for chunk_idx in range(nb_chunks):
             queue.put_nowait(chunk_idx)

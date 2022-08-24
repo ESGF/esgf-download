@@ -31,9 +31,7 @@ class Context:
         selection_file_path: Optional[str | Path] = None,
         /,
         *,
-        # index: str = DEFAULT_ESGF_INDEX,
         fields: str = "*",
-        # facets: str = "*",
         latest: bool = None,
         replica: bool = None,
         distrib: bool = False,
@@ -90,6 +88,8 @@ class Context:
             query["url"] = facets.pop("url")
         else:
             query["url"] = index2url(DEFAULT_ESGF_INDEX)
+        if "facets" in facets:
+            query["facets"] = facets.pop("facets")
         if "start" in facets:
             facets["start"] = format_date(str(facets["start"]))
         if "end" in facets:
