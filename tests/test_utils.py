@@ -11,6 +11,8 @@ def test_format_date():
     assert format_date(datetime(year=2022, month=1, day=1)) == expected
     with pytest.raises(ValueError):
         format_date("20220101")
+    with pytest.raises(ValueError):
+        format_date(20220101)
 
 
 def test_index2url():

@@ -38,6 +38,8 @@ setup(
         "sqlalchemy",
         "alembic",
         "nest_asyncio",  # allow usage in notebooks
+        "pyOpenSSL",
+        "MyProxyClient",
     ],
     extras_require={
         "dev": [
@@ -46,7 +48,6 @@ setup(
             "flake8",
             "sphinx",
             "mypy",
-            "sqlalchemy[mypy]",
         ]
     },
 )

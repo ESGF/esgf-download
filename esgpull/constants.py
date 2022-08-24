@@ -26,6 +26,7 @@ DEFAULT_FACETS = [
     "domain",
     "driving_model",
     "rcm_name",
+    "member_id",
 ]
 EXTRA_FACETS = [
     "start",

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import TypeAlias, TypeGuard, Any
 
 from enum import Enum, auto
@@ -131,7 +132,7 @@ class File:
                 metadata[k] = v
         file_id = metadata["instance_id"]
         if not file_id.endswith(".nc"):
-            # filter out `.nc0`, `.nc1`, etc.
+            # extension is forced to `.nc` (some were .nc[0|1|...])
             file_id = file_id.rsplit(".", 1)[0] + ".nc"
         url = metadata["url"][0].split("|")[0]
         filename = metadata["title"]
@@ -155,6 +156,20 @@ class File:
             checksum_type=checksum_type,
             size=size,
             metadata=raw_metadata,
+        )
+
+    def clone(self) -> File:
+        return File(
+            file_id=self.file_id,
+            dataset_id=self.dataset_id,
+            url=self.url,
+            version=self.version,
+            filename=self.filename,
+            local_path=self.local_path,
+            data_node=self.data_node,
+            checksum=self.checksum,
+            checksum_type=self.checksum_type,
+            size=self.size,
         )
 
 

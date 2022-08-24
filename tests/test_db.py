@@ -4,6 +4,7 @@ from pathlib import Path
 
 from esgpull import __version__
 from esgpull.db import Database
+from esgpull.query import Query
 from esgpull.types import Param, File, Status
 
 
@@ -87,3 +88,22 @@ def test_has(db, file_):
     assert not db.has(filepath=filepath)
     with pytest.raises(ValueError):
         assert db.has()
+
+
+def test_search(db, file_):
+    variable_ids = ["a", "b", "c"]
+    files = []
+    for variable_id in variable_ids:
+        f = file_.clone()
+        # required for UniqueConstraint on file_id
+        f.file_id += variable_id
+        f.metadata = {"project": ["test"], "variable_id": [variable_id]}
+        files.append(f)
+    db.add(*files)
+    query = Query()
+    query.project = "test"
+    # query variable_ids `b` and `c`
+    for variable_id in variable_ids[1:]:
+        subquery = query.add()
+        subquery.variable_id = variable_ids[1:]
+    assert db.search(query) == files[1:]

@@ -13,6 +13,7 @@ import alembic.command
 from alembic.migration import MigrationContext
 
 import esgpull
+from esgpull.query import Query
 from esgpull.types import (
     Status,
     Version,
@@ -314,6 +315,30 @@ class Database:
         with self.select(table) as sel:
             matching = sel.where(condition).scalars
         return any(matching)
+
+    def search(self, query: Query) -> list[File]:
+        clause = None
+        for q in query.flatten():
+            q_clause = None
+            for facet in q:
+                # values are in a list, to keep support for CMIP5
+                # search by first value only is supported for now
+                facet_clause = sa.func.json_extract(
+                    File.metadata, f"$.{facet.name}[0]"
+                ).in_(facet.values)
+                if q_clause is None:
+                    q_clause = facet_clause
+                else:
+                    q_clause = q_clause & facet_clause
+            if clause is None:
+                clause = q_clause
+            else:
+                clause = clause | q_clause
+        if clause is None:
+            return []
+        else:
+            with self.select(File) as sel:
+                return sel.where(clause).scalars
 
 
 __all__ = ["Database"]
