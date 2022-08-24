@@ -91,6 +91,7 @@ def test_has(db, file_):
 
 
 def test_search(db, file_):
+    # setup
     variable_ids = ["a", "b", "c"]
     files = []
     for variable_id in variable_ids:
@@ -100,6 +101,8 @@ def test_search(db, file_):
         f.metadata = {"project": ["test"], "variable_id": [variable_id]}
         files.append(f)
     db.add(*files)
+
+    # test search simple
     query = Query()
     query.project = "test"
     # query variable_ids `b` and `c`
@@ -107,3 +110,14 @@ def test_search(db, file_):
         subquery = query.add()
         subquery.variable_id = variable_ids[1:]
     assert db.search(query) == files[1:]
+
+    # test search no duplicates
+    query = Query()
+    a = query.add()
+    a.variable_id = "a"
+    test = query.add()
+    test.project = "test"
+    results_query = db.search(query)
+    results_a = db.search(a)
+    results_test = db.search(test)
+    assert len(results_query) < len(results_a) + len(results_test)

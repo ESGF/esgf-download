@@ -4,6 +4,7 @@ from typing import Any, Callable, Type, TypeAlias, Optional
 # import os
 import logging
 from pathlib import Path
+from functools import reduce
 from contextlib import contextmanager
 
 import sqlalchemy as sa
@@ -317,28 +318,22 @@ class Database:
         return any(matching)
 
     def search(self, query: Query) -> list[File]:
-        clause = None
+        clauses = []
         for q in query.flatten():
-            q_clause = None
+            query_clauses = []
             for facet in q:
                 # values are in a list, to keep support for CMIP5
                 # search by first value only is supported for now
                 facet_clause = sa.func.json_extract(
                     File.metadata, f"$.{facet.name}[0]"
                 ).in_(facet.values)
-                if q_clause is None:
-                    q_clause = facet_clause
-                else:
-                    q_clause = q_clause & facet_clause
-            if clause is None:
-                clause = q_clause
-            else:
-                clause = clause | q_clause
-        if clause is None:
-            return []
-        else:
+                query_clauses.append(facet_clause)
+            clauses.append(reduce(sa.and_, query_clauses))
+        if clauses:
             with self.select(File) as sel:
-                return sel.where(clause).scalars
+                return sel.where(reduce(sa.or_, clauses)).scalars
+        else:
+            return []
 
 
 __all__ = ["Database"]
