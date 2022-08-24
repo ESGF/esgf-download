@@ -1,5 +1,4 @@
 # remove all build, test, coverage and Python artifacts
-.PHONY: clean distclean lint install develop
 .DEFAULT_GOAL := lint
 
 clean: clean-pyc clean-test
