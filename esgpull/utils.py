@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 def naturalsize(value: int | float) -> str:
     """Get size in KiB / MiB / GiB / etc."""
-    return humanize.naturalsize(value, "unix")
+    return humanize.naturalsize(value, binary=True)
 
 
 def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
