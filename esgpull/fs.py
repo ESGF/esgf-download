@@ -23,6 +23,10 @@ class Filesystem:
     def db(self) -> Path:
         return self.root / "db"
 
+    @property
+    def auth(self) -> Path:
+        return self.root / "auth"
+
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
 

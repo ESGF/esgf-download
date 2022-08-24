@@ -11,6 +11,7 @@ import asyncio
 from urllib.parse import urlsplit
 from httpx import AsyncClient, RequestError
 
+from esgpull.auth import Auth
 from esgpull.types import File
 from esgpull.context import Context
 from esgpull.constants import DOWNLOAD_CHUNK_SIZE
@@ -23,9 +24,11 @@ class Download:
 
     def __init__(
         self,
+        auth: Auth,
         file: File = None,
         url: str = None,
     ) -> None:
+        self.auth = auth
         if file is not None:
             self.file = file
         elif url is not None:
@@ -55,7 +58,9 @@ class Download:
         return self.file.url
 
     async def aget(self) -> bytes:
-        async with AsyncClient(follow_redirects=True) as client:
+        async with AsyncClient(
+            follow_redirects=True, cert=self.auth.cert
+        ) as client:
             resp = await client.get(self.url)
             resp.raise_for_status()
         return resp.content
@@ -70,11 +75,12 @@ class ChunkedDownload(Download):
 
     def __init__(
         self,
+        auth: Auth,
         file: File = None,
         url: str = None,
         chunk_size: int = DOWNLOAD_CHUNK_SIZE,
     ) -> None:
-        super().__init__(file, url)
+        super().__init__(auth, file, url)
         self.chunk_size = chunk_size
 
     # TODO: decide whether:
@@ -118,10 +124,12 @@ class MultiSourceChunkedDownload(Download):
 
     def __init__(
         self,
+        auth: Auth,
         file: File,
         max_ping=5.0,
         chunk_size: int = DOWNLOAD_CHUNK_SIZE,
     ) -> None:
+        self.auth = auth
         self.file = file
         self.max_ping = max_ping
         self.chunk_size = chunk_size
@@ -208,6 +216,7 @@ ResultData: TypeAlias = tuple[File, bytes]
 
 @dataclass
 class Processor:
+    auth: Auth
     files: list[File]
     max_concurrent: int = 5
 
@@ -225,7 +234,7 @@ class Processor:
                 total=total_size, unit="iB", unit_scale=True, unit_divisor=1024
             )
         semaphore = asyncio.Semaphore(self.max_concurrent)
-        processes = [Download(file) for file in self.files]
+        processes = [Download(self.auth, file) for file in self.files]
         tasks = [self.process_one(process, semaphore) for process in processes]
         for future in asyncio.as_completed(tasks):
             file, data = await future

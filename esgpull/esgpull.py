@@ -12,6 +12,7 @@ from esgpull.types import File, Param, Status
 from esgpull.context import Context
 from esgpull.db import Database
 from esgpull.fs import Filesystem
+from esgpull.auth import Auth  # , Identity
 from esgpull.download import Processor
 from esgpull.exceptions import NoRootError
 
@@ -29,6 +30,7 @@ class Esgpull:
                 raise NoRootError
         self.fs = Filesystem(root)
         self.db = Database(self.fs.db / "sdt_new.db")
+        self.auth = Auth(self.fs.auth)
 
     def fetch_params(self, update=False) -> bool:
         SKIP_FACETS = [
@@ -127,7 +129,7 @@ class Esgpull:
 
     async def download_waiting(self, use_bar=True) -> tuple[int, int]:
         waiting = self.db.get_files_with_status(Status.waiting)
-        processor = Processor(waiting)
+        processor = Processor(self.auth, waiting)
         async for file, data in processor.process(use_bar):
             await self.fs.write(file, data)
             file.status = Status.done
