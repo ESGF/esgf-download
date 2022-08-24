@@ -232,6 +232,9 @@ class SimpleQuery(QueryBase):
         facets = ", ".join(map(str, self))
         return f"SimpleQuery({facets})"
 
+    def flatten(self) -> list[SimpleQuery]:
+        return [self]
+
 
 @dataclass(repr=False)
 class Query(QueryBase):
