@@ -2,12 +2,6 @@ import os
 from pathlib import Path
 from typing import Optional
 
-# import asyncio
-# # workaround for notebooks with running event loop
-# if asyncio.get_event_loop().is_running():
-#     import nest_asyncio
-#     nest_asyncio.apply()
-
 from esgpull.types import File, Param, Status
 from esgpull.context import Context
 from esgpull.db import Database
