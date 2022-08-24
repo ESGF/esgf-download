@@ -28,7 +28,7 @@ clean-test: ## remove test and coverage artifacts
 
 lint: ## check style with flake8 and mypy
 	flake8 esgpull tests migrations
-	mypy --install-types esgpull tests migrations
+	mypy esgpull tests migrations
 
 install: distclean
 	pip install -e .
