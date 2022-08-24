@@ -89,6 +89,12 @@ TABLES: dict[str, list[sa.Column | sa.Constraint]] = dict(
         #         persisted=True,
         #     ),
         # ),
+        sa.Column(
+            "last_updated",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now(),
+        ),
     ],
 )
 
@@ -248,17 +254,20 @@ class Database:
         #     assert os.path.exists(self.path.removeprefix(prefix))
 
     def update(self) -> None:
+        # TODO: check remaining options in alembic.ini (keep?)
+        pkg_path = Path(esgpull.__file__).parent.parent
+        migrations_path = str(pkg_path / "migrations")
         pkg_version = esgpull.__version__
         with self.engine.begin() as conn:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
             self.version = ctx.get_current_revision()
-        config_path = Path(esgpull.__file__).parent.parent / "alembic.ini"
-        config = alembic.config.Config(str(config_path))
+        config = alembic.config.Config()
+        config.set_main_option("sqlalchemy.url", self.path)
+        config.set_main_option("script_location", migrations_path)
         if self.version != pkg_version:
             alembic.command.upgrade(config, pkg_version)
             self.version = pkg_version
-
         # from alembic.script import ScriptDirectory
         # from alembic.runtime.environment import EnvironmentContext
         # script = ScriptDirectory.from_config(alembic_config)

@@ -27,8 +27,8 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8 and mypy
-	flake8 esgpull alembic
-	mypy esgpull alembic
+	flake8 esgpull tests migrations
+	mypy esgpull tests migrations
 
 install: distclean
 	pip install -e .

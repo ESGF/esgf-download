@@ -86,6 +86,7 @@ class File:
     size: int
     status: Status = Status.new
     metadata: dict = field(repr=False, default_factory=dict)
+    last_updated: datetime = field(init=False)
 
     # duration: int
     # rate: int

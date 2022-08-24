@@ -46,6 +46,12 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column(
+            "last_updated",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            nullable=True,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("file_id"),
     )
