@@ -18,11 +18,11 @@ from esgpull.exceptions import NoRootError
 
 class Esgpull:
     def __init__(self, path: Optional[str | Path] = None) -> None:
-        st_home = os.environ.get("ST_HOME")
+        env_home = os.environ.get("ESGPULL_HOME")
         if path is not None:
             root = Path(path)
-        elif st_home is not None:
-            root = Path(st_home)
+        elif env_home is not None:
+            root = Path(env_home)
         else:
             root = Path("/home/srodriguez/ipsl/data/synda")
             if False:

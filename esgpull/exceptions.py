@@ -7,7 +7,7 @@ class EsgpullException(Exception):
 
 
 class NoRootError(EsgpullException):
-    msg = "Environment variable `ST_HOME` must be set."
+    msg = "Environment variable `ESGPULL_HOME` must be set."
 
 
 class UnknownFacetName(AttributeError, EsgpullException):
