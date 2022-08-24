@@ -27,7 +27,16 @@ class Esgpull:
         self.auth = Auth(self.fs.auth)
 
     def fetch_params(self, update=False) -> bool:
-        SKIP_FACETS = [
+        """
+        Fill db with all existing params found in ESGF index nodes.
+
+        First fetch all index_nodes URLs using `distrib=True`.
+        Then fetch all facets (names + values) from all index nodes.
+
+        Workaround method, since searching directly for all facets using
+        `distrib=True` seems to crash the index node.
+        """
+        IGNORE_NAMES = [
             "cf_standard_name",
             "variable_long_name",
             "creation_date",
@@ -50,7 +59,7 @@ class Esgpull:
         facet_counts: dict[str, set[str]] = {}
         for facets in index_facets:
             for name, values in facets.items():
-                if name in SKIP_FACETS or len(values) == 0:
+                if name in IGNORE_NAMES or len(values) == 0:
                     continue
                 facet_values = set()
                 for value, count in values.items():
@@ -67,6 +76,12 @@ class Esgpull:
         return True
 
     def scan_local_files(self, index_node=None) -> None:
+        """
+        Insert into db netcdf files, globbed from `fs.data` directory.
+        Only files which metadata is found on `index_node` is added.
+
+        Status is `done` regardless of the file's size (no checks).
+        """
         context = Context()
         if index_node is not None:
             context.query.index_node = index_node
@@ -96,6 +111,9 @@ class Esgpull:
     def install(
         self, files: list[File], status: Status = Status.waiting
     ) -> list[File]:
+        """
+        Insert `files` with specified `status` into db if not already there.
+        """
         installed = []
         for file in files:
             with self.db.select(File) as stmt:
@@ -107,6 +125,9 @@ class Esgpull:
         return installed
 
     def remove(self, files: list[File]) -> list[File]:
+        """
+        Remove `files` from db and delete from filesystem.
+        """
         deleted = []
         for file in files:
             path = self.fs.path_of(file)
@@ -122,6 +143,9 @@ class Esgpull:
         return deleted
 
     async def download_waiting(self, use_bar=True) -> tuple[int, int]:
+        """
+        Download all files from db for which status is `waiting`.
+        """
         waiting = self.db.get_files_with_status(Status.waiting)
         processor = Processor(self.auth, waiting)
         async for file, data in processor.process(use_bar):
