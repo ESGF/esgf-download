@@ -2,8 +2,9 @@ import pytest
 
 import asyncio
 
-from esgpull.download import Download
+from esgpull.auth import Auth
 from esgpull.types import File
+from esgpull.download import Download
 
 
 # fmt:off
@@ -24,18 +25,23 @@ def smallfile():
 # fmt:on
 
 
+@pytest.fixture
+def auth(tmp_path):
+    return Auth(tmp_path)
+
+
 # @pytest.mark.slow
-def test_download_using_file_or_url(smallfile):
-    download = Download(file=smallfile)
+def test_download_using_file_or_url(auth, smallfile):
+    download = Download(auth, file=smallfile)
     data_file = asyncio.run(download.aget())
     assert len(data_file) == smallfile.size
 
-    download = Download(url=smallfile.url)
+    download = Download(auth, url=smallfile.url)
     data_url = asyncio.run(download.aget())
     assert data_url == data_file
 
     with pytest.raises(ValueError):
-        Download()
+        Download(auth)
 
 
 def test_download_url_multiple_version_correct():
@@ -43,12 +49,12 @@ def test_download_url_multiple_version_correct():
     url_old = "http://vesg.ipsl.upmc.fr/thredds/fileServer/cmip6/CMIP/IPSL/IPSL-CM6A-LR/1pctCO2/r1i1p1f1/Oyr/bfe/gn/v20180727/bfe_Oyr_IPSL-CM6A-LR_1pctCO2_r1i1p1f1_gn_1850-1999.nc"
     url_new = "http://vesg.ipsl.upmc.fr/thredds/fileServer/cmip6/CMIP/IPSL/IPSL-CM6A-LR/1pctCO2/r1i1p1f1/Oyr/bfe/gn/v20190305/bfe_Oyr_IPSL-CM6A-LR_1pctCO2_r1i1p1f1_gn_1850-1999.nc"
     # fmt:on
-    download_old = Download(url=url_old)
-    download_new = Download(url=url_new)
+    download_old = Download(auth, url=url_old)
+    download_new = Download(auth, url=url_new)
     assert download_old.file.filename == download_new.file.filename
     assert download_old.file.version != download_new.file.version
 
 
 def test_download_not_esgf_url():
     with pytest.raises(ValueError):
-        Download(url="https://www.ipsl.fr/")
+        Download(auth, url="https://www.ipsl.fr/")
