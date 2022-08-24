@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -8,22 +7,12 @@ from esgpull.db import Database
 from esgpull.fs import Filesystem
 from esgpull.auth import Auth  # , Identity
 from esgpull.download import Processor
-from esgpull.exceptions import NoRootError
 
 
 class Esgpull:
     def __init__(self, path: Optional[str | Path] = None) -> None:
-        env_home = os.environ.get("ESGPULL_HOME")
-        if path is not None:
-            root = Path(path)
-        elif env_home is not None:
-            root = Path(env_home)
-        else:
-            root = Path("/home/srodriguez/ipsl/data/synda")
-            if False:
-                raise NoRootError
-        self.fs = Filesystem(root)
-        self.db = Database(self.fs.db / "sdt_new.db")
+        self.fs = Filesystem(path)
+        self.db = Database(self.fs.db / "esgpull.db")
         self.auth = Auth(self.fs.auth)
 
     def fetch_params(self, update=False) -> bool:

@@ -1,4 +1,5 @@
-from typing import Iterable
+import os
+from typing import Iterable, Optional
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -6,14 +7,26 @@ from dataclasses import dataclass
 import aiofiles
 
 from esgpull.types import File
+from esgpull.exceptions import NoRootError
 
 
-@dataclass
+@dataclass(init=False)
 class Filesystem:
     root: Path
 
-    def __post_init__(self):
-        self.root = Path(self.root)
+    def __init__(self, path: Optional[str | Path] = None) -> None:
+        env_home = os.environ.get("ESGPULL_HOME")
+        if path is not None:
+            self.root = Path(path)
+        elif env_home is not None:
+            self.root = Path(env_home)
+        else:
+            raise NoRootError
+        if not self.root.is_dir():
+            self.root.mkdir()
+            self.data.mkdir()
+            self.db.mkdir()
+            self.auth.mkdir()
 
     @property
     def data(self) -> Path:
