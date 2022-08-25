@@ -116,7 +116,7 @@ class QueryBase:
             ctx.query.project = "CMIP5"
             ctx.update()
 
-            ctx.query["mip_era"] = "CMIP6" # TODO: not implemented yet
+            ctx.query["mip_era"] = "CMIP6" # TODO: implement value checks
             # ImpossibleFacet: mip_era cannot be set with the current query:
             #     Query(project: CMIP5)
 
@@ -137,7 +137,7 @@ class QueryBase:
         if self._initialized:
             return self[name]
         else:
-            raise TypeError  # TODO: figure out if useful
+            raise TypeError  # TODO: figure out whether this line is useful
             # return object.__getattribute__(self, name)
 
     def __setattr__(self, name: str, values: FacetValues) -> None:

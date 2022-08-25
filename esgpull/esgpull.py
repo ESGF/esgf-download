@@ -1,7 +1,9 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
-from esgpull.types import File, Param, Status
+from sqlalchemy.orm.attributes import InstrumentedAttribute
+
+from esgpull.types import File, Param, FileStatus
 from esgpull.context import Context
 from esgpull.db import Database
 from esgpull.fs import Filesystem
@@ -69,7 +71,7 @@ class Esgpull:
         Insert into db netcdf files, globbed from `fs.data` directory.
         Only files which metadata is found on `index_node` is added.
 
-        Status is `done` regardless of the file's size (no checks).
+        FileStatus is `done` regardless of the file's size (no checks).
         """
         context = Context()
         if index_node is not None:
@@ -90,7 +92,7 @@ class Esgpull:
                 file = File.from_dict(metadata)
                 if file.version == filename_version_dict[file.filename]:
                     new_files.append(file)
-            self.install(new_files, Status.done)
+            self.install(new_files, FileStatus.done)
             nb_remaining = len(filename_version_dict) - len(new_files)
             print(f"Installed {len(new_files)} new files.")
             print(f"{nb_remaining} files remain installed (another index?).")
@@ -98,18 +100,21 @@ class Esgpull:
             print("No new files.")
 
     def install(
-        self, files: list[File], status: Status = Status.waiting
+        self, files: list[File], status: FileStatus = FileStatus.waiting
     ) -> list[File]:
         """
         Insert `files` with specified `status` into db if not already there.
         """
-        installed = []
-        for file in files:
-            with self.db.select(File) as stmt:
-                stmt.where(File.file_id == file.file_id)
-                if len(stmt.scalars) == 0:
-                    file.status = status
-                    installed.append(file)
+        file_ids = [f.file_id for f in files]
+        with self.db.select(File.file_id) as stmt:
+            # required by mypy, since dataclass + Mapped types dont work
+            # https://github.com/sqlalchemy/sqlalchemy2-stubs/issues/129
+            file_id_attr = cast(InstrumentedAttribute, File.file_id)
+            stmt.where(file_id_attr.in_(file_ids))
+            existing_file_ids = stmt.scalars
+        installed = [f for f in files if f.file_id not in existing_file_ids]
+        for file in installed:
+            file.status = status
         self.db.add(*installed)
         return installed
 
@@ -117,17 +122,15 @@ class Esgpull:
         """
         Remove `files` from db and delete from filesystem.
         """
-        deleted = []
+        file_ids = [f.file_id for f in files]
+        with self.db.select(File) as stmt:
+            # required by mypy, since dataclass + Mapped types dont work
+            # https://github.com/sqlalchemy/sqlalchemy2-stubs/issues/129
+            file_id_attr = cast(InstrumentedAttribute, File.file_id)
+            stmt.where(file_id_attr.in_(file_ids))
+            deleted = stmt.scalars
         for file in files:
-            path = self.fs.path_of(file)
-            path.unlink(missing_ok=True)
-            if path.parent.is_dir():
-                path.parent.rmdir()
-            with self.db.select(File) as stmt:
-                stmt.where(File.file_id == file.file_id)
-                matching = stmt.scalars
-                for m in matching:
-                    deleted.append(m)
+            self.fs.delete(file)
         self.db.delete(*deleted)
         return deleted
 
@@ -135,10 +138,13 @@ class Esgpull:
         """
         Download all files from db for which status is `waiting`.
         """
-        waiting = self.db.get_files_with_status(Status.waiting)
-        processor = Processor(self.auth, waiting)
+        running = self.db.get_files_with_status(FileStatus.waiting)
+        for file in running:
+            file.status = FileStatus.running
+        self.db.add(*running)
+        processor = Processor(self.auth, running)
         async for file, data in processor.process(use_bar):
             await self.fs.write(file, data)
-            file.status = Status.done
+            file.status = FileStatus.done
             self.db.add(file)
-        return len(waiting), sum(file.size for file in waiting)
+        return len(running), sum(file.size for file in running)

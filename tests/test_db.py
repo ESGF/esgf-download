@@ -5,7 +5,7 @@ from pathlib import Path
 from esgpull import __version__
 from esgpull.db import Database
 from esgpull.query import Query
-from esgpull.types import Param, File, Status
+from esgpull.types import Param, File, FileStatus
 
 
 @pytest.fixture
@@ -26,12 +26,12 @@ def file_(tmp_path):
         url="file",
         version="v0",
         filename="file.nc",
-        local_path=str(tmp_path),
+        local_path=str(tmp_path / "v0"),  # version is required in path
         data_node="data_node",
         checksum="0",
         checksum_type="0",
         size=0,
-        status=Status.waiting,
+        status=FileStatus.waiting,
     )
 
 
@@ -71,8 +71,8 @@ def test_scalar(db):
 
 def test_get_files_with_status(db, file_):
     db.add(file_)
-    assert db.get_files_with_status(Status.waiting) == [file_]
-    assert db.get_files_with_status(Status.done) == []
+    assert db.get_files_with_status(FileStatus.waiting) == [file_]
+    assert db.get_files_with_status(FileStatus.done) == []
     assert db.has(file_)
 
 

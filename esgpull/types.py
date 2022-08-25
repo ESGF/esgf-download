@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeAlias, TypeGuard, Any
+from typing import TypeAlias, TypeGuard, Any, Optional
 
 from enum import Enum, auto
 from datetime import datetime
@@ -45,7 +45,7 @@ def is_nested_facet_dict(d: dict[str, Any]) -> TypeGuard[NestedFacetDict]:
         return False
 
 
-class Status(Enum):
+class FileStatus(Enum):
     deleted = auto()
     done = auto()
     error = auto()
@@ -69,7 +69,7 @@ class Param:
     id: int = field(init=False)
     name: str
     value: str
-    last_updated: datetime = field(init=False)
+    last_updated: Optional[datetime] = field(init=False)
 
 
 @dataclass
@@ -85,9 +85,9 @@ class File:
     checksum: str
     checksum_type: str
     size: int
-    status: Status = Status.new
+    status: FileStatus = FileStatus.new
     metadata: dict = field(repr=False, default_factory=dict)
-    last_updated: datetime = field(init=False)
+    last_updated: Optional[datetime] = field(init=False)
 
     # duration: int
     # rate: int
@@ -175,4 +175,4 @@ class File:
 
 Table: TypeAlias = Version | Param | File
 
-__all__ = ["Status", "Version", "Param", "File", "Table"]
+__all__ = ["FileStatus", "Version", "Param", "File", "Table"]

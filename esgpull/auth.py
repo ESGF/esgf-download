@@ -68,7 +68,7 @@ class Identity:
         raise ValueError("did not found host/port")
 
 
-class Status(Enum):
+class AuthStatus(Enum):
     VALID = auto()
     EXPIRED = auto()
     MISSING = auto()
@@ -78,11 +78,11 @@ class Status(Enum):
 class Auth:
     path: str | Path
     cert_file: Path = field(init=False)
-    __status: Optional[Status] = field(init=False, default=None)
+    __status: Optional[AuthStatus] = field(init=False, default=None)
 
-    VALID = Status.VALID
-    EXPIRED = Status.EXPIRED
-    MISSING = Status.MISSING
+    VALID = AuthStatus.VALID
+    EXPIRED = AuthStatus.EXPIRED
+    MISSING = AuthStatus.MISSING
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
@@ -91,27 +91,27 @@ class Auth:
 
     @property
     def cert(self) -> Optional[str]:
-        if self.status == Status.VALID:
+        if self.status == AuthStatus.VALID:
             return str(self.cert_file)
         else:
             return None
 
     @property
-    def status(self) -> Status:
+    def status(self) -> AuthStatus:
         if self.__status is None:
             self.__status = self._get_status()
         return self.__status
 
-    def _get_status(self) -> Status:
+    def _get_status(self) -> AuthStatus:
         if not self.cert_file.exists():
-            return Status.MISSING
+            return AuthStatus.MISSING
         with self.cert_file.open("rb") as f:
             content = f.read()
         filetype = crypto.FILETYPE_PEM
         pem = crypto.load_certificate(filetype, content)
         if pem.has_expired():
-            return Status.EXPIRED
-        return Status.VALID
+            return AuthStatus.EXPIRED
+        return AuthStatus.VALID
 
     def renew(self, identity: Identity) -> None:
         if self.cert_dir.is_dir():

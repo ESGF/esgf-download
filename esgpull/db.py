@@ -16,7 +16,7 @@ from alembic.migration import MigrationContext
 import esgpull
 from esgpull.query import Query
 from esgpull.types import (
-    Status,
+    FileStatus,
     Version,
     Param,
     File,
@@ -32,12 +32,16 @@ Result: TypeAlias = sa.engine.result.Result
 Columns: TypeAlias = Optional[list[sa.Column | sa.UniqueConstraint]]
 SelectStmt: TypeAlias = sa.sql.selectable.Select
 
-Mapper = sa.orm.registry()
+Mapper: Registry = sa.orm.registry()
 
 TABLES: dict[str, list[sa.Column | sa.Constraint]] = dict(
-    version=[sa.Column("version_num", sa.String(32), primary_key=True)],
+    version=[
+        sa.Column(
+            "version_num", sa.String(32), nullable=False, primary_key=True
+        )
+    ],
     param=[
-        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("id", sa.Integer, nullable=False, primary_key=True),
         sa.Column("name", sa.String(50), nullable=False),
         sa.Column("value", sa.String(255), nullable=False),
         sa.Column(
@@ -49,19 +53,20 @@ TABLES: dict[str, list[sa.Column | sa.Constraint]] = dict(
         sa.UniqueConstraint("name", "value"),
     ],
     file=[
-        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("id", sa.Integer, nullable=False, primary_key=True),
         sa.Column("file_id", sa.Text, unique=True, nullable=False),
-        sa.Column("dataset_id", sa.Text),
-        sa.Column("url", sa.Text),
-        sa.Column("version", sa.String(16)),
-        sa.Column("filename", sa.String(255)),
-        sa.Column("local_path", sa.String(255)),
-        sa.Column("data_node", sa.String(40)),
-        sa.Column("checksum", sa.String(64)),
-        sa.Column("checksum_type", sa.String(16)),
-        sa.Column("size", sa.Integer),
-        sa.Column("status", sa.Enum(Status)),
-        sa.Column("metadata", sa.JSON),
+        sa.Column("dataset_id", sa.Text, nullable=False),
+        sa.Column("master_id", sa.Text, nullable=False),
+        sa.Column("url", sa.Text, nullable=False),
+        sa.Column("version", sa.String(16), nullable=False),
+        sa.Column("filename", sa.String(255), nullable=False),
+        sa.Column("local_path", sa.String(255), nullable=False),
+        sa.Column("data_node", sa.String(40), nullable=False),
+        sa.Column("checksum", sa.String(64), nullable=False),
+        sa.Column("checksum_type", sa.String(16), nullable=False),
+        sa.Column("size", sa.Integer, nullable=False),
+        sa.Column("status", sa.Enum(FileStatus), nullable=False),
+        sa.Column("metadata", sa.JSON, nullable=False),
         # sa.Column("start_date", sa.Text),
         # sa.Column("end_date", sa.Text),
         # sa.Column(
@@ -256,7 +261,6 @@ class Database:
         #     assert os.path.exists(self.path.removeprefix(prefix))
 
     def update(self) -> None:
-        # TODO: check remaining options in alembic.ini (keep?)
         pkg_path = Path(esgpull.__file__).parent.parent
         migrations_path = str(pkg_path / "migrations")
         pkg_version = esgpull.__version__
@@ -265,6 +269,7 @@ class Database:
             ctx = MigrationContext.configure(conn, opts=opts)
             self.version = ctx.get_current_revision()
         config = alembic.config.Config()
+        # TODO: check remaining options in alembic.ini (keep?)
         config.set_main_option("sqlalchemy.url", self.path)
         config.set_main_option("script_location", migrations_path)
         if self.version != pkg_version:
@@ -300,21 +305,19 @@ class Database:
         for item in items:
             sa.orm.session.make_transient(item)
 
-    def get_files_with_status(self, status: Status) -> list[File]:
-        with self.select(File) as sel:
-            return sel.where(File.status == status).scalars
-
     def has(self, /, file: File = None, filepath: Path = None) -> bool:
         if file is not None:
             table = File
-            condition = File.file_id == file.file_id
+            clause = File.file_id == file.file_id
         elif filepath is not None:
             table = File
-            condition = File.filename == filepath.name
+            filename = filepath.name
+            version = filepath.parent.name  # TODO: verify assumption
+            clause = (File.filename == filename) & (File.version == version)
         else:
             raise ValueError
         with self.select(table) as sel:
-            matching = sel.where(condition).scalars
+            matching = sel.where(clause).scalars
         return any(matching)
 
     def search(self, query: Query) -> list[File]:
@@ -335,5 +338,8 @@ class Database:
         else:
             return []
 
+    def get_files_with_status(self, status: FileStatus) -> list[File]:
+        with self.select(File) as sel:
+            return sel.where(File.status == status).scalars
 
 __all__ = ["Database"]

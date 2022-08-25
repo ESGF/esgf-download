@@ -53,5 +53,12 @@ class Filesystem:
         async with aiofiles.open(path, "wb") as f:
             await f.write(data)
 
+    def delete(self, *files: File) -> None:
+        for file in files:
+            path = self.path_of(file)
+            path.unlink(missing_ok=True)
+            if path.parent.is_dir():
+                path.parent.rmdir()
+
 
 __all__ = ["Filesystem"]
