@@ -23,6 +23,7 @@ def file_(tmp_path):
     return File(
         file_id="file",
         dataset_id="dataset",
+        master_id="master",
         url="file",
         version="v0",
         filename="file.nc",

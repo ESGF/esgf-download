@@ -77,6 +77,8 @@ class File:
     id: int = field(init=False)
     file_id: str
     dataset_id: str
+    # `master_id` is used to find duplicate files from multiple versions
+    master_id: str
     url: str
     version: str
     filename: str
@@ -137,6 +139,7 @@ class File:
         url = metadata["url"][0].split("|")[0]
         filename = metadata["title"]
         dataset_id = file_id.removesuffix("." + filename)
+        master_id = metadata["master_id"].rsplit(".", 1)[0]
         # grab version from instance_id, as files always give `version=1`
         version = dataset_id.split(".")[-1]
         local_path = cls.get_local_path(metadata, version)
@@ -149,6 +152,7 @@ class File:
             url=url,
             filename=filename,
             dataset_id=dataset_id,
+            master_id=master_id,
             version=version,
             local_path=local_path,
             data_node=data_node,
@@ -162,6 +166,7 @@ class File:
         return File(
             file_id=self.file_id,
             dataset_id=self.dataset_id,
+            master_id=self.master_id,
             url=self.url,
             version=self.version,
             filename=self.filename,

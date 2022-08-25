@@ -342,4 +342,24 @@ class Database:
         with self.select(File) as sel:
             return sel.where(File.status == status).scalars
 
+    def get_deprecated_files(self) -> list[File]:
+        with (self.select(File) as query, self.select(File) as subquery):
+            subquery.group_by(File.master_id)
+            subquery.having(sa.func.count("*") > 1).alias()
+            join_clause = File.master_id == subquery.stmt.c.master_id
+            duplicates = query.join(subquery.stmt, join_clause).scalars
+        duplicates_dict: dict[str, list[File]] = {}
+        for file in duplicates:
+            duplicates_dict.setdefault(file.master_id, [])
+            duplicates_dict[file.master_id].append(file)
+        deprecated: list[File] = []
+        for master_id, files in duplicates_dict.items():
+            versions = [int(f.version[1:]) for f in files]
+            latest_version = "v" + str(max(versions))
+            for file in files:
+                if file.version != latest_version:
+                    deprecated.append(file)
+        return deprecated
+
+
 __all__ = ["Database"]

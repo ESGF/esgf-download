@@ -13,6 +13,7 @@ def smallfile():
     return File(
         file_id="CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr.v20180803.cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc",
         dataset_id="CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr.v20180803",
+        master_id="CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr.cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015",
         url="http://vesg.ipsl.upmc.fr/thredds/fileServer/cmip6/CMIP/IPSL/IPSL-CM6A-LR/historical/r10i1p1f1/Eyr/cLitterLut/gr/v20180803/cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc",
         version="v20180803",
         filename="cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc",

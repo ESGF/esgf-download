@@ -134,6 +134,13 @@ class Esgpull:
         self.db.delete(*deleted)
         return deleted
 
+    def autoremove(self) -> list[File]:
+        """
+        Search duplicate files and keep latest version only.
+        """
+        deprecated = self.db.get_deprecated_files()
+        return self.remove(deprecated)
+
     async def download_waiting(self, use_bar=True) -> tuple[int, int]:
         """
         Download all files from db for which status is `waiting`.

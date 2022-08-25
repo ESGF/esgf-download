@@ -12,6 +12,7 @@ def test_fs(tmp_path):
     file = File(
         file_id="file",
         dataset_id="dataset",
+        master_id="master",
         url="file",
         version="v0",
         filename="file.nc",
