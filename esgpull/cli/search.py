@@ -6,43 +6,7 @@ import click
 
 from esgpull.query import Query
 from esgpull.context import Context
-from esgpull.utils import naturalsize
-from esgpull.cli.utils import SliceParam
-
-
-def pretty_id(id: str) -> str:
-    bar_idx = id.find("|")
-    if bar_idx > 0:
-        return id[:bar_idx]
-    else:
-        return id
-
-
-def totable(
-    results: list[dict], node: bool, _slice: slice
-) -> rich.table.Table:
-    rows: zip[tuple]
-    table = rich.table.Table()
-    table.add_column("#", justify="right")
-    table.add_column("size", justify="right")
-    table.add_column("id", justify="left")
-    if node:
-        table.add_column("node", justify="right")
-    table.add_column("date", justify="right")
-    timestamp = [r.get("timestamp", r.get("_timestamp")) for r in results]
-    numids = map(str, range(_slice.start, _slice.stop))
-    _slice = slice(0, _slice.stop - _slice.start)
-    sizes = map(naturalsize, [r["size"] for r in results][_slice])
-    ids = map(pretty_id, [r["id"] for r in results][_slice])
-    dates = timestamp[_slice]
-    if node:
-        nodes = [r["data_node"] for r in results][_slice]
-        rows = zip(numids, sizes, ids, nodes, dates)
-    else:
-        rows = zip(numids, sizes, ids, dates)
-    for row in rows:
-        table.add_row(*row)
-    return table
+from esgpull.cli.utils import SliceParam, totable
 
 
 @click.command()

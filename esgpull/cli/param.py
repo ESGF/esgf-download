@@ -1,8 +1,7 @@
 import click
 import rich
 
-from esgpull.esgpull import Esgpull
-from esgpull.types import Param
+from esgpull import Esgpull, Param
 
 
 @click.group()
