@@ -55,8 +55,8 @@ class FileStatus(Enum):
     waiting = auto()
 
     def __repr__(self) -> str:
-        # return self.__class__.__name__ + "." + self.name
-        return self.name
+        return self.__class__.__name__ + "." + self.name
+        # return self.name
 
 
 @dataclass
@@ -66,15 +66,15 @@ class Version:
 
 @dataclass
 class Param:
-    id: int = field(init=False)
+    id: int = field(init=False, repr=False)
     name: str
     value: str
-    last_updated: Optional[datetime] = field(init=False)
+    last_updated: Optional[datetime] = field(init=False, repr=False)
 
 
 @dataclass
 class File:
-    id: int = field(init=False)
+    id: int = field(init=False, repr=False)
     file_id: str
     dataset_id: str
     # `master_id` is used to find duplicate files from multiple versions
@@ -88,8 +88,8 @@ class File:
     checksum_type: str
     size: int
     status: FileStatus = FileStatus.new
-    metadata: dict = field(repr=False, default_factory=dict)
-    last_updated: Optional[datetime] = field(init=False)
+    metadata: dict = field(repr=False, default_factory=dict, compare=False)
+    last_updated: Optional[datetime] = field(init=False, repr=False)
 
     # duration: int
     # rate: int

@@ -92,7 +92,7 @@ class Esgpull:
                 file = File.from_dict(metadata)
                 if file.version == filename_version_dict[file.filename]:
                     new_files.append(file)
-            self.install(new_files, FileStatus.done)
+            self.install(*new_files, status=FileStatus.done)
             nb_remaining = len(filename_version_dict) - len(new_files)
             print(f"Installed {len(new_files)} new files.")
             print(f"{nb_remaining} files remain installed (another index?).")
@@ -100,7 +100,7 @@ class Esgpull:
             print("No new files.")
 
     def install(
-        self, files: list[File], status: FileStatus = FileStatus.waiting
+        self, *files: File, status: FileStatus = FileStatus.waiting
     ) -> list[File]:
         """
         Insert `files` with specified `status` into db if not already there.
@@ -118,7 +118,7 @@ class Esgpull:
         self.db.add(*installed)
         return installed
 
-    def remove(self, files: list[File]) -> list[File]:
+    def remove(self, *files: File) -> list[File]:
         """
         Remove `files` from db and delete from filesystem.
         """
@@ -139,7 +139,7 @@ class Esgpull:
         Search duplicate files and keep latest version only.
         """
         deprecated = self.db.get_deprecated_files()
-        return self.remove(deprecated)
+        return self.remove(*deprecated)
 
     async def download_waiting(self, use_bar=True) -> tuple[int, int]:
         """
