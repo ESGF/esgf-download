@@ -305,14 +305,22 @@ class Database:
         for item in items:
             sa.orm.session.make_transient(item)
 
-    def has(self, /, file: File = None, filepath: Path = None) -> bool:
+    def has(
+        self,
+        /,
+        file: Optional[File] = None,
+        filepath: Optional[str | Path] = None,
+    ) -> bool:
         if file is not None:
             table = File
             clause = File.file_id == file.file_id
         elif filepath is not None:
+            if isinstance(filepath, str):
+                filepath = Path(filepath)
             table = File
+            # TODO: verify format assumption: a/b/c/../<version>/<filename>
             filename = filepath.name
-            version = filepath.parent.name  # TODO: verify assumption
+            version = filepath.parent.name
             clause = (File.filename == filename) & (File.version == version)
         else:
             raise ValueError
