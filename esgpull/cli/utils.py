@@ -1,8 +1,39 @@
+from typing import Callable
+
 import rich
 import click
 from click_params import ListParamType
 
 from esgpull.utils import naturalsize
+
+
+class arg:
+    @staticmethod
+    def facets(fun: Callable) -> Callable:
+        decor = click.argument("facets", nargs=-1)
+        return decor(fun)
+
+
+class opt:
+    @staticmethod
+    def selection_file(fun: Callable) -> Callable:
+        decor = click.option("--selection-file", "-s")
+        return decor(fun)
+
+    @staticmethod
+    def distrib(fun: Callable) -> Callable:
+        decor = click.option("--distrib", "-d", is_flag=True)
+        return decor(fun)
+
+    @staticmethod
+    def dry_run(fun: Callable) -> Callable:
+        decor = click.option("--dry-run", "-z", is_flag=True)
+        return decor(fun)
+
+    @staticmethod
+    def date(fun: Callable) -> Callable:
+        decor = click.option("--date", "-D", is_flag=True)
+        return decor(fun)
 
 
 class SliceParam(ListParamType):
@@ -13,54 +44,53 @@ class SliceParam(ListParamType):
 
     def convert(self, value: str, param, ctx) -> slice:
         converted_list = super().convert(value, param, ctx)
-        result: slice
+        start: int
+        stop: int
         match converted_list:
+            case [start, stop] if start < stop:
+                ...
             case [stop]:
-                result = slice(0, stop)
-            case [start, stop]:
-                result = slice(start, stop)
+                start = 0
             case _:
-                self.fail(
-                    self._error_message.format(errors="Bad value"), param, ctx
-                )
-        return result
+                error_message = self._error_message.format(errors="Bad value")
+                self.fail(error_message, param, ctx)
+        return slice(start, stop)
 
 
 def pretty_id(id: str) -> str:
-    bar_idx = id.find("|")
-    if bar_idx > 0:
-        return id[:bar_idx]
-    else:
-        return id
+    return id.partition("|")[0]
 
 
 def totable(
-    results: list[dict], node: bool = False, _slice: slice = None
+    results: list[dict],
+    node: bool = False,
+    date: bool = False,
+    _slice: slice = None,
 ) -> rich.table.Table:
     if _slice is None:
         _slice = slice(0, len(results))
-    rows: zip[tuple]
+    _slice_no_offset = slice(0, _slice.stop - _slice.start)
+    rows: list[map | list]
     table = rich.table.Table()
     table.add_column("#", justify="right")
     table.add_column("size", justify="right")
     table.add_column("id", justify="left")
+    indices = map(str, range(_slice.start, _slice.stop))
+    sizes = map(naturalsize, [r["size"] for r in results][_slice_no_offset])
+    ids = map(pretty_id, [r["id"] for r in results][_slice_no_offset])
+    rows = [indices, sizes, ids]
     if node:
         table.add_column("node", justify="right")
-    table.add_column("date", justify="right")
-    timestamp = [r.get("timestamp", r.get("_timestamp")) for r in results]
-    numids = map(str, range(_slice.start, _slice.stop))
-    _slice = slice(0, _slice.stop - _slice.start)
-    sizes = map(naturalsize, [r["size"] for r in results][_slice])
-    ids = map(pretty_id, [r["id"] for r in results][_slice])
-    dates = timestamp[_slice]
-    if node:
-        nodes = [r["data_node"] for r in results][_slice]
-        rows = zip(numids, sizes, ids, nodes, dates)
-    else:
-        rows = zip(numids, sizes, ids, dates)
-    for row in rows:
+        nodes = [r["data_node"] for r in results][_slice_no_offset]
+        rows.append(nodes)
+    if date:
+        table.add_column("date", justify="right")
+        timestamp = [r.get("timestamp", r.get("_timestamp")) for r in results]
+        dates = timestamp[_slice_no_offset]
+        rows.append(dates)
+    for row in zip(*rows):
         table.add_row(*row)
     return table
 
 
-__all__ = ["SliceParam", "totable"]
+__all__ = ["arg", "opt", "SliceParam", "totable"]
