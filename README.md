@@ -1,18 +1,14 @@
 # esgpull - ESGF data management utility
 
-## Introduction
+`esgpull` is a tool that simplifies usage of the [ESGF Search API](https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html) for data discovery, and manages procedures related to downloading and storing files from ESGF.
 
-esgpull is a minimal command line utility for local management of ESGF datasets / files.
+```py
+import esgpull
 
-It helps with discovery, download and version control of datasets uploaded on ESGF nodes.
-
-```python
-from esgpull import Database
-
-## Open a `:memory:` sqlite database
-db = Database(path="path/to/db.db")
-print(db.version)
-# 4.0.0
+c = esgpull.Context()
+c.query.project = "CMIP6"
+print(c.query)
+print("Number of CMIP6 datasets:", c.hits)
 ```
 
 ## Features
@@ -23,12 +19,14 @@ print(db.version)
 ## Usage
 
 ```sh
-~/ipsl/esg-pull master ×
-› esgpull --help
+$ esgpull --help
 Usage: esgpull [OPTIONS] COMMAND [ARGS]...
 
+  esgpull is a management utility for files and datasets from ESGF.
+
 Options:
-  -h, --help  Show this message and exit.
+  -v, --version  Show the version and exit.
+  -h, --help     Show this message and exit.
 
 Commands:
   autoremove
@@ -40,14 +38,12 @@ Commands:
   param
   remove
   retry
-  search
+  search      Search datasets/files on ESGF
   upgrade
 ```
 
 
 ### CLI
-
-[Documentation](https://click.palletsprojects.com/en/8.1.x/#documentation)
 
 ```mermaid
 classDiagram
