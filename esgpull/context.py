@@ -39,7 +39,7 @@ class Context:
         retracted: bool = False,
         max_concurrent: int = 5,
         search_batchsize: int = 50,
-        last_update: Optional[str | datetime.datetime] = None,
+        since: Optional[str | datetime.datetime] = None,
         show_url: bool = False,
         new_style: bool = True,
     ):
@@ -50,10 +50,10 @@ class Context:
         self.retracted = retracted
         self.max_concurrent = max_concurrent
         self.search_batchsize = search_batchsize
-        if last_update is None:
-            self.last_update = last_update
+        if since is None:
+            self.since = since
         else:
-            self.last_update = format_date(last_update)
+            self.since = format_date(since)
         self.show_url = show_url
         self.new_style = new_style
         if selection_file_path is not None:
@@ -78,7 +78,7 @@ class Context:
             "distrib": self.distrib,
             "replica": self.replica,
             "retracted": self.retracted,
-            "from": self.last_update,
+            "from": self.since,
             "format": "application/solr+json",
             **extra,
         }
@@ -192,10 +192,6 @@ class Context:
         async with sem:
             return await client.get(url, params=query)
 
-    def raise_on_distrib_facet_counts(self) -> None:
-        if self.distrib and self.query.facets.isdefault():
-            raise UnstableSolrQuery(self)
-
     async def _fetch(self, queries) -> AsyncIterator[dict]:
         client = httpx.AsyncClient(timeout=20)
         sem = asyncio.Semaphore(self.max_concurrent)
@@ -211,6 +207,7 @@ class Context:
                     print(resp.url)
                 yield resp.json()
             except Exception as e:
+                # TODO: clearer 404/501/TimeoutError/...
                 print(queries[i])
                 print(e)
         await client.aclose()
@@ -222,10 +219,14 @@ class Context:
             result.append(json["response"]["numFound"])
         return result
 
+    def _raise_on_distrib_facet_counts(self) -> None:
+        if self.distrib and self.query.facets.isdefault():
+            raise UnstableSolrQuery(self)
+
     async def _facet_counts(
         self, file=False
     ) -> tuple[list[int], list[FacetCounts]]:
-        self.raise_on_distrib_facet_counts()
+        self._raise_on_distrib_facet_counts()
         facet_counts: list[FacetCounts] = []
         hit_counts: list[int] = []
         queries = self._build_queries_facet_counts(file)

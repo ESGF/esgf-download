@@ -16,16 +16,18 @@ from esgpull.cli.utils import arg, opt, SliceParam, totable
 @opt.dry_run
 @opt.date
 @click.option("--file", "-f", is_flag=True)
+@click.option("--since", type=str, default=None)
 # @click.option("--local", "-l")
 @click.option("--latest/--no-latest", "-l/-L", is_flag=True, default=None)
 @click.option("--data-node", "-n", is_flag=True, default=False)
-@click.option("--options", "-o", type=ListParamType(click.STRING, ","), default=None)
+@click.option("--options", "-o", type=ListParamType(str, ","), default=None)
 @click.option("--print-slice", "-S", type=SliceParam(), default="0-20")
 @arg.facets
 def search(
     facets: list[str],
     selection_file: Optional[str],
     file: bool,
+    since: str,
     distrib: bool,
     dry_run: bool,
     date: bool,
@@ -42,7 +44,7 @@ def search(
 
     # TODO: bug with print_slice:
     # -> numeric ids are not consistent due to sort by instance_id
-    ctx = Context(distrib=distrib, latest=latest)
+    ctx = Context(distrib=distrib, latest=latest, since=since)
     offset = print_slice.start
     size = print_slice.stop - print_slice.start
     for facet in facets:
