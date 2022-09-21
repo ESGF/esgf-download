@@ -18,14 +18,17 @@ class UnknownFacetName(AttributeError, EsgpullException):
     msg = "'{}' is not a valid facet."
 
 
-# # error to be used with validation implemented
+# # errors meant for use when validation is implemented
+# class UnknownFacetValue(EsgpullException):
+#     msg = "'{}' is not valid for {}."
 # class ImpossibleFacet(EsgpullException):
 #     msg = """Facet '{}' is not available with this query:
 #     {}"""
 
 
-class UnknownFacetValue(EsgpullException):
-    msg = "'{}' is not valid for {}."
+class UnstableSolrQuery(EsgpullException):
+    msg = """Solr can not handle this query:
+    {}"""
 
 
 class UnsupportedSource(EsgpullException):
@@ -36,7 +39,6 @@ class UnsupportedSource(EsgpullException):
 __all__ = [
     "NoRootError",
     "UnknownFacetName",
-    # "ImpossibleFacet",
-    "UnknownFacetValue",
+    "UnstableSolrQuery",
     "UnsupportedSource",
 ]

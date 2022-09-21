@@ -8,8 +8,9 @@ import datetime
 
 from esgpull.query import Query
 from esgpull.types import FacetDict
-from esgpull.constants import DEFAULT_ESGF_INDEX
 from esgpull.utils import format_date, index2url
+from esgpull.constants import DEFAULT_ESGF_INDEX
+from esgpull.exceptions import UnstableSolrQuery
 
 
 # workaround for notebooks with running event loop
@@ -96,6 +97,11 @@ class Context:
             facets["end"] = format_date(str(facets["end"]))
         if self.new_style:
             facets_: list[str] = []
+            if "query" in facets:
+                freetext = facets.pop("query")
+                if isinstance(freetext, (list, tuple, set)):
+                    freetext = " ".join(freetext)
+                facets_.append(freetext)
             for name, values in facets.items():
                 if isinstance(values, list):
                     values = "(" + " ".join(values) + ")"
@@ -186,6 +192,10 @@ class Context:
         async with sem:
             return await client.get(url, params=query)
 
+    def raise_on_distrib_facet_counts(self) -> None:
+        if self.distrib and self.query.facets.isdefault():
+            raise UnstableSolrQuery(self)
+
     async def _fetch(self, queries) -> AsyncIterator[dict]:
         client = httpx.AsyncClient(timeout=20)
         sem = asyncio.Semaphore(self.max_concurrent)
@@ -215,6 +225,7 @@ class Context:
     async def _facet_counts(
         self, file=False
     ) -> tuple[list[int], list[FacetCounts]]:
+        self.raise_on_distrib_facet_counts()
         facet_counts: list[FacetCounts] = []
         hit_counts: list[int] = []
         queries = self._build_queries_facet_counts(file)
@@ -266,17 +277,15 @@ class Context:
 
     # @property
     def options(self, file=False) -> list[FacetCounts]:
-        all_flat = self.query.flatten()
-        all_hits, all_facet_counts = asyncio.run(self._facet_counts(file))
+        queries = self.query.flatten()
+        _, all_facet_counts = asyncio.run(self._facet_counts(file))
         result = []
-        for flat, hits, facet_counts in zip(
-            all_flat, all_hits, all_facet_counts
-        ):
+        for query, facet_counts in zip(queries, all_facet_counts):
             facet_options = {}
             for facet, counts in facet_counts.items():
                 if facet not in self.query._facets:
                     continue  # discard non-facets
-                if not flat[facet].isdefault():
+                if not query[facet].isdefault():
                     continue  # discard facets with value
                 if len(counts) > 1:
                     facet_options[facet] = counts
