@@ -17,16 +17,28 @@ class Esgpull:
         self.db = Database(self.fs.db / "esgpull.db")
         self.auth = Auth(self.fs.auth)
 
+    def fetch_index_nodes(self) -> list[str]:
+        """
+        Returns a list of ESGF index nodes.
+
+        Fetch facet_counts from ESGF search API, using `distrib=True`.
+        """
+
+        ctx = Context(distrib=True)
+        ctx.query.facets = "index_node"
+        return list(ctx.facet_counts[0]["index_node"])
+
     def fetch_params(self, update=False) -> bool:
         """
         Fill db with all existing params found in ESGF index nodes.
 
-        First fetch all index_nodes URLs using `distrib=True`.
-        Then fetch all facets (names + values) from all index nodes.
+        1. Fetch index nodes from `Esgpull.fetch_index_nodes()`
+        2. Fetch all facets (names + values) from all index nodes.
 
         Workaround method, since searching directly for all facets using
         `distrib=True` seems to crash the index node.
         """
+
         IGNORE_NAMES = [
             "cf_standard_name",
             "variable_long_name",
@@ -39,9 +51,7 @@ class Esgpull:
         if params and not update:
             return False
         self.db.delete(*params)
-        ctx = Context(distrib=True)
-        ctx.query.facets = "index_node"
-        index_nodes = list(ctx.facet_counts[0]["index_node"])
+        index_nodes = self.fetch_index_nodes()
         ctx = Context(distrib=False, max_concurrent=len(index_nodes))
         for index_node in index_nodes:
             query = ctx.query.add()

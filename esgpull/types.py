@@ -128,16 +128,19 @@ class File:
                 metadata[k] = v[0]
             else:
                 metadata[k] = v
-        file_id = metadata["instance_id"]
-        if not file_id.endswith(".nc"):
-            # extension is forced to `.nc` (some were .nc[0|1|...])
-            file_id = file_id.rsplit(".", 1)[0] + ".nc"
-        url = metadata["url"][0].split("|")[0]
+        dataset_id = metadata["dataset_id"].partition("|")[0]
         filename = metadata["title"]
-        dataset_id = file_id.removesuffix("." + filename)
-        master_id = metadata["master_id"].rsplit(".", 1)[0]
+        file_id = ".".join([dataset_id, filename])
+        dataset_master = dataset_id.rsplit(".", 1)[0]  # remove version
+        master_id = ".".join([dataset_master, filename])
+        # if not file_id.endswith(".nc"):
+        #     extension is forced to `.nc` (some were .nc[0|1|...])
+        #     file_id = file_id.rsplit(".", 1)[0] + ".nc"
+        url = metadata["url"][0].partition("|")[0]
+        # master_id = ".".join([dataset_id, filename])
+        # master_id = metadata["master_id"].rsplit(".", 1)[0]
         # grab version from instance_id, as files always give `version=1`
-        version = dataset_id.split(".")[-1]
+        version = dataset_id.rsplit(".", 1)[1]
         local_path = cls.get_local_path(metadata, version)
         data_node = metadata["data_node"]
         checksum = metadata["checksum"]

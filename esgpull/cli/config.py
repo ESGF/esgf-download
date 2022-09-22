@@ -39,7 +39,7 @@ def print_yaml(d: dict) -> None:
         syntax = rich.syntax.Syntax(yml, "yaml")
         rich.print(syntax)
     else:
-        rich.print("Nothing to configure.")
+        click.echo("Nothing to configure.")
 
 
 @click.group(cls=DefaultGroup, default="show", default_if_no_args=True)

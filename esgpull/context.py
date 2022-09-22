@@ -7,7 +7,7 @@ import httpx
 import datetime
 
 from esgpull.query import Query
-from esgpull.types import FacetDict
+from esgpull.types import FacetDict, File
 from esgpull.utils import format_date, index2url
 from esgpull.constants import DEFAULT_ESGF_INDEX
 from esgpull.exceptions import UnstableSolrQuery
@@ -255,9 +255,14 @@ class Context:
         result = []
         async for json in self._fetch(queries):
             for doc in json["response"]["docs"]:
-                if doc["id"] not in ids:
+                if file:
+                    f = File.from_dict(doc)
+                    _id = f.file_id
+                else:
+                    _id = doc["id"].partition("|")[0]
+                if _id not in ids:
                     result.append(doc)
-                    ids.add(doc["id"])
+                    ids.add(_id)
         nb_dropped = min(sum(hits), max_results) - len(ids)
         if nb_dropped:
             print(f"Dropped {nb_dropped} duplicate results.")
@@ -276,7 +281,6 @@ class Context:
         hits, facets = asyncio.run(self._facet_counts())
         return facets
 
-    # @property
     def options(self, file=False) -> list[FacetCounts]:
         queries = self.query.flatten()
         _, all_facet_counts = asyncio.run(self._facet_counts(file))

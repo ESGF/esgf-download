@@ -10,7 +10,7 @@ from esgpull.cli.download import download
 from esgpull.cli.get import get
 from esgpull.cli.login import login
 from esgpull.cli.install import install
-from esgpull.cli.param import param
+from esgpull.cli.facet import facet
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search
@@ -27,10 +27,10 @@ SUBCOMMANDS: list[click.Command] = [
     autoremove,
     config,
     download,
+    facet,
     get,
     install,
     login,
-    param,
     remove,
     retry,
     search,

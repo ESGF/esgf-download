@@ -4,8 +4,7 @@ from typing import Optional
 import rich
 import click
 
-from esgpull.query import Query
-from esgpull.context import Context
+from esgpull import Context
 from esgpull.cli.utils import totable
 from esgpull.cli.decorators import args, opts
 
@@ -67,8 +66,7 @@ def search(
             else:
                 ctx.query.query + value
     if selection_file is not None:
-        other = Query.from_file(selection_file)
-        ctx.query.update(other)
+        ctx.query.load_file(selection_file)
     if file:
         hits = ctx.file_hits
     else:
@@ -85,6 +83,7 @@ def search(
     else:
         results = ctx.search(file=file, max_results=size, offset=offset)
         nb = sum(hits)
-        rich.print(f"Found {nb} result{'s' if nb > 1 else ''}.")
+        item_type = "file" if file else "dataset"
+        click.echo(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
         if len(results):
             rich.print(totable(results, data_node, date, slice_))
