@@ -245,12 +245,13 @@ class Query(QueryBase):
     requests: list[SimpleQuery] = field(default_factory=list)
 
     @classmethod
-    def from_file(cls, path: str | Path) -> Query:
+    def from_file(cls, path: str | Path, instance: Query = None) -> Query:
         with open(path) as f:
-            source = yaml.safe_load(f)
-        result = cls()
-        result.load(source)
-        return result
+            source = yaml.load(f.read(), Loader=yaml.loader.BaseLoader)
+        if instance is None:
+            instance = cls()
+        instance.load(source)
+        return instance
 
     def tosimple(self) -> SimpleQuery:
         result = SimpleQuery()
@@ -303,6 +304,9 @@ class Query(QueryBase):
             query = SimpleQuery()
             query.load(request)
             self.requests.append(query)
+
+    def load_file(self, path: str | Path) -> None:
+        Query.from_file(path, instance=self)
 
     def __repr__(self) -> str:
         facets = ", ".join(map(str, self))
