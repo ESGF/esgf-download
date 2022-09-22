@@ -38,16 +38,12 @@ class Download:
             ctx.query.title = Path(url).name
             results = ctx.search(file=True)
             found_file = False
-            if len(results) == 1:
-                found_file = True
-                self.file = File.from_dict(results[0])
-            elif len(results) > 1:
-                for res in results:
-                    file = File.from_dict(res)
-                    if file.version in url:
-                        self.file = file
-                        found_file = True
-                        break
+            for res in results:
+                file = File.from_dict(res)
+                if file.version in url:
+                    self.file = file
+                    found_file = True
+                    break
             if not found_file:
                 raise ValueError(f"{url} is not valid")
         else:
@@ -211,7 +207,7 @@ class MultiSourceChunkedDownload(Download):
 
 
 Process: TypeAlias = Download | ChunkedDownload | MultiSourceChunkedDownload
-ResultData: TypeAlias = tuple[File, bytes]
+ResultWithData: TypeAlias = tuple[File, bytes]
 
 
 @dataclass
@@ -222,12 +218,12 @@ class Processor:
 
     async def process_one(
         self, process: Process, semaphore: asyncio.Semaphore
-    ) -> ResultData:
+    ) -> ResultWithData:
         async with semaphore:
             data = await process.aget()
         return process.file, data
 
-    async def process(self, use_bar=False) -> AsyncIterator[ResultData]:
+    async def process(self, use_bar=False) -> AsyncIterator[ResultWithData]:
         if use_bar:
             total_size = sum(file.size for file in self.files)
             bar = tqdm(
