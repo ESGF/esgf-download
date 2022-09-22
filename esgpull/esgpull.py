@@ -100,7 +100,7 @@ class Esgpull:
             print("No new files.")
 
     def install(
-        self, *files: File, status: FileStatus = FileStatus.waiting
+        self, *files: File, status: FileStatus = FileStatus.queued
     ) -> list[File]:
         """
         Insert `files` with specified `status` into db if not already there.
@@ -141,17 +141,17 @@ class Esgpull:
         deprecated = self.db.get_deprecated_files()
         return self.remove(*deprecated)
 
-    async def download_waiting(self, use_bar=True) -> tuple[int, int]:
+    async def download_queued(self, use_bar=True) -> tuple[int, int]:
         """
-        Download all files from db for which status is `waiting`.
+        Download all files from db for which status is `queued`.
         """
-        running = self.db.get_files_with_status(FileStatus.waiting)
-        for file in running:
-            file.status = FileStatus.running
-        self.db.add(*running)
-        processor = Processor(self.auth, running)
+        queue = self.db.get_files_with_status(FileStatus.queued)
+        for file in queue:
+            file.status = FileStatus.starting
+        self.db.add(*queue)
+        processor = Processor(self.auth, queue)
         async for file, data in processor.process(use_bar):
             await self.fs.write(file, data)
             file.status = FileStatus.done
             self.db.add(file)
-        return len(running), sum(file.size for file in running)
+        return len(queue), sum(file.size for file in queue)

@@ -46,13 +46,15 @@ def is_nested_facet_dict(d: dict[str, Any]) -> TypeGuard[NestedFacetDict]:
 
 
 class FileStatus(Enum):
-    deleted = auto()
-    done = auto()
-    error = auto()
+    # deleted = auto()
     new = auto()
+    queued = auto()
+    starting = auto()
+    started = auto()
+    pausing = auto()
     paused = auto()
-    running = auto()
-    waiting = auto()
+    error = auto()
+    done = auto()
 
     def __repr__(self) -> str:
         return self.__class__.__name__ + "." + self.name
@@ -102,13 +104,7 @@ class File:
     # sdget_error_msg: str
     # priority: int
     # tracking_id: str
-    # model: str
-    # project: str
-    # variable: str
     # last_access_date: str
-    # dataset_id: int
-    # insertion_group_id: int
-    # timestamp: str
 
     @staticmethod
     def get_local_path(metadata: dict, version: str) -> str:

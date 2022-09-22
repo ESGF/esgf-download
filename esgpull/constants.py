@@ -27,6 +27,7 @@ DEFAULT_FACETS = [
     "driving_model",
     "rcm_name",
     "member_id",
+    "cmor_table",
 ]
 EXTRA_FACETS = [
     "start",
@@ -40,6 +41,7 @@ EXTRA_FACETS = [
     "instance_id",  # search does not work with instance_id
     "title",
     "variable_long_name",
+    "experiment_family",
 ]
 DEFAULT_CONSTRAINTS_WITH_VALUE: dict[str, str] = {}
 

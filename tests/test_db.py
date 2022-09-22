@@ -32,7 +32,7 @@ def file_(tmp_path):
         checksum="0",
         checksum_type="0",
         size=0,
-        status=FileStatus.waiting,
+        status=FileStatus.queued,
     )
 
 
@@ -72,7 +72,7 @@ def test_scalar(db):
 
 def test_get_files_with_status(db, file_):
     db.add(file_)
-    assert db.get_files_with_status(FileStatus.waiting) == [file_]
+    assert db.get_files_with_status(FileStatus.queued) == [file_]
     assert db.get_files_with_status(FileStatus.done) == []
     assert db.has(file_)
 
