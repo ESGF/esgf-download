@@ -1,5 +1,3 @@
-from typing import Callable
-
 import rich
 import click
 from click_params import ListParamType
@@ -7,39 +5,10 @@ from click_params import ListParamType
 from esgpull.utils import naturalsize
 
 
-class arg:
-    @staticmethod
-    def facets(fun: Callable) -> Callable:
-        decor = click.argument("facets", nargs=-1)
-        return decor(fun)
-
-
-class opt:
-    @staticmethod
-    def selection_file(fun: Callable) -> Callable:
-        decor = click.option("--selection-file", "-s")
-        return decor(fun)
-
-    @staticmethod
-    def distrib(fun: Callable) -> Callable:
-        decor = click.option("--distrib", "-d", is_flag=True)
-        return decor(fun)
-
-    @staticmethod
-    def dry_run(fun: Callable) -> Callable:
-        decor = click.option("--dry-run", "-z", is_flag=True)
-        return decor(fun)
-
-    @staticmethod
-    def date(fun: Callable) -> Callable:
-        decor = click.option("--date", "-D", is_flag=True)
-        return decor(fun)
-
-
 class SliceParam(ListParamType):
     name = "slice"
 
-    def __init__(self, separator: str = "-") -> None:
+    def __init__(self, separator: str = ":") -> None:
         super().__init__(click.INT, separator=separator, name="integers")
 
     def convert(self, value: str, param, ctx) -> slice:
@@ -93,4 +62,4 @@ def totable(
     return table
 
 
-__all__ = ["arg", "opt", "SliceParam", "totable"]
+__all__ = ["SliceParam", "totable"]

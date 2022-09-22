@@ -3,15 +3,15 @@ from typing import Optional
 
 import time
 import click
-from esgpull.cli.utils import arg, opt
+from esgpull.cli.decorators import args, opts
 
 
 @click.command()
-@opt.selection_file
-@opt.distrib
-@opt.dry_run
-@click.option("--force", "-f", is_flag=True, default=False)
-@arg.facets
+@opts.distrib
+@opts.dry_run
+@opts.force
+@args.facets
+@opts.selection_file
 def install(
     facets: list[str],
     selection_file: Optional[str],

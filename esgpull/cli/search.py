@@ -3,38 +3,43 @@ from typing import Optional
 
 import rich
 import click
-from click_params import ListParamType
 
 from esgpull.query import Query
 from esgpull.context import Context
-from esgpull.cli.utils import arg, opt, SliceParam, totable
+from esgpull.cli.utils import totable
+from esgpull.cli.decorators import args, opts
 
 
 @click.command()
-@opt.selection_file
-@opt.distrib
-@opt.dry_run
-@opt.date
-@click.option("--file", "-f", is_flag=True)
-@click.option("--since", type=str, default=None)
-# @click.option("--local", "-l")
-@click.option("--latest/--no-latest", "-l/-L", is_flag=True, default=None)
-@click.option("--data-node", "-n", is_flag=True, default=False)
-@click.option("--options", "-o", type=ListParamType(str, ","), default=None)
-@click.option("--print-slice", "-S", type=SliceParam(), default="0-20")
-@arg.facets
+@opts.distrib
+@opts.dry_run
+@opts.date
+@opts.file
+@opts.since
+@opts.latest
+@opts.data_node
+@opts.one
+@opts.options
+@opts.replica
+@opts.selection_file
+@opts.slice
+@opts.zero
+@args.facets
 def search(
     facets: list[str],
-    selection_file: Optional[str],
-    file: bool,
-    since: str,
-    distrib: bool,
-    dry_run: bool,
     date: bool,
     data_node: bool,
-    options: list[str],
-    print_slice: slice,
+    distrib: bool,
+    dry_run: bool,
+    file: bool,
     latest: Optional[bool],
+    replica: Optional[bool],
+    selection_file: Optional[str],
+    since: Optional[str],
+    options: list[str],
+    one: bool,
+    zero: bool,
+    slice_: slice,
 ) -> None:
     """
     Search datasets/files on ESGF
@@ -42,11 +47,15 @@ def search(
     More info
     """
 
-    # TODO: bug with print_slice:
+    # TODO: bug with slice_:
     # -> numeric ids are not consistent due to sort by instance_id
-    ctx = Context(distrib=distrib, latest=latest, since=since)
-    offset = print_slice.start
-    size = print_slice.stop - print_slice.start
+    ctx = Context(distrib=distrib, latest=latest, since=since, replica=replica)
+    if zero:
+        slice_ = slice(0, 0)
+    elif one:
+        slice_ = slice(0, 1)
+    offset = slice_.start
+    size = slice_.stop - slice_.start
     for facet in facets:
         parts = facet.split(":")
         if len(parts) == 1:
@@ -78,4 +87,4 @@ def search(
         nb = sum(hits)
         rich.print(f"Found {nb} result{'s' if nb > 1 else ''}.")
         if len(results):
-            rich.print(totable(results, data_node, date, print_slice))
+            rich.print(totable(results, data_node, date, slice_))
