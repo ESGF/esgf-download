@@ -3,13 +3,13 @@ from typing import TypeAlias, Optional
 from collections.abc import AsyncIterator
 
 import asyncio
-import httpx
-import datetime
+from datetime import datetime
+from httpx import Response, AsyncClient
 
 from esgpull.query import Query
+from esgpull.settings import Settings
 from esgpull.types import FacetDict, File
 from esgpull.utils import format_date, index2url
-from esgpull.constants import DEFAULT_ESGF_INDEX
 from esgpull.exceptions import SolrUnstableQueryError
 
 
@@ -30,6 +30,7 @@ class Context:
     def __init__(
         self,
         selection_file_path: Optional[str | Path] = None,
+        settings: Settings = Settings(),
         /,
         *,
         fields: str = "*",
@@ -39,10 +40,11 @@ class Context:
         retracted: bool = False,
         max_concurrent: int = 5,
         search_batchsize: int = 50,
-        since: Optional[str | datetime.datetime] = None,
+        since: Optional[str | datetime] = None,
         show_url: bool = False,
         new_style: bool = True,
     ):
+        self.settings = settings
         self.fields = fields
         self.latest = latest
         self.replica = replica
@@ -88,7 +90,7 @@ class Context:
         elif "url" in facets:
             query["url"] = facets.pop("url")
         else:
-            query["url"] = index2url(DEFAULT_ESGF_INDEX)
+            query["url"] = index2url(self.settings.context.index_node)
         if "facets" in facets:
             query["facets"] = facets.pop("facets")
         if "start" in facets:
@@ -193,8 +195,7 @@ class Context:
             return await client.get(url, params=query)
 
     async def _fetch(self, queries) -> AsyncIterator[dict]:
-        client = httpx.AsyncClient(timeout=20)
-        sem = asyncio.Semaphore(self.max_concurrent)
+        client = AsyncClient(timeout=self.settings.context.http_timeout)
         tasks = []
         for query in queries:
             task = asyncio.ensure_future(self._fetch_one(query, client, sem))

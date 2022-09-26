@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, TypeAlias
+from typing import Optional, TypeAlias, Type
 from collections.abc import AsyncIterator
 
 import math
@@ -14,7 +14,8 @@ from httpx import AsyncClient, RequestError
 from esgpull.auth import Auth
 from esgpull.types import File
 from esgpull.context import Context
-from esgpull.constants import DOWNLOAD_CHUNK_SIZE
+from esgpull.settings import Settings
+from esgpull.exceptions import DownloadMethodError
 
 
 class Download:
@@ -27,8 +28,10 @@ class Download:
         auth: Auth,
         file: File = None,
         url: str = None,
+        settings: Settings = Settings(),
     ) -> None:
         self.auth = auth
+        self.settings = settings
         if file is not None:
             self.file = file
         elif url is not None:
@@ -72,12 +75,12 @@ class ChunkedDownload(Download):
     def __init__(
         self,
         auth: Auth,
+        *,
         file: File = None,
         url: str = None,
-        chunk_size: int = DOWNLOAD_CHUNK_SIZE,
+        settings: Settings = Settings(),
     ) -> None:
-        super().__init__(auth, file, url)
-        self.chunk_size = chunk_size
+        super().__init__(auth, file, url, settings)
 
     # TODO: decide whether:
     # 1. await-get directly as classmethod (e.g. `file`)
@@ -93,8 +96,11 @@ class ChunkedDownload(Download):
     #     return download
 
     async def aget_chunk(self, chunk_idx: int, client: AsyncClient) -> bytes:
-        start = chunk_idx * self.chunk_size
-        end = min(self.file.size, (chunk_idx + 1) * self.chunk_size - 1)
+        start = chunk_idx * self.settings.download.chunk_size
+        end = min(
+            self.file.size,
+            (chunk_idx + 1) * self.settings.download.chunk_size - 1,
+        )
         headers = {"Range": f"bytes={start}-{end}"}
         resp = await client.get(self.url, headers=headers)
         resp.raise_for_status()
@@ -102,7 +108,9 @@ class ChunkedDownload(Download):
 
     async def aget(self) -> bytes:
         client = AsyncClient(follow_redirects=True, timeout=5.0)
-        nb_chunks = math.ceil(self.file.size / self.chunk_size)
+        nb_chunks = math.ceil(
+            self.file.size / self.settings.download.chunk_size
+        )
         chunks: list[bytes] = []
         for i in range(nb_chunks):
             chunk = await self.aget_chunk(i, client)
@@ -122,13 +130,14 @@ class MultiSourceChunkedDownload(Download):
         self,
         auth: Auth,
         file: File,
+        *,
         max_ping=5.0,
-        chunk_size: int = DOWNLOAD_CHUNK_SIZE,
+        settings: Settings = Settings(),
     ) -> None:
         self.auth = auth
         self.file = file
         self.max_ping = max_ping
-        self.chunk_size = chunk_size
+        self.settings = settings
         c = Context(distrib=True, fields="id,size,url")
         c.query.instance_id = file.file_id
         results = c.search(file=True)
@@ -173,8 +182,11 @@ class MultiSourceChunkedDownload(Download):
         while not queue.empty():
             chunk_idx = await queue.get()
             print(f"processing chunk {chunk_idx} on '{node}'")
-            start = chunk_idx * self.chunk_size
-            end = min(self.file.size, (chunk_idx + 1) * self.chunk_size - 1)
+            start = chunk_idx * self.settings.download.chunk_size
+            end = min(
+                self.file.size,
+                (chunk_idx + 1) * self.settings.download.chunk_size - 1,
+            )
             headers = {"Range": f"bytes={start}-{end}"}
             resp = await client.get(url, headers=headers)
             queue.task_done()
@@ -188,7 +200,9 @@ class MultiSourceChunkedDownload(Download):
         return chunks, url
 
     async def aget(self) -> bytes:
-        nb_chunks = math.ceil(self.file.size / self.chunk_size)
+        nb_chunks = math.ceil(
+            self.file.size / self.settings.download.chunk_size
+        )
         queue: asyncio.Queue[int] = asyncio.Queue(nb_chunks)
         for chunk_idx in range(nb_chunks):
             queue.put_nowait(chunk_idx)
@@ -215,6 +229,16 @@ class Processor:
     auth: Auth
     files: list[File]
     max_concurrent: int = 5
+    settings: Settings = Settings()
+
+    @property
+    def method(self) -> Type[Download]:
+        methods = [Download, ChunkedDownload, MultiSourceChunkedDownload]
+        choice = self.settings.download.method
+        for method in methods:
+            if choice == method.__name__:
+                return method
+        raise DownloadMethodError(choice)
 
     async def process_one(
         self, process: Process, semaphore: asyncio.Semaphore
@@ -230,7 +254,10 @@ class Processor:
                 total=total_size, unit="iB", unit_scale=True, unit_divisor=1024
             )
         semaphore = asyncio.Semaphore(self.max_concurrent)
-        processes = [Download(self.auth, file) for file in self.files]
+        processes = [
+            self.method(self.auth, file, settings=self.settings)
+            for file in self.files
+        ]
         tasks = [self.process_one(process, semaphore) for process in processes]
         for future in asyncio.as_completed(tasks):
             file, data = await future

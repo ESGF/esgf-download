@@ -3,6 +3,8 @@ import yaml
 import click
 from click_default_group import DefaultGroup
 
+from esgpull import Esgpull
+
 SKIP_PARAMS = ["help", "version", "yes"]
 
 
@@ -42,19 +44,31 @@ def print_yaml(d: dict) -> None:
         click.echo("Nothing to configure.")
 
 
-@click.group(cls=DefaultGroup, default="show", default_if_no_args=True)
-def config():
+@click.group(cls=DefaultGroup, default="global", default_if_no_args=True)
+def settings():
     ...
 
 
-@config.command()
+@settings.command("global")
+def _global():
+    esg = Esgpull()
+    print_yaml(esg.settings.dict())
+
+
+@settings.group(cls=DefaultGroup, default="show", default_if_no_args=True)
+@click.pass_context
+def cli(ctx):
+    ...
+
+
+@cli.command()
 @click.pass_context
 def show(ctx):
     info = get_info_dict(ctx)
     print_yaml(get_defaults(info))
 
 
-@config.command()
+@cli.command()
 @click.pass_context
 @click.argument("command", nargs=1, type=str)
 def get(ctx, command):

@@ -30,7 +30,6 @@ Options:
 
 Commands:
   autoremove
-  config
   download
   get
   install
@@ -39,6 +38,7 @@ Commands:
   remove
   retry
   search      Search datasets/files on ESGF
+  settings
   upgrade
 ```
 
@@ -58,14 +58,6 @@ classDiagram
   }
   esgpull --|> autoremove: Prompt [Y/n]
   
-  class config {
-    -h, --help
-    show()
-    get()
-    set()
-  }
-  esgpull --|> config
-
   class download {
     -h, --help
     start()
@@ -109,6 +101,19 @@ classDiagram
     -h, --help
   }
   esgpull --|> retry: Prompt [Y/n]
+
+  class search {
+    -h, --help
+  }
+  esgpull --|> settings
+
+  class settings {
+    -h, --help
+    show()
+    get()
+    set()
+  }
+  esgpull --|> settings
 
   class upgrade {
     -h, --help

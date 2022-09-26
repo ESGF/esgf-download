@@ -36,9 +36,18 @@ class QuerySourceError(EsgpullException):
     {}"""
 
 
+class DownloadMethodError(EsgpullException):
+    msg = """{} is not a valid download method. Choose from:
+    * Download
+    * ChunkedDownload
+    * MultiSourceChunkedDownload
+    """
+
+
 __all__ = [
     "NoRootError",
     "FacetNameError",
     "SolrUnstableQueryError",
     "QuerySourceError",
+    "DownloadMethodError",
 ]

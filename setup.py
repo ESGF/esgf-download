@@ -36,6 +36,7 @@ setup(
         "click-default-group",
         "sqlalchemy",
         "alembic",
+        "pydantic",
         "nest_asyncio",  # allow usage in notebooks
         "pyOpenSSL",
         "MyProxyClient",

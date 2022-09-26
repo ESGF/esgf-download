@@ -22,11 +22,15 @@ class Filesystem:
             self.root = Path(env_home)
         else:
             raise NoRootError
-        if not self.root.is_dir():
-            self.root.mkdir()
-            self.data.mkdir()
-            self.db.mkdir()
-            self.auth.mkdir()
+        self.root.mkdir(exist_ok=True)
+        self.auth.mkdir(exist_ok=True)
+        self.data.mkdir(exist_ok=True)
+        self.db.mkdir(exist_ok=True)
+        self.settings.mkdir(exist_ok=True)
+
+    @property
+    def auth(self) -> Path:
+        return self.root / "auth"
 
     @property
     def data(self) -> Path:
@@ -37,8 +41,8 @@ class Filesystem:
         return self.root / "db"
 
     @property
-    def auth(self) -> Path:
-        return self.root / "auth"
+    def settings(self) -> Path:
+        return self.root / "settings"
 
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename

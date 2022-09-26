@@ -5,10 +5,11 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull.types import File, Param, FileStatus
 from esgpull.context import Context
-from esgpull.db import Database
-from esgpull.fs import Filesystem
 from esgpull.auth import Auth  # , Identity
+from esgpull.db import Database
 from esgpull.download import Processor
+from esgpull.fs import Filesystem
+from esgpull.settings import Settings, SettingsPath
 
 
 class Esgpull:
@@ -16,6 +17,8 @@ class Esgpull:
         self.fs = Filesystem(path)
         self.db = Database(self.fs.db / "esgpull.db")
         self.auth = Auth(self.fs.auth)
+        SettingsPath.path = self.fs.settings / "settings.yaml"
+        self.settings = Settings()
 
     def fetch_index_nodes(self) -> list[str]:
         """

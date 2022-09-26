@@ -5,7 +5,6 @@ import click
 
 from esgpull import __version__
 from esgpull.cli.autoremove import autoremove
-from esgpull.cli.config import config
 from esgpull.cli.download import download
 from esgpull.cli.get import get
 from esgpull.cli.login import login
@@ -14,6 +13,7 @@ from esgpull.cli.facet import facet
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search
+from esgpull.cli.settings import settings
 from esgpull.cli.upgrade import upgrade
 
 # [-]TODO: stats
@@ -25,7 +25,7 @@ __all__ = ["cli"]
 
 SUBCOMMANDS: list[click.Command] = [
     autoremove,
-    config,
+    settings,
     download,
     facet,
     get,

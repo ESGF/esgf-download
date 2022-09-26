@@ -1,9 +1,3 @@
-DEFAULT_ESGF_URL: str = "https://esgf-node.ipsl.upmc.fr/esg-search/search"
-DEFAULT_ESGF_INDEX: str = "esgf-node.ipsl.upmc.fr"
-
-# DEFAULT_ESGF_INDEX: str = "esgf-data.dkrz.de"
-
-
 DEFAULT_FACETS = [
     "project",
     "mip_era",
@@ -44,5 +38,3 @@ EXTRA_FACETS = [
     "experiment_family",
 ]
 DEFAULT_CONSTRAINTS_WITH_VALUE: dict[str, str] = {}
-
-DOWNLOAD_CHUNK_SIZE: int = 1 << 26  # 64.0 MiB
