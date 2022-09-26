@@ -7,6 +7,7 @@ import click
 from esgpull import Esgpull, Context
 from esgpull.types import File
 from esgpull.utils import naturalsize
+from esgpull.cli.utils import load_facets
 from esgpull.cli.decorators import args, opts
 
 
@@ -33,19 +34,9 @@ def install(
     selection_file: Optional[str],
     since: Optional[str],
 ) -> None:
+    esg = Esgpull()
     ctx = Context(distrib=distrib, latest=latest, since=since, replica=replica)
-    for facet in facets:
-        parts = facet.split(":")
-        if len(parts) == 1:
-            ctx.query.query + parts
-        elif len(parts) == 2:
-            name, value = parts
-            if name:
-                ctx.query[name] + value
-            else:
-                ctx.query.query + value
-    if selection_file is not None:
-        ctx.query.load_file(selection_file)
+    load_facets(ctx.query, facets, selection_file)
     hits = ctx.file_hits
     nb_files = sum(hits)
     if dry_run:
@@ -65,5 +56,5 @@ def install(
         click.echo(f"Total size: {naturalsize(total_size)}")
         if not force:
             click.confirm("Continue?", default=True, abort=True)
-        esg = Esgpull()
-        esg.install(*files)
+        installed = esg.install(*files)
+        click.echo(f"Installed {len(installed)} new files.")

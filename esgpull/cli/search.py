@@ -5,8 +5,8 @@ import rich
 import click
 
 from esgpull import Context
-from esgpull.cli.utils import totable
 from esgpull.cli.decorators import args, opts
+from esgpull.cli.utils import totable, load_facets
 
 
 @click.command()
@@ -55,18 +55,7 @@ def search(
         slice_ = slice(0, 1)
     offset = slice_.start
     size = slice_.stop - slice_.start
-    for facet in facets:
-        parts = facet.split(":")
-        if len(parts) == 1:
-            ctx.query.query + parts
-        elif len(parts) == 2:
-            name, value = parts
-            if name:
-                ctx.query[name] + value
-            else:
-                ctx.query.query + value
-    if selection_file is not None:
-        ctx.query.load_file(selection_file)
+    load_facets(ctx, facets, selection_file)
     if file:
         hits = ctx.file_hits
     else:

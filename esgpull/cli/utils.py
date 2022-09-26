@@ -1,7 +1,10 @@
+from typing import Optional
+
 import rich
 import click
 from click_params import ListParamType
 
+from esgpull.query import Query
 from esgpull.utils import naturalsize
 
 
@@ -62,4 +65,21 @@ def totable(
     return table
 
 
-__all__ = ["SliceParam", "totable"]
+def load_facets(
+    query: Query, facets: list[str], selection_file: Optional[str]
+) -> None:
+    for facet in facets:
+        parts = facet.split(":")
+        if len(parts) == 1:
+            query.query + parts
+        elif len(parts) == 2:
+            name, value = parts
+            if name:
+                query[name] + value
+            else:
+                query.query + value
+    if selection_file is not None:
+        query.load_file(selection_file)
+
+
+__all__ = ["SliceParam", "totable", "load_facets"]

@@ -1,5 +1,5 @@
 import os
-from typing import Iterable, Optional
+from typing import Iterator, Optional
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -47,7 +47,7 @@ class Filesystem:
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
 
-    def glob_netcdf(self) -> Iterable[Path]:
+    def glob_netcdf(self) -> Iterator[Path]:
         for path in self.data.glob("**/*.nc"):
             yield path
 
@@ -57,12 +57,28 @@ class Filesystem:
         async with aiofiles.open(path, "wb") as f:
             await f.write(data)
 
+    def isempty(self, path: Path) -> bool:
+        if next(path.iterdir(), None) is None:
+            return True
+        else:
+            return False
+
+    def iter_empty_parents(self, path: Path) -> Iterator[Path]:
+        sample: Optional[Path]
+        while True:
+            sample = next(path.glob("**/*.nc"), None)
+            if sample is None and self.isempty(path):
+                yield path
+                path = path.parent
+            else:
+                return
+
     def delete(self, *files: File) -> None:
         for file in files:
             path = self.path_of(file)
             path.unlink(missing_ok=True)
-            if path.parent.is_dir():
-                path.parent.rmdir()
+            for path in self.iter_empty_parents(path.parent):
+                path.rmdir()
 
 
 __all__ = ["Filesystem"]
