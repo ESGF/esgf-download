@@ -1,6 +1,5 @@
 from typing import Optional
 
-import rich
 import click
 
 from esgpull import Esgpull
@@ -22,8 +21,11 @@ def remove(
     query = Query()
     load_facets(query, facets, selection_file)
     files = esg.db.search(query)
-    click.echo(f"Found {len(files)} files to remove.")
-    if not force:
-        click.confirm("Continue?", default=True, abort=True)
-    removed = esg.remove(*files)
-    click.echo(f"Removed {len(removed)} files.")
+    if files:
+        click.echo(f"Found {len(files)} files to remove.")
+        if not force:
+            click.confirm("Continue?", default=True, abort=True)
+        removed = esg.remove(*files)
+        click.echo(f"Removed {len(removed)} files.")
+    else:
+        click.echo("No matching file found.")

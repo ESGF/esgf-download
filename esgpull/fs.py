@@ -65,7 +65,10 @@ class Filesystem:
 
     def iter_empty_parents(self, path: Path) -> Iterator[Path]:
         sample: Optional[Path]
-        while True:
+        for _ in range(6):  # abitrary 6 to avoid infinite loop
+            if not path.exists():
+                path = path.parent
+                continue
             sample = next(path.glob("**/*.nc"), None)
             if sample is None and self.isempty(path):
                 yield path
@@ -77,8 +80,8 @@ class Filesystem:
         for file in files:
             path = self.path_of(file)
             path.unlink(missing_ok=True)
-            for path in self.iter_empty_parents(path.parent):
-                path.rmdir()
+            for subpath in self.iter_empty_parents(path.parent):
+                subpath.rmdir()
 
 
 __all__ = ["Filesystem"]

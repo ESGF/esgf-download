@@ -144,7 +144,8 @@ class Esgpull:
             stmt.where(file_id_attr.in_(file_ids))
             deleted = stmt.scalars
         for file in files:
-            self.fs.delete(file)
+            if file.status == FileStatus.done:
+                self.fs.delete(file)
         self.db.delete(*deleted)
         return deleted
 

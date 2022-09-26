@@ -55,7 +55,7 @@ def search(
         slice_ = slice(0, 1)
     offset = slice_.start
     size = slice_.stop - slice_.start
-    load_facets(ctx, facets, selection_file)
+    load_facets(ctx.query, facets, selection_file)
     if file:
         hits = ctx.file_hits
     else:
