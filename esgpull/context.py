@@ -43,6 +43,7 @@ class Context:
         since: Optional[str | datetime] = None,
         show_url: bool = False,
         new_style: bool = True,
+        index_nodes: Optional[list[str]] = None,
     ):
         self.settings = settings
         self.fields = fields
@@ -51,6 +52,7 @@ class Context:
         self.distrib = distrib
         self.retracted = retracted
         self.max_concurrent = max_concurrent
+        self.semaphores: dict[str, asyncio.Semaphore] = {}
         self.search_batchsize = search_batchsize
         if since is None:
             self.since = since
@@ -58,6 +60,7 @@ class Context:
             self.since = format_date(since)
         self.show_url = show_url
         self.new_style = new_style
+        self.index_nodes = index_nodes
         if selection_file_path is not None:
             self.query = Query.from_file(selection_file_path)
         else:
@@ -165,32 +168,54 @@ class Context:
         self,
         hits: list[int],
         file: bool,
-        max_results: int = 200,
+        max_results: Optional[int] = 200,
         offset: int = 0,
         batchsize: int = None,
     ) -> list[dict]:
+        better_distrib: bool
+        index_nodes: list[str]
+        if self.distrib and self.index_nodes:
+            better_distrib = True
+            index_nodes = self.index_nodes
+            if max_results is not None:
+                max_results = max_results // len(index_nodes)
+            original_query = self.query.clone()
+            original_distrib = self.distrib
+            self.distrib = False
+        else:
+            better_distrib = False
+            index_nodes = list(self.query.index_node.values)
         if batchsize is None:
             batchsize = self.search_batchsize
         if offset:
             offsets = self._adjust_hits(hits, offset)
             hits = [h - o for h, o in zip(hits, offsets)]
-            hits = self._adjust_hits(hits, max_results)
+            if max_results is not None:
+                hits = self._adjust_hits(hits, max_results)
         else:
             offsets = [0 for _ in hits]
-            hits = self._adjust_hits(hits, max_results)
-        raw_queries = self._build_queries(offsets=offsets, file=file)
+            if max_results is not None:
+                hits = self._adjust_hits(hits, max_results)
         queries = []
-        for i, query in list(enumerate(raw_queries)):
-            nb_queries = (hits[i] - 1) // batchsize + 1
-            query_offset = offsets[i]
-            for j in range(nb_queries):
-                offset = query_offset + j * batchsize
-                limit = min(batchsize, hits[i] + query_offset - offset)
-                queries.append(query | dict(limit=limit, offset=offset))
+        for index_node in index_nodes:
+            self.query.index_node = index_node
+            raw_queries = self._build_queries(
+                offsets=offsets,
+                file=file,
+            )
+            for i, query in list(enumerate(raw_queries)):
+                nb_queries = (hits[i] - 1) // batchsize + 1
+                query_offset = offsets[i]
+                for j in range(nb_queries):
+                    offset = query_offset + j * batchsize
+                    limit = min(batchsize, hits[i] + query_offset - offset)
+                    queries.append(query | dict(limit=limit, offset=offset))
+        if better_distrib:
+            self.distrib = original_distrib
+            self.query = original_query
         return queries
 
-    async def _fetch_one(self, query, client, sem) -> httpx.Response:
-        url = query.pop("url")
+    async def _fetch_one(self, url, query, client, sem) -> Response:
         async with sem:
             return await client.get(url, params=query)
 
@@ -198,8 +223,12 @@ class Context:
         client = AsyncClient(timeout=self.settings.context.http_timeout)
         tasks = []
         for query in queries:
-            task = asyncio.ensure_future(self._fetch_one(query, client, sem))
-            tasks.append(task)
+            url = query.pop("url")
+            if url not in self.semaphores:
+                self.semaphores[url] = asyncio.Semaphore(self.max_concurrent)
+            sem = self.semaphores[url]
+            coro = self._fetch_one(url, query, client, sem)
+            tasks.append(asyncio.ensure_future(coro))
         for i, future in enumerate(tasks):
             try:
                 resp = await future
@@ -246,7 +275,7 @@ class Context:
         return hit_counts, facet_counts
 
     async def _search(
-        self, file: bool, max_results: int = 200, offset: int = 0
+        self, file: bool, max_results: Optional[int] = 200, offset: int = 0
     ) -> list[dict]:
         hits = await self._hits(file)
         queries = self._build_queries_search(
@@ -264,7 +293,11 @@ class Context:
                 if _id not in ids:
                     result.append(doc)
                     ids.add(_id)
-        nb_dropped = min(sum(hits), max_results) - len(ids)
+        if max_results is None:
+            nb_expected = sum(hits)
+        else:
+            nb_expected = min(sum(hits), max_results)
+        nb_dropped = nb_expected - len(ids)
         if nb_dropped:
             print(f"Dropped {nb_dropped} duplicate results.")
         return result
@@ -299,7 +332,7 @@ class Context:
         return result
 
     def search(
-        self, *, file=False, max_results: int = 200, offset: int = 0
+        self, *, file=False, max_results: Optional[int] = 200, offset: int = 0
     ) -> list[dict]:
         coro = self._search(file, max_results=max_results, offset=offset)
         return asyncio.run(coro)

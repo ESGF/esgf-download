@@ -50,7 +50,10 @@ def install(
             nb_req = nb_files // 50
             message = f"{nb_req} requests will be send to ESGF. Continue?"
             click.confirm(message, default=True, abort=True)
-        results = ctx.search(file=True, max_results=nb_files, offset=0)
+        if nb_files > 500 and distrib:
+            # Enable better distrib
+            ctx.index_nodes = esg.fetch_index_nodes()
+        results = ctx.search(file=True, max_results=None, offset=0)
         files = [File.from_dict(result) for result in results]
         total_size = sum([file.size for file in files])
         click.echo(f"Total size: {naturalsize(total_size)}")
