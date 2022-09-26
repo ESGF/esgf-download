@@ -31,10 +31,10 @@ Options:
 Commands:
   autoremove
   download
+  facet
   get
   install
   login
-  param
   remove
   retry
   search      Search datasets/files on ESGF
@@ -68,6 +68,15 @@ classDiagram
   }
   esgpull --|> download
 
+  class facet {
+    -h, --help
+    init()
+    update()
+    list()
+    values()
+  }
+  esgpull --|> facet
+
   class get {
     -h, --help
   }
@@ -82,15 +91,6 @@ classDiagram
     -h, --help
   }
   esgpull --|> login
-
-  class param {
-    -h, --help
-    init()
-    update()
-    list()
-    facet()
-  }
-  esgpull --|> param
 
   class remove {
     -h, --help
