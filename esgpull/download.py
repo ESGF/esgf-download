@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional, TypeAlias, Type
 from collections.abc import AsyncIterator
 
-import math
+from math import ceil
 from pathlib import Path
 from tqdm.auto import tqdm
 from dataclasses import dataclass
@@ -15,6 +15,7 @@ from esgpull.auth import Auth
 from esgpull.types import File
 from esgpull.context import Context
 from esgpull.settings import Settings
+from esgpull.result import Result, Ok, Err
 from esgpull.exceptions import DownloadMethodError
 
 
@@ -108,9 +109,7 @@ class ChunkedDownload(Download):
 
     async def aget(self) -> bytes:
         client = AsyncClient(follow_redirects=True, timeout=5.0)
-        nb_chunks = math.ceil(
-            self.file.size / self.settings.download.chunk_size
-        )
+        nb_chunks = ceil(self.file.size / self.settings.download.chunk_size)
         chunks: list[bytes] = []
         for i in range(nb_chunks):
             chunk = await self.aget_chunk(i, client)
@@ -200,9 +199,7 @@ class MultiSourceChunkedDownload(Download):
         return chunks, url
 
     async def aget(self) -> bytes:
-        nb_chunks = math.ceil(
-            self.file.size / self.settings.download.chunk_size
-        )
+        nb_chunks = ceil(self.file.size / self.settings.download.chunk_size)
         queue: asyncio.Queue[int] = asyncio.Queue(nb_chunks)
         for chunk_idx in range(nb_chunks):
             queue.put_nowait(chunk_idx)
@@ -221,7 +218,6 @@ class MultiSourceChunkedDownload(Download):
 
 
 Process: TypeAlias = Download | ChunkedDownload | MultiSourceChunkedDownload
-ResultWithData: TypeAlias = tuple[File, bytes]
 
 
 @dataclass
@@ -242,12 +238,18 @@ class Processor:
 
     async def process_one(
         self, process: Process, semaphore: asyncio.Semaphore
-    ) -> ResultWithData:
+    ) -> Result:
+        result: Result
         async with semaphore:
-            data = await process.aget()
-        return process.file, data
+            try:
+                result = Ok(process.file)
+                result.data = await process.aget()
+            except Exception as err:
+                result = Err(process.file)
+                result.err = err
+        return result
 
-    async def process(self, use_bar=False) -> AsyncIterator[ResultWithData]:
+    async def process(self, use_bar=False) -> AsyncIterator[Result]:
         if use_bar:
             total_size = sum(file.size for file in self.files)
             bar = tqdm(
@@ -260,10 +262,10 @@ class Processor:
         ]
         tasks = [self.process_one(process, semaphore) for process in processes]
         for future in asyncio.as_completed(tasks):
-            file, data = await future
-            yield file, data
+            result = await future
+            yield result
             if use_bar:
-                bar.update(file.size)
+                bar.update(result.file.size)
         if use_bar:
             bar.close()
 

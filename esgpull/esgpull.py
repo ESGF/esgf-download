@@ -8,6 +8,7 @@ from esgpull.context import Context
 from esgpull.auth import Auth  # , Identity
 from esgpull.db import Database
 from esgpull.download import Processor
+from esgpull.result import Ok, Err
 from esgpull.fs import Filesystem
 from esgpull.settings import Settings, SettingsPath
 
@@ -154,7 +155,7 @@ class Esgpull:
         deprecated = self.db.get_deprecated_files()
         return self.remove(*deprecated)
 
-    async def download_queued(self, use_bar=True) -> tuple[int, int]:
+    async def download_queued(self, use_bar=True) -> tuple[int, int, int]:
         """
         Download all files from db for which status is `queued`.
         """
@@ -163,8 +164,24 @@ class Esgpull:
             file.status = FileStatus.starting
         self.db.add(*queue)
         processor = Processor(self.auth, queue)
-        async for file, data in processor.process(use_bar):
-            await self.fs.write(file, data)
-            file.status = FileStatus.done
+        installed: list[File] = []
+        errored: list[File] = []
+        async for result in processor.process(use_bar):
+            match result:
+                case Ok(file, data):
+                    # TODO: add checksum verif
+                    await self.fs.write(file, data)
+                    file.status = FileStatus.done
+                    installed.append(file)
+                case Err(file, err):
+                    print(err)
+                    file.status = FileStatus.error
+                    errored.append(file)
+                case _:
+                    raise TypeError("Unexpected result")
             self.db.add(file)
-        return len(queue), sum(file.size for file in queue)
+        return (
+            sum(file.size for file in installed),
+            len(installed),
+            len(errored),
+        )
