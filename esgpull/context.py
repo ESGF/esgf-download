@@ -10,7 +10,7 @@ from esgpull.query import Query
 from esgpull.types import FacetDict, File
 from esgpull.utils import format_date, index2url
 from esgpull.constants import DEFAULT_ESGF_INDEX
-from esgpull.exceptions import UnstableSolrQuery
+from esgpull.exceptions import SolrUnstableQueryError
 
 
 # workaround for notebooks with running event loop
@@ -221,7 +221,7 @@ class Context:
 
     def _raise_on_distrib_facet_counts(self) -> None:
         if self.distrib and self.query.facets.isdefault():
-            raise UnstableSolrQuery(self)
+            raise SolrUnstableQueryError(self)
 
     async def _facet_counts(
         self, file=False

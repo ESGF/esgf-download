@@ -10,7 +10,7 @@ class NoRootError(EsgpullException):
     msg = "Environment variable `ESGPULL_HOME` must be set."
 
 
-class UnknownFacetName(AttributeError, EsgpullException):
+class FacetNameError(AttributeError, EsgpullException):
     """
     AttributeError is required for autocomplete engines (e.g. jupyter).
     """
@@ -26,19 +26,19 @@ class UnknownFacetName(AttributeError, EsgpullException):
 #     {}"""
 
 
-class UnstableSolrQuery(EsgpullException):
+class SolrUnstableQueryError(EsgpullException):
     msg = """Solr can not handle this query:
     {}"""
 
 
-class UnsupportedSource(EsgpullException):
-    msg = """This source cannot be loaded as a query:
+class QuerySourceError(EsgpullException):
+    msg = """This source cannot be parsed as a query:
     {}"""
 
 
 __all__ = [
     "NoRootError",
-    "UnknownFacetName",
-    "UnstableSolrQuery",
-    "UnsupportedSource",
+    "FacetNameError",
+    "SolrUnstableQueryError",
+    "QuerySourceError",
 ]

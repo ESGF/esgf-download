@@ -13,7 +13,7 @@ from esgpull.types import (
     split_nested_facet_dict,
     is_nested_facet_dict,
 )
-from esgpull.exceptions import UnknownFacetName
+from esgpull.exceptions import FacetNameError
 from esgpull.constants import DEFAULT_FACETS, EXTRA_FACETS
 
 DEFAULT_FACET_VALUE: FacetValues = "*"
@@ -90,7 +90,7 @@ class QueryBase:
             ```
         """
         if name not in self._facets:
-            raise UnknownFacetName(name)
+            raise FacetNameError(name)
         else:
             return object.__getattribute__(self, name)
 
@@ -121,13 +121,13 @@ class QueryBase:
             #     Query(project: CMIP5)
 
             ctx.query.not_facet = "value"
-            # UnknownFacetName: 'not_facet' is not a valid facet.
+            # FacetNameError: 'not_facet' is not a valid facet.
             ```
         """
         if name in self.__dict__:
             object.__setattr__(self, name, values)
         elif name not in self._facets:
-            raise UnknownFacetName(name)
+            raise FacetNameError(name)
         else:
             # validation here
             object.__setattr__(self, name, values)

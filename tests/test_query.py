@@ -2,7 +2,7 @@ import yaml
 import pytest
 
 from esgpull.query import Query
-from esgpull.exceptions import UnknownFacetName
+from esgpull.exceptions import FacetNameError
 
 
 @pytest.fixture
@@ -14,7 +14,7 @@ def test_configure():
     Query.configure(facets=["a", "b"], extra=[])
     q = Query()
     assert len(q._facets) == 2
-    with pytest.raises(UnknownFacetName):
+    with pytest.raises(FacetNameError):
         q.mip_era
     Query.configure()  # reset to default facets
     q.mip_era  # no raise now
@@ -37,9 +37,9 @@ def test_iadd(q):
 
 
 def test_unknown_facet_get_set(q):
-    with pytest.raises(UnknownFacetName):
+    with pytest.raises(FacetNameError):
         q.not_a_facet
-    with pytest.raises(UnknownFacetName):
+    with pytest.raises(FacetNameError):
         q.not_a_facet = "value"
 
 
