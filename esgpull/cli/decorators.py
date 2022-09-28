@@ -4,7 +4,8 @@ from pathlib import Path
 import click
 from click_params import StringListParamType
 
-from esgpull.cli.utils import SliceParam
+from esgpull.types import FileStatus
+from esgpull.cli.utils import EnumParam, SliceParam
 
 Dec: TypeAlias = Callable[[Callable], Callable]
 
@@ -44,5 +45,8 @@ class opts:
     since: Dec = click.option("--since", type=str, default=None)
     slice: Dec = click.option(
         "slice_", "--slice", "-S", type=SliceParam(), default="0:20"
+    )
+    status: Dec = click.option(
+        "--status", type=EnumParam(FileStatus), default=None
     )
     zero: Dec = click.option("--zero", "-0", is_flag=True, default=False)

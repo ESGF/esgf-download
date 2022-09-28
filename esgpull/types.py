@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TypeAlias, TypeGuard, Any, Optional
 
-from enum import Enum, auto
+from enum import Enum, auto, unique
 from datetime import datetime
 from dataclasses import dataclass, field
 
@@ -45,6 +45,7 @@ def is_nested_facet_dict(d: dict[str, Any]) -> TypeGuard[NestedFacetDict]:
         return False
 
 
+@unique
 class FileStatus(Enum):
     # deleted = auto()
     new = auto()

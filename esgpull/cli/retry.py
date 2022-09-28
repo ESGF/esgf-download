@@ -7,7 +7,7 @@ from esgpull.types import FileStatus
 @click.command()
 def retry():
     esg = Esgpull()
-    files = esg.db.get_files_with_status(FileStatus.error)
+    files = esg.db.search(status=FileStatus.error)
     if files:
         for file in files:
             file.status = FileStatus.queued

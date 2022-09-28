@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Type, TypeAlias, Optional
+from typing import Any, Callable, Type, TypeAlias, Optional, cast
 
 # import os
 import logging
@@ -12,6 +12,7 @@ import sqlalchemy.orm
 import alembic.config
 import alembic.command
 from alembic.migration import MigrationContext
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 import esgpull
 from esgpull.query import Query
@@ -323,32 +324,40 @@ class Database:
             version = filepath.parent.name
             clause = (File.filename == filename) & (File.version == version)
         else:
-            raise ValueError
+            raise ValueError("TODO: custom error")
         with self.select(table) as sel:
             matching = sel.where(clause).scalars
         return any(matching)
 
-    def search(self, query: Query) -> list[File]:
+    def search(
+        self,
+        query: Optional[Query] = None,
+        status: Optional[FileStatus] = None,
+    ) -> list[File]:
         clauses = []
-        for q in query.flatten():
-            query_clauses = []
-            for facet in q:
-                # values are in a list, to keep support for CMIP5
-                # search by first value only is supported for now
-                facet_clause = sa.func.json_extract(
-                    File.metadata, f"$.{facet.name}[0]"
-                ).in_(facet.values)
-                query_clauses.append(facet_clause)
-            clauses.append(reduce(sa.and_, query_clauses))
+        if query is None and status is None:
+            raise ValueError("TODO: custom error")
+        if status is not None:
+            status_attr = cast(InstrumentedAttribute, File.status)
+            clauses.append(status_attr == status)
+        if query is not None:
+            for q in query.flatten():
+                query_clauses = []
+                for facet in q:
+                    # values are in a list, to keep support for CMIP5
+                    # search by first value only is supported for now
+                    facet_clause = sa.func.json_extract(
+                        File.metadata, f"$.{facet.name}[0]"
+                    ).in_(facet.values)
+                    query_clauses.append(facet_clause)
+                if query_clauses:
+                    clauses.append(reduce(sa.and_, query_clauses))
         if clauses:
             with self.select(File) as sel:
-                return sel.where(reduce(sa.or_, clauses)).scalars
+                result = sel.where(reduce(sa.or_, clauses)).scalars
         else:
-            return []
-
-    def get_files_with_status(self, status: FileStatus) -> list[File]:
-        with self.select(File) as sel:
-            return sel.where(File.status == status).scalars
+            result = []
+        return result
 
     def get_deprecated_files(self) -> list[File]:
         with (self.select(File) as query, self.select(File) as subquery):

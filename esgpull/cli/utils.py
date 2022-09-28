@@ -1,11 +1,24 @@
-from typing import Optional
+from typing import Type, Optional
 
 import rich
 import click
+from enum import Enum
 from click_params import ListParamType
 
 from esgpull.query import Query
 from esgpull.utils import naturalsize
+
+
+class EnumParam(click.Choice):
+    name = "enum"
+
+    def __init__(self, enum: Type[Enum]):
+        self.__enum = enum
+        super().__init__(choices=[item.name for item in enum])
+
+    def convert(self, value, param, ctx) -> Enum:
+        converted_str = super().convert(value, param, ctx)
+        return self.__enum[converted_str]
 
 
 class SliceParam(ListParamType):

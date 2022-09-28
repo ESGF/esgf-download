@@ -70,13 +70,6 @@ def test_scalar(db):
         assert select.where(Param.name == "name0").scalar == params[0]
 
 
-def test_get_files_with_status(db, file_):
-    db.add(file_)
-    assert db.get_files_with_status(FileStatus.queued) == [file_]
-    assert db.get_files_with_status(FileStatus.done) == []
-    assert db.has(file_)
-
-
 def test_has(db, file_):
     filepath = Path(file_.local_path, file_.filename)
     assert not db.has(file_)
@@ -110,7 +103,7 @@ def test_search(db, file_):
     for variable_id in variable_ids[1:]:
         subquery = query.add()
         subquery.variable_id = variable_ids[1:]
-    assert db.search(query) == files[1:]
+    assert db.search(query=query) == files[1:]
 
     # test search no duplicates
     query = Query()
@@ -118,7 +111,14 @@ def test_search(db, file_):
     a.variable_id = "a"
     test = query.add()
     test.project = "test"
-    results_query = db.search(query)
-    results_a = db.search(a)
-    results_test = db.search(test)
+    results_query = db.search(query=query)
+    results_a = db.search(query=a)
+    results_test = db.search(query=test)
     assert len(results_query) < len(results_a) + len(results_test)
+
+
+def test_search_status(db, file_):
+    db.add(file_)
+    assert db.search(status=FileStatus.queued) == [file_]
+    assert db.search(status=FileStatus.done) == []
+    assert db.has(file_)

@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from pathlib import Path
 from shutil import rmtree
-from enum import Enum, auto
+from enum import Enum, auto, unique
 from dataclasses import dataclass, field
 
 import httpx
@@ -68,6 +68,7 @@ class Identity:
         raise ValueError("did not found host/port")
 
 
+@unique
 class AuthStatus(Enum):
     VALID = auto()
     EXPIRED = auto()
