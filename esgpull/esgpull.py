@@ -10,14 +10,20 @@ from esgpull.db import Database
 from esgpull.download import Processor
 from esgpull.result import Ok, Err
 from esgpull.fs import Filesystem
-from esgpull.settings import Settings, SettingsPath
+from esgpull.settings import (
+    Settings,
+    SettingsPath,
+    Credentials,
+    CredentialsPath,
+)
 
 
 class Esgpull:
     def __init__(self, path: Optional[str | Path] = None) -> None:
         self.fs = Filesystem(path)
         self.db = Database(self.fs.db / "esgpull.db")
-        self.auth = Auth(self.fs.auth)
+        CredentialsPath.path = self.fs.settings / "credentials.yaml"
+        self.auth = Auth(self.fs.auth, credentials=Credentials())
         SettingsPath.path = self.fs.settings / "settings.yaml"
         self.settings = Settings()
 
@@ -160,11 +166,13 @@ class Esgpull:
         """
         Download all files from db for which status is `queued`.
         """
-        queue = self.db.get_files_with_status(FileStatus.queued)
-        for file in queue:
+        queued = self.db.search(status=FileStatus.queued)
+        for file in queued:
             file.status = FileStatus.starting
-        self.db.add(*queue)
-        processor = Processor(self.auth, queue)
+        self.db.add(*queued)
+        processor = Processor(
+            auth=self.auth, files=queued, settings=self.settings
+        )
         installed: list[File] = []
         errored: list[File] = []
         async for result in processor.process(use_bar):

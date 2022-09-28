@@ -17,6 +17,8 @@ from urllib.parse import (
     ParseResultBytes,
 )
 
+from esgpull.settings import Credentials
+
 
 IDP = "/esgf-idp/openid/"
 CEDA_IDP = "/OpenID/Provider/server/"
@@ -78,6 +80,9 @@ class AuthStatus(Enum):
 @dataclass
 class Auth:
     path: str | Path
+    credentials: Credentials = Credentials()
+
+    cert_dir: Path = field(init=False)
     cert_file: Path = field(init=False)
     __status: Optional[AuthStatus] = field(init=False, default=None)
 
@@ -86,9 +91,10 @@ class Auth:
     MISSING = AuthStatus.MISSING
 
     def __post_init__(self) -> None:
-        self.path = Path(self.path)
-        self.cert_file = self.path / "credentials.pem"
+        if isinstance(self.path, str):
+            self.path = Path(self.path)
         self.cert_dir = self.path / "certificates"
+        self.cert_file = self.path / "credentials.pem"
 
     @property
     def cert(self) -> Optional[str]:
@@ -114,7 +120,23 @@ class Auth:
             return AuthStatus.EXPIRED
         return AuthStatus.VALID
 
-    def renew(self, identity: Identity) -> None:
+    def renew(self, identity: Identity = None) -> None:
+        if identity is None:
+            provider = self.credentials.provider
+            user = self.credentials.user
+            password = self.credentials.password
+            if (
+                provider is not None
+                and user is not None
+                and password is not None
+            ):
+                identity = Identity(
+                    provider=provider,
+                    user=user,
+                    password=password.get_secret_value(),
+                )
+            else:
+                raise ValueError("TODO: custom error")
         if self.cert_dir.is_dir():
             rmtree(self.cert_dir)
         self.cert_file.unlink(missing_ok=True)

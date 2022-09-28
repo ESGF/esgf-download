@@ -3,28 +3,38 @@ from typing import Any, Optional
 
 import yaml
 from pathlib import Path
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel, BaseSettings, NoneStr, SecretStr
 
 
 # TODO: find a better way to dynamically set path through __init__
-class SettingsPath:
-    path: Optional[Path] = None
+class BasePath:
+    path: Optional[str | Path] = None
 
-
-def yaml_config_source(config: BaseSettings) -> dict[str, Any]:
-    result: dict[str, Any]
-    encoding = config.__config__.env_file_encoding
-    path = SettingsPath.path
-    if path is None:
-        result = {}
-    elif not path.exists():
-        path.touch()
-        result = {}
-    else:
-        result = yaml.safe_load(path.read_text(encoding))
-        if result is None:
+    @classmethod
+    def yaml_config_source(cls, config: BaseSettings) -> dict[str, Any]:
+        result: dict[str, Any]
+        encoding = config.__config__.env_file_encoding
+        if cls.path is None:
             result = {}
-    return result
+        else:
+            if isinstance(cls.path, str):
+                cls.path = Path(cls.path)
+            if not cls.path.exists():
+                cls.path.touch()
+                result = {}
+            else:
+                result = yaml.safe_load(cls.path.read_text(encoding))
+                if result is None:
+                    result = {}
+        return result
+
+
+class SettingsPath(BasePath):
+    ...
+
+
+class CredentialsPath(BasePath):
+    ...
 
 
 class Context(BaseModel):
@@ -50,7 +60,25 @@ class Settings(BaseSettings):
         ):
             return (
                 init_settings,
-                yaml_config_source,
+                SettingsPath.yaml_config_source,
+            )
+
+
+class Credentials(BaseSettings):
+    provider: NoneStr = None
+    user: NoneStr = None
+    password: Optional[SecretStr] = None
+
+    class Config:
+        env_file_encoding = "utf-8"
+
+        @classmethod
+        def customise_sources(
+            cls, init_settings, env_settings, file_secret_settings
+        ):
+            return (
+                init_settings,
+                CredentialsPath.yaml_config_source,
             )
 
 
