@@ -7,6 +7,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from dataclasses import dataclass
 
+import rich
 import asyncio
 from urllib.parse import urlsplit
 from httpx import AsyncClient, RequestError
@@ -137,10 +138,6 @@ class MultiSourceChunkedDownload(Download):
         self.file = file
         self.max_ping = max_ping
         self.settings = settings
-        c = Context(distrib=True, fields="id,size,url")
-        c.query.instance_id = file.file_id
-        results = c.search(file=True)
-        self.urls = [r["url"][0].split("|")[0] for r in results]
 
     async def try_url(self, url: str, client: AsyncClient) -> Optional[str]:
         result = None
@@ -198,6 +195,13 @@ class MultiSourceChunkedDownload(Download):
         await client.aclose()
         return chunks, url
 
+    async def fetch_urls(self) -> list[str]:
+        ctx = Context(distrib=True)
+        ctx.query.instance_id = self.file.file_id
+        results = await ctx._search(file=True)
+        files = [File.from_dict(item) for item in results]
+        return [file.url for file in files]
+
     async def aget(self) -> bytes:
         nb_chunks = ceil(self.file.size / self.settings.download.chunk_size)
         queue: asyncio.Queue[int] = asyncio.Queue(nb_chunks)
@@ -205,7 +209,8 @@ class MultiSourceChunkedDownload(Download):
             queue.put_nowait(chunk_idx)
         completed: list[bool] = [False for _ in range(nb_chunks)]
         chunks: list[bytes] = [bytes() for _ in range(nb_chunks)]
-        workers = [self.process_queue(url, queue) for url in self.urls]
+        urls = await self.fetch_urls()
+        workers = [self.process_queue(url, queue) for url in urls]
         for future in asyncio.as_completed(workers):
             some_chunks, url = await future
             print(f"got {len(some_chunks)} chunks from {url}")
