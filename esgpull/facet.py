@@ -41,7 +41,7 @@ class Facet:
             raise ValueError(self.name, values)
         return result
 
-    def _set(self, values: FacetValues | Facet) -> None:
+    def _set(self, values: Facet | FacetValues) -> None:
         """
         Overloading assignment requires a class property's setter that calls
         this method.
@@ -51,11 +51,11 @@ class Facet:
         self.values = self._cast(values)
         self.appended = False
 
-    def __iadd__(self, values: FacetValues) -> Facet:
+    def __add__(self, values: FacetValues) -> None:
         """
-        Append to existing values or replace default value using operator `+=`.
+        Append to existing values or replace default value using `+` operator.
         `appended` is set to `True` in any case as appending is most likely
-        not done on the root query.
+        to be used with a fresh subquery.
 
         Example:
             ```python
@@ -66,13 +66,11 @@ class Facet:
             # name: [second,first]
             ```
         """
-        values = self._cast(values)
         if self.isdefault():
-            self.values = values
+            self._set(values)
         else:
-            self.values |= values
+            self.values |= self._cast(values)
         self.appended = True
-        return self
 
 
 __all__ = ["Facet"]

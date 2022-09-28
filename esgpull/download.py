@@ -7,7 +7,6 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from dataclasses import dataclass
 
-import rich
 import asyncio
 from urllib.parse import urlsplit
 from httpx import AsyncClient, RequestError

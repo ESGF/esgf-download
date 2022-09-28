@@ -32,7 +32,7 @@ def test_setattr_setitem_iadd(q):
 
 def test_iadd(q):
     q.variable = "one", "two"
-    q.variable += "two", "three"
+    q.variable + ["two", "three"]
     assert len(q.variable.values) == 3
 
 
@@ -46,7 +46,7 @@ def test_unknown_facet_get_set(q):
 def test_iter_len(q):
     q.project = "CMIP6"
     q.mip_era = "CMIP6"
-    q.mip_era += "CMIP5"
+    q.mip_era + "CMIP5"
     assert len(q) == 2
     names = sorted(facet.name for facet in q)
     assert names == ["mip_era", "project"]
@@ -69,7 +69,7 @@ def test_add(q):
     q.project = "CMIP6"
     a.mip_era = "CMIP6"
     b.variable = "value1"
-    c.project += "CMIP5"
+    c.project + "CMIP5"
     d.variable = "value2"
     q.add(b)
     q.add(c)
@@ -90,7 +90,7 @@ def test_update():
     b = Query()
     a.project = "CMIP6"
     b.mip_era = "CMIP6"
-    b.project += "CMIP5"
+    b.project + "CMIP5"
     a.update(b)
     assert a.dump() == {"+project": ["CMIP5", "CMIP6"], "mip_era": "CMIP6"}
     c = Query()
@@ -113,7 +113,7 @@ def test_flatten(q):
     a = q.add()
     b = q.add()
     a.project = "CMIP5"
-    b.variable += "value2"
+    b.variable + "value2"
     flat_dump = [flat.dump() for flat in q.flatten()]
     assert flat_dump == [
         {"project": "CMIP5", "variable": "value1"},

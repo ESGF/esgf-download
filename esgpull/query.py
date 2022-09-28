@@ -167,7 +167,7 @@ class QueryBase:
     def __len__(self) -> int:
         return len(list(iter(self)))
 
-    def update(self: QueryBase, other: QueryBase) -> None:
+    def update(self: QueryBase, other: QueryBase, force_append=False) -> None:
         raise NotImplementedError
 
     def dump(self):
@@ -182,6 +182,11 @@ class QueryBase:
         result.load(dump)
         return result
 
+    def __add__(self: Self, other: QueryBase) -> Self:
+        result = self.clone()
+        result.update(other, force_append=True)
+        return result
+
 
 @dataclass(repr=False)
 class SimpleQuery(QueryBase):
@@ -192,12 +197,13 @@ class SimpleQuery(QueryBase):
     to restrict usage to the controlled vocabulary.
 
     [--]TODO: recode validations? -> in `Context` directly
+        Maybe using pydantic models dynloaded from db?
     """
 
-    def update(self: QueryBase, other: QueryBase) -> None:
+    def update(self: QueryBase, other: QueryBase, force_append=False) -> None:
         for facet in other:
-            if facet.appended:
-                self[facet.name] += facet.values
+            if force_append or facet.appended:
+                self[facet.name] + facet.values
             else:
                 self[facet.name] = facet.values
 
@@ -224,7 +230,7 @@ class SimpleQuery(QueryBase):
         """
         for name, values in source.items():
             if name.startswith("+"):
-                self[name.removeprefix("+")] += values
+                self[name.removeprefix("+")] + values
             else:
                 self[name] = values
 
@@ -245,6 +251,12 @@ class Query(QueryBase):
     requests: list[SimpleQuery] = field(default_factory=list)
 
     @classmethod
+    def from_dict(cls, source: NestedFacetDict) -> Query:
+        instance = cls()
+        instance.load(source)
+        return instance
+
+    @classmethod
     def from_file(cls, path: str | Path, instance: Query = None) -> Query:
         with open(path) as f:
             source = yaml.load(f.read(), Loader=yaml.loader.BaseLoader)
@@ -258,10 +270,10 @@ class Query(QueryBase):
         result.load(SimpleQuery.dump(self))
         return result
 
-    def update(self, other: QueryBase) -> None:
+    def update(self, other: QueryBase, force_append=False) -> None:
         if isinstance(other, Query):
             self.requests += other.requests
-        SimpleQuery.update(self, other)
+        SimpleQuery.update(self, other, force_append)
 
     def dump(self) -> NestedFacetDict:
         """
@@ -280,7 +292,7 @@ class Query(QueryBase):
             with query:
                 query.variable = "second"
             with query:
-                query.variable += "third"
+                query.variable + "third"
             print(query.dump())
             # {'project': 'CMIP6',
             #  'variable': 'first',
@@ -463,6 +475,5 @@ class Query(QueryBase):
 
 SimpleQuery.configure()
 Query.configure()
-
 
 __all__ = ["Query"]

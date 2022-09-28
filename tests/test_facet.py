@@ -55,11 +55,11 @@ def test_value_set_cast(values, expected, error, request):
 
 def test_iadd(facet):
     assert len(facet.values) == 1
-    facet += "one"
+    facet + "one"
     assert len(facet.values) == 1
-    facet += "two"
+    facet + "two"
     assert len(facet.values) == 2
-    facet += "one"
+    facet + "one"
     assert len(facet.values) == 2
     facet._set("one")
     assert len(facet.values) == 1
