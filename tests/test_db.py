@@ -102,7 +102,7 @@ def test_search(db, file_):
     # query variable_ids `b` and `c`
     for variable_id in variable_ids[1:]:
         subquery = query.add()
-        subquery.variable_id = variable_ids[1:]
+        subquery.variable_id = variable_id
     assert db.search(query=query) == files[1:]
 
     # test search no duplicates
