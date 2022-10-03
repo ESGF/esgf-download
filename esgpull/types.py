@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeAlias, TypeGuard, Any, Optional
+from typing import TypeAlias, TypeGuard, Any
 
 from enum import Enum, auto, unique
 from datetime import datetime
@@ -43,6 +43,24 @@ def is_nested_facet_dict(d: dict[str, Any]) -> TypeGuard[NestedFacetDict]:
         return True
     except TypeError:
         return False
+
+
+def find_str(container: list | str) -> str:
+    if isinstance(container, list):
+        return find_str(container[0])
+    elif isinstance(container, str):
+        return container
+    else:
+        raise ValueError(container)
+
+
+def find_int(container: list | int) -> int:
+    if isinstance(container, list):
+        return find_int(container[0])
+    elif isinstance(container, int):
+        return container
+    else:
+        raise ValueError(container)
 
 
 @unique
@@ -109,44 +127,54 @@ class File:
 
     @staticmethod
     def get_local_path(metadata: dict, version: str) -> str:
-        template = metadata["directory_format_template_"]
+        # template = metadata["directory_format_template_"]
+        template = find_str(metadata["directory_format_template_"])
         # format: "%(a)/%(b)/%(c)/..."
         template = template.removeprefix("%(root)s/")
         template = template.replace("%(", "{")
         template = template.replace(")s", "}")
         metadata.pop("version", None)
         if "rcm_name" in metadata:  # cordex special case
-            metadata["rcm_model"] = (
-                metadata["institute"] + "-" + metadata["rcm_name"]
-            )
+            institute = find_str(metadata["institute"])
+            rcm_name = find_str(metadata["rcm_name"])
+            rcm_model = institute + "-" + rcm_name
+            metadata["rcm_model"] = rcm_model
         return template.format(version=version, **metadata)
 
     @classmethod
-    def from_dict(cls, raw_metadata: dict) -> "File":
-        metadata = {}
-        for k, v in raw_metadata.items():
-            if isinstance(v, list) and len(v) == 1:
-                metadata[k] = v[0]
-            else:
-                metadata[k] = v
-        dataset_id = metadata["dataset_id"].partition("|")[0]
-        filename = metadata["title"]
+    def from_dict(cls, metadata: dict) -> "File":
+        # def from_dict(cls, raw_metadata: dict) -> "File":
+        # metadata = {}
+        # for k, v in raw_metadata.items():
+        #     if isinstance(v, list) and len(v) == 1:
+        #         metadata[k] = v[0]
+        #     else:
+        #         metadata[k] = v
+        # dataset_id = metadata[0]["dataset_id"].partition("|")[0]
+        # filename = metadata[0]["title"]
+        # url = metadata["url"][0].partition("|")[0]
+
+        dataset_id = find_str(metadata["dataset_id"]).partition("|")[0]
+        filename = find_str(metadata["title"])
+        url = find_str(metadata["url"]).partition("|")[0]
+        data_node = find_str(metadata["data_node"])
+        checksum = find_str(metadata["checksum"])
+        checksum_type = find_str(metadata["checksum_type"])
+        size = find_int(metadata["size"])
+
         file_id = ".".join([dataset_id, filename])
         dataset_master = dataset_id.rsplit(".", 1)[0]  # remove version
         master_id = ".".join([dataset_master, filename])
+        version = dataset_id.rsplit(".", 1)[1]
+        local_path = cls.get_local_path(metadata, version)
+
         # if not file_id.endswith(".nc"):
         #     extension is forced to `.nc` (some were .nc[0|1|...])
         #     file_id = file_id.rsplit(".", 1)[0] + ".nc"
-        url = metadata["url"][0].partition("|")[0]
         # master_id = ".".join([dataset_id, filename])
         # master_id = metadata["master_id"].rsplit(".", 1)[0]
         # grab version from instance_id, as files always give `version=1`
-        version = dataset_id.rsplit(".", 1)[1]
-        local_path = cls.get_local_path(metadata, version)
-        data_node = metadata["data_node"]
-        checksum = metadata["checksum"]
-        checksum_type = metadata["checksum_type"]
-        size = metadata["size"]
+
         return cls(
             file_id=file_id,
             url=url,
@@ -159,7 +187,7 @@ class File:
             checksum=checksum,
             checksum_type=checksum_type,
             size=size,
-            metadata=raw_metadata,
+            metadata=metadata,
         )
 
     def clone(self) -> File:
