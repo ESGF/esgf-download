@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Type, TypeAlias, Optional, cast
+from typing import Any, Callable, Type, TypeAlias, cast
 
 # import os
 import logging
@@ -30,7 +30,7 @@ Registry: TypeAlias = sa.orm.registry
 Engine: TypeAlias = sa.future.engine.Engine
 Session: TypeAlias = sa.orm.session.Session
 Result: TypeAlias = sa.engine.result.Result
-Columns: TypeAlias = Optional[list[sa.Column | sa.UniqueConstraint]]
+Columns: TypeAlias = list[sa.Column | sa.UniqueConstraint] | None
 SelectStmt: TypeAlias = sa.sql.selectable.Select
 
 Mapper: Registry = sa.orm.registry()
@@ -309,8 +309,8 @@ class Database:
     def has(
         self,
         /,
-        file: Optional[File] = None,
-        filepath: Optional[str | Path] = None,
+        file: File | None = None,
+        filepath: str | Path | None = None,
     ) -> bool:
         if file is not None:
             table = File
@@ -331,8 +331,8 @@ class Database:
 
     def search(
         self,
-        query: Optional[Query] = None,
-        status: Optional[FileStatus] = None,
+        query: Query | None = None,
+        status: FileStatus | None = None,
     ) -> list[File]:
         clauses = []
         if query is None and status is None:
@@ -370,7 +370,7 @@ class Database:
             duplicates_dict.setdefault(file.master_id, [])
             duplicates_dict[file.master_id].append(file)
         deprecated: list[File] = []
-        for master_id, files in duplicates_dict.items():
+        for files in duplicates_dict.values():
             versions = [int(f.version[1:]) for f in files]
             latest_version = "v" + str(max(versions))
             for file in files:

@@ -1,4 +1,4 @@
-from typing import Type, Optional
+from typing import Type
 
 import rich
 import click
@@ -79,7 +79,7 @@ def totable(
 
 
 def load_facets(
-    query: Query, facets: list[str], selection_file: Optional[str]
+    query: Query, facets: list[str], selection_file: str | None
 ) -> None:
     for facet in facets:
         parts = facet.split(":")

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 from pathlib import Path
@@ -8,7 +8,7 @@ from pydantic import BaseModel, BaseSettings, NoneStr, SecretStr
 
 # TODO: find a better way to dynamically set path through __init__
 class BasePath:
-    path: Optional[str | Path] = None
+    path: str | Path | None = None
 
     @classmethod
     def yaml_config_source(cls, config: BaseSettings) -> dict[str, Any]:
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
 class Credentials(BaseSettings):
     provider: NoneStr = None
     user: NoneStr = None
-    password: Optional[SecretStr] = None
+    password: SecretStr | None = None
 
     class Config:
         env_file_encoding = "utf-8"

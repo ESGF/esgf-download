@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Optional, TypeAlias, Type
+from typing import TypeAlias, Type
 from collections.abc import AsyncIterator
 
 from math import ceil
 from pathlib import Path
 from tqdm.auto import tqdm
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import asyncio
 from urllib.parse import urlsplit
@@ -27,12 +27,16 @@ class Download:
     def __init__(
         self,
         auth: Auth,
-        file: File = None,
-        url: str = None,
-        settings: Settings = Settings(),
+        *,
+        file: File | None = None,
+        url: str | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self.auth = auth
-        self.settings = settings
+        if settings is None:
+            self.settings = Settings()
+        else:
+            self.settings = settings
         if file is not None:
             self.file = file
         elif url is not None:
@@ -77,11 +81,11 @@ class ChunkedDownload(Download):
         self,
         auth: Auth,
         *,
-        file: File = None,
-        url: str = None,
-        settings: Settings = Settings(),
+        file: File | None = None,
+        url: str | None = None,
+        settings: Settings | None = None,
     ) -> None:
-        super().__init__(auth, file, url, settings)
+        super().__init__(auth, file=file, url=url, settings=settings)
 
     # TODO: decide whether:
     # 1. await-get directly as classmethod (e.g. `file`)
@@ -128,17 +132,16 @@ class MultiSourceChunkedDownload(Download):
     def __init__(
         self,
         auth: Auth,
-        file: File,
         *,
-        max_ping=5.0,
-        settings: Settings = Settings(),
+        file: File | None = None,
+        url: str | None = None,
+        settings: Settings | None = None,
+        max_ping: float = 5.0,
     ) -> None:
-        self.auth = auth
-        self.file = file
+        super().__init__(auth, file=file, url=url, settings=settings)
         self.max_ping = max_ping
-        self.settings = settings
 
-    async def try_url(self, url: str, client: AsyncClient) -> Optional[str]:
+    async def try_url(self, url: str, client: AsyncClient) -> str | None:
         result = None
         node = urlsplit(url).netloc
         print(f"trying url on '{node}'")
@@ -229,7 +232,7 @@ class Processor:
     auth: Auth
     files: list[File]
     max_concurrent: int = 5
-    settings: Settings = Settings()
+    settings: Settings = field(default_factory=Settings)
 
     @property
     def method(self) -> Type[Download]:
@@ -261,7 +264,7 @@ class Processor:
             )
         semaphore = asyncio.Semaphore(self.max_concurrent)
         processes = [
-            self.method(self.auth, file, settings=self.settings)
+            self.method(self.auth, file=file, settings=self.settings)
             for file in self.files
         ]
         tasks = [self.process_one(process, semaphore) for process in processes]

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
@@ -19,7 +19,7 @@ from esgpull.settings import (
 
 
 class Esgpull:
-    def __init__(self, path: Optional[str | Path] = None) -> None:
+    def __init__(self, path: str | Path | None = None) -> None:
         self.fs = Filesystem(path)
         self.db = Database(self.fs.db / "esgpull.db")
         CredentialsPath.path = self.fs.settings / "credentials.yaml"

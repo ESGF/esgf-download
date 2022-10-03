@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterator, Optional, TypeVar
+from typing import Iterator, TypeVar
 
 import yaml
 from pathlib import Path
@@ -325,7 +325,7 @@ class Query(QueryBase):
         requests = ", ".join(map(str, self.requests))
         return f"Query({facets}, requests=[{requests}])"
 
-    def add(self, source: Optional[QueryBase] = None) -> SimpleQuery:
+    def add(self, source: QueryBase | None = None) -> SimpleQuery:
         query: SimpleQuery
         match source:
             case Query():

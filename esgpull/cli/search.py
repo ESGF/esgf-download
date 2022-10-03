@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional
 
 import rich
 import click
@@ -31,10 +30,10 @@ def search(
     distrib: bool,
     dry_run: bool,
     file: bool,
-    latest: Optional[bool],
-    replica: Optional[bool],
-    selection_file: Optional[str],
-    since: Optional[str],
+    latest: bool | None,
+    replica: bool | None,
+    selection_file: str | None,
+    since: str | None,
     options: list[str],
     one: bool,
     zero: bool,

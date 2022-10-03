@@ -90,7 +90,7 @@ class Param:
     id: int = field(init=False, repr=False)
     name: str
     value: str
-    last_updated: Optional[datetime] = field(init=False, repr=False)
+    last_updated: datetime | None = field(init=False, repr=False)
 
 
 @dataclass
@@ -110,7 +110,7 @@ class File:
     size: int
     status: FileStatus = FileStatus.new
     metadata: dict = field(repr=False, default_factory=dict, compare=False)
-    last_updated: Optional[datetime] = field(init=False, repr=False)
+    last_updated: datetime | None = field(init=False, repr=False)
 
     # duration: int
     # rate: int

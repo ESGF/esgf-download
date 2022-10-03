@@ -1,5 +1,5 @@
 import os
-from typing import Iterator, Optional
+from typing import Iterator
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ from esgpull.exceptions import NoRootError
 class Filesystem:
     root: Path
 
-    def __init__(self, path: Optional[str | Path] = None) -> None:
+    def __init__(self, path: str | Path | None = None) -> None:
         env_home = os.environ.get("ESGPULL_HOME")
         if path is not None:
             self.root = Path(path)
@@ -64,7 +64,7 @@ class Filesystem:
             return False
 
     def iter_empty_parents(self, path: Path) -> Iterator[Path]:
-        sample: Optional[Path]
+        sample: Path | None
         for _ in range(6):  # abitrary 6 to avoid infinite loop
             if not path.exists():
                 path = path.parent

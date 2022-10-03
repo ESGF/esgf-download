@@ -1,13 +1,11 @@
-from typing import Optional
-
 from esgpull.types import File
 
 
 class Result:
     file: File
     ok: bool
-    data: Optional[bytes]
-    err: Optional[Exception]
+    data: bytes | None
+    err: Exception | None
 
     def __init__(self, file: File) -> None:
         self.file = file
@@ -23,7 +21,10 @@ class Ok(Result):
 
 
 class Err(Result):
-    __match_args__ = ("file", "err",)
+    __match_args__ = (
+        "file",
+        "err",
+    )
 
     file: File
     ok = False

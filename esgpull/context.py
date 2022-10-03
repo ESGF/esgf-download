@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TypeAlias, Optional
+from typing import TypeAlias
 from collections.abc import AsyncIterator
 
 import asyncio
@@ -29,22 +29,24 @@ class Context:
 
     def __init__(
         self,
-        selection_file_path: Optional[str | Path] = None,
-        settings: Settings = Settings(),
+        selection_file_path: str | Path | None = None,
+        settings: Settings = None,
         /,
         *,
         fields: str = "*",
-        latest: bool = None,
-        replica: bool = None,
         distrib: bool = False,
         retracted: bool = False,
+        latest: bool | None = None,
+        replica: bool | None = None,
         max_concurrent: int = 5,
         search_batchsize: int = 50,
-        since: Optional[str | datetime] = None,
+        since: str | datetime | None = None,
         show_url: bool = False,
         new_style: bool = True,
-        index_nodes: Optional[list[str]] = None,
+        index_nodes: list[str] | None = None,
     ):
+        if settings is None:
+            settings = Settings()
         self.settings = settings
         self.fields = fields
         self.latest = latest
@@ -121,7 +123,7 @@ class Context:
 
     def _build_queries(self, offsets: list[int] = None, **extra) -> list[dict]:
         result = []
-        offset: Optional[int] = None
+        offset: int | None = None
         for i, flat in enumerate(self.query.flatten()):
             if offsets is not None:
                 offset = offsets[i]
@@ -168,7 +170,7 @@ class Context:
         self,
         hits: list[int],
         file: bool,
-        max_results: Optional[int] = 200,
+        max_results: int | None = 200,
         offset: int = 0,
         batchsize: int = None,
     ) -> list[dict]:
@@ -275,7 +277,7 @@ class Context:
         return hit_counts, facet_counts
 
     async def _search(
-        self, file: bool, max_results: Optional[int] = 200, offset: int = 0
+        self, file: bool, max_results: int | None = 200, offset: int = 0
     ) -> list[dict]:
         hits = await self._hits(file)
         queries = self._build_queries_search(
@@ -332,7 +334,7 @@ class Context:
         return result
 
     def search(
-        self, *, file=False, max_results: Optional[int] = 200, offset: int = 0
+        self, *, file=False, max_results: int | None = 200, offset: int = 0
     ) -> list[dict]:
         coro = self._search(file, max_results=max_results, offset=offset)
         return asyncio.run(coro)

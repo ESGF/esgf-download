@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from pathlib import Path
 from shutil import rmtree
@@ -84,7 +84,7 @@ class Auth:
 
     cert_dir: Path = field(init=False)
     cert_file: Path = field(init=False)
-    __status: Optional[AuthStatus] = field(init=False, default=None)
+    __status: AuthStatus | None = field(init=False, default=None)
 
     VALID = AuthStatus.VALID
     EXPIRED = AuthStatus.EXPIRED
@@ -97,7 +97,7 @@ class Auth:
         self.cert_file = self.path / "credentials.pem"
 
     @property
-    def cert(self) -> Optional[str]:
+    def cert(self) -> str | None:
         if self.status == AuthStatus.VALID:
             return str(self.cert_file)
         else:
@@ -120,7 +120,7 @@ class Auth:
             return AuthStatus.EXPIRED
         return AuthStatus.VALID
 
-    def renew(self, identity: Identity = None) -> None:
+    def renew(self, identity: Identity | None = None) -> None:
         if identity is None:
             provider = self.credentials.provider
             user = self.credentials.user

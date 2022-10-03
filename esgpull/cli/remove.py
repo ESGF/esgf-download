@@ -1,5 +1,3 @@
-from typing import Optional
-
 import click
 
 from esgpull import Esgpull
@@ -17,8 +15,8 @@ from esgpull.cli.decorators import args, opts
 def remove(
     facets: list[str],
     force: bool,
-    selection_file: Optional[str],
-    status: Optional[FileStatus],
+    selection_file: str | None,
+    status: FileStatus | None,
 ):
     esg = Esgpull()
     query = Query()
