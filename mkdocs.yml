@@ -1,0 +1,63 @@
+site_name: esgpull documentation
+nav:
+  - esgpull: index.md
+  - Installation: installation.md
+  - Quickstart: quickstart.md
+  - Data discovery: search.md
+  - Download: download.md
+  # - Usage guide: usage.md
+  # - API Reference: reference.md
+theme:
+  name: material
+  font: false
+  features:
+    - toc.follow
+    - header.autohide
+    - navigation.top
+    - navigation.instant
+    - content.tabs.link
+    - content.code.annotate
+  language: en
+  # extra:
+  #   alternate:
+  #     - name: English
+  #       link: /en/
+  #       lang: en
+  #     - name: Deutsch
+  #       link: /de/
+  #       lang: de
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+markdown_extensions:
+  - toc:
+      permalink: true
+  - abbr
+  - def_list
+  - attr_list
+  - footnotes
+  - admonition
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.critic
+extra_css:
+  - stylesheets/extra.css
