@@ -1,11 +1,12 @@
 from __future__ import annotations
 from typing import TypeAlias, Type
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, AsyncGenerator
 
 from math import ceil
 from pathlib import Path
 from tqdm.auto import tqdm
 from dataclasses import dataclass, field
+from contextlib import asynccontextmanager
 
 import asyncio
 from urllib.parse import urlsplit
@@ -61,10 +62,22 @@ class Download:
     def url(self) -> str:
         return self.file.url
 
+    @asynccontextmanager
+    async def make_client(self) -> AsyncGenerator:
+        try:
+            client = AsyncClient(
+                follow_redirects=True,
+                cert=self.auth.cert,
+                timeout=self.settings.download.http_timeout,
+            )
+            yield client
+        except Exception as e:
+            print(e)
+        finally:
+            await client.aclose()
+
     async def aget(self) -> bytes:
-        async with AsyncClient(
-            follow_redirects=True, cert=self.auth.cert
-        ) as client:
+        async with self.make_client() as client:
             resp = await client.get(self.url)
             resp.raise_for_status()
         return resp.content
@@ -112,13 +125,12 @@ class ChunkedDownload(Download):
         return resp.content
 
     async def aget(self) -> bytes:
-        client = AsyncClient(follow_redirects=True, timeout=5.0)
         nb_chunks = ceil(self.file.size / self.settings.download.chunk_size)
         chunks: list[bytes] = []
-        for i in range(nb_chunks):
-            chunk = await self.aget_chunk(i, client)
-            chunks.append(chunk)
-        await client.aclose()
+        async with self.make_client() as client:
+            for i in range(nb_chunks):
+                chunk = await self.aget_chunk(i, client)
+                chunks.append(chunk)
         return b"".join(chunks)
 
 
@@ -168,33 +180,32 @@ class MultiSourceChunkedDownload(Download):
     ) -> tuple[list[tuple[int, bytes]], str]:
         node = urlsplit(url).netloc
         print(f"starting process on '{node}'")
-        client = AsyncClient(follow_redirects=True, timeout=self.max_ping)
         chunks: list[tuple[int, bytes]] = []
-        final_url = await self.try_url(url, client)
-        if final_url is None:
-            print(f"no url found for '{node}'")
-            await client.aclose()
-            return chunks, url
-        else:
-            url = final_url
-        while not queue.empty():
-            chunk_idx = await queue.get()
-            print(f"processing chunk {chunk_idx} on '{node}'")
-            start = chunk_idx * self.settings.download.chunk_size
-            end = min(
-                self.file.size,
-                (chunk_idx + 1) * self.settings.download.chunk_size - 1,
-            )
-            headers = {"Range": f"bytes={start}-{end}"}
-            resp = await client.get(url, headers=headers)
-            queue.task_done()
-            if resp.status_code == 206:
-                chunks.append((chunk_idx, resp.content))
+        async with self.make_client() as client:
+            final_url = await self.try_url(url, client)
+            if final_url is None:
+                print(f"no url found for '{node}'")
+                await client.aclose()
+                return chunks, url
             else:
-                await queue.put(chunk_idx)
-                print(f"error status {resp.status_code} on '{node}'")
-                break
-        await client.aclose()
+                url = final_url
+            while not queue.empty():
+                chunk_idx = await queue.get()
+                print(f"processing chunk {chunk_idx} on '{node}'")
+                start = chunk_idx * self.settings.download.chunk_size
+                end = min(
+                    self.file.size,
+                    (chunk_idx + 1) * self.settings.download.chunk_size - 1,
+                )
+                headers = {"Range": f"bytes={start}-{end}"}
+                resp = await client.get(url, headers=headers)
+                queue.task_done()
+                if resp.status_code == 206:
+                    chunks.append((chunk_idx, resp.content))
+                else:
+                    await queue.put(chunk_idx)
+                    print(f"error status {resp.status_code} on '{node}'")
+                    break
         return chunks, url
 
     async def fetch_urls(self) -> list[str]:

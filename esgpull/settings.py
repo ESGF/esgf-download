@@ -45,6 +45,7 @@ class Context(BaseModel):
 class Download(BaseModel):
     chunk_size: int = 1 << 26
     method: str = "Download"
+    http_timeout: int = 20
 
 
 class Settings(BaseSettings):
