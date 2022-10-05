@@ -1,7 +1,6 @@
 import rich
 import yaml
 import click
-from click_default_group import DefaultGroup
 
 from esgpull import Esgpull
 
@@ -44,35 +43,19 @@ def print_yaml(d: dict) -> None:
         click.echo("Nothing to configure.")
 
 
-@click.group(cls=DefaultGroup, default="global", default_if_no_args=True)
-def settings():
-    ...
-
-
-@settings.command("global")
-def _global():
-    esg = Esgpull()
-    print_yaml(esg.settings.dict())
-
-
-@settings.group(cls=DefaultGroup, default="show", default_if_no_args=True)
+@click.command()
+@click.option("--global", "_global", is_flag=True, default=True)
+@click.option("--cli", is_flag=True, default=False)
+@click.argument("command", type=str, nargs=1, default="")
 @click.pass_context
-def cli(ctx):
-    ...
-
-
-@cli.command()
-@click.pass_context
-def show(ctx):
-    info = get_info_dict(ctx)
-    print_yaml(get_defaults(info))
-
-
-@cli.command()
-@click.pass_context
-@click.argument("command", nargs=1, type=str)
-def get(ctx, command):
-    info = get_info_dict(ctx)
-    for key in command.split("."):
-        info = info["commands"][key]
-    print_yaml(get_defaults(info))
+def settings(ctx, _global: bool, cli: bool, command: str):
+    if cli:
+        info = get_info_dict(ctx)
+        keys = command.split(".")
+        for key in keys:
+            if len(key) > 0:
+                info = info["commands"][key]
+        print_yaml(get_defaults(info))
+    elif _global:
+        esg = Esgpull()
+        print_yaml(esg.settings.dict())
