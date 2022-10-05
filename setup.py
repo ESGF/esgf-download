@@ -46,8 +46,8 @@ setup(
             "pytest >= 6.2.4",
             "pytest-cov",
             "flake8",
-            "sphinx",
             "mypy",
+            "mkdocs-material",
         ]
     },
 )

@@ -1,0 +1,35 @@
+name: documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "*.md"
+      - docs/**
+      - .github/workflows/doc.yml
+
+jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.10.0
+          architecture: "x64"
+
+      - name: dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -U .[dev]
+
+      - name: build
+        run: mkdocs build
+
+      - name: deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
