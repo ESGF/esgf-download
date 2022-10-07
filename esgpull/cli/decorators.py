@@ -21,6 +21,7 @@ class opts:
     )
     distrib: Dec = click.option("--distrib", "-d", is_flag=True, default=False)
     dry_run: Dec = click.option("--dry-run", "-z", is_flag=True, default=False)
+    dump: Dec = click.option("--dump", is_flag=True, default=False)
     file: Dec = click.option("--file", "-F", is_flag=True)
     force: Dec = click.option("--force", "-f", is_flag=True, default=False)
     latest: Dec = click.option(

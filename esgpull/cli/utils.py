@@ -1,6 +1,7 @@
 from typing import Type
 
 import rich
+import yaml
 import click
 from enum import Enum
 from click_params import ListParamType
@@ -95,4 +96,13 @@ def load_facets(
         query.load_file(selection_file)
 
 
-__all__ = ["SliceParam", "totable", "load_facets"]
+def print_yaml(d: dict) -> None:
+    if d:
+        yml = yaml.dump(d)
+        syntax = rich.syntax.Syntax(yml, "yaml")
+        rich.print(syntax)
+    else:
+        click.echo("Nothing to configure.")
+
+
+__all__ = ["SliceParam", "totable", "load_facets", "print_yaml"]

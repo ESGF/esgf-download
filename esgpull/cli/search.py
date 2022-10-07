@@ -5,39 +5,41 @@ import click
 
 from esgpull import Context
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import totable, load_facets
+from esgpull.cli.utils import totable, load_facets, print_yaml
 
 
 @click.command()
+@args.facets
+@opts.date
+@opts.data_node
 @opts.distrib
 @opts.dry_run
-@opts.date
+@opts.dump
 @opts.file
-@opts.since
 @opts.latest
-@opts.data_node
 @opts.one
 @opts.options
 @opts.replica
 @opts.selection_file
+@opts.since
 @opts.slice
 @opts.zero
-@args.facets
 def search(
     facets: list[str],
     date: bool,
     data_node: bool,
     distrib: bool,
     dry_run: bool,
+    dump: bool,
     file: bool,
     latest: bool | None,
+    one: bool,
+    options: list[str],
     replica: bool | None,
     selection_file: str | None,
     since: str | None,
-    options: list[str],
-    one: bool,
-    zero: bool,
     slice_: slice,
+    zero: bool,
 ) -> None:
     """
     Search datasets/files on ESGF
@@ -68,6 +70,8 @@ def search(
         ctx.query.facets = options
         results = ctx.options()
         rich.print(results)
+    elif dump:
+        print_yaml(ctx.query.dump())
     else:
         results = ctx.search(file=file, max_results=size, offset=offset)
         nb = sum(hits)

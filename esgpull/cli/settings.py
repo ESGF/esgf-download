@@ -1,8 +1,7 @@
-import rich
-import yaml
 import click
 
 from esgpull import Esgpull
+from esgpull.cli.utils import print_yaml
 
 SKIP_PARAMS = ["help", "version", "yes"]
 
@@ -32,15 +31,6 @@ def get_defaults(d: dict) -> dict:
         if params:
             result[command] = params
     return result
-
-
-def print_yaml(d: dict) -> None:
-    if d:
-        yml = yaml.dump(d)
-        syntax = rich.syntax.Syntax(yml, "yaml")
-        rich.print(syntax)
-    else:
-        click.echo("Nothing to configure.")
 
 
 @click.command()
