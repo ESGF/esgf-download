@@ -328,7 +328,7 @@ class Context:
                     continue  # discard non-facets
                 if not query[facet].isdefault():
                     continue  # discard facets with value
-                if len(counts) > 1:
+                if len(counts) > 0:
                     facet_options[facet] = counts
             result.append(facet_options)
         return result
