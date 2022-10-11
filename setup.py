@@ -1,53 +1,58 @@
-from pathlib import Path
 
-from setuptools import setup, find_packages
+# -*- coding: utf-8 -*-
+from setuptools import setup
 
+import codecs
 
-def get_version():
-    version = Path("esgpull", "version.py").read_text()
-    return version.split('"')[1]
-
-
-setup(
-    name="esgpull",
-    packages=find_packages(),
-    package_data={"esgpull": ["py.typed"]},
-    include_package_data=True,
-    version=get_version(),
-    entry_points={"console_scripts": ["esgpull=esgpull.cli:main"]},
-    # url='https://github.com/Prodiguer/synda',
-    description="ESGF Data transfer Program",
-    long_description="This program download files from the Earth System Grid "
-    "Federation (ESGF) archive using command line.",
-    # zip_safe=False,
-    license="Public",
-    platforms="Linux",
-    maintainer="Sven Rodriguez",
-    maintainer_email="srodriguez@ipsl.fr",
-    install_requires=[
-        "rich",
-        "humanize",
-        "pyyaml",
-        "tqdm",
-        "httpx",
-        "aiofiles",
-        "click",
-        "click-params",
-        "click-default-group",
-        "sqlalchemy",
-        "alembic",
-        "pydantic",
-        "nest_asyncio",  # allow usage in notebooks
-        "pyOpenSSL",
-        "MyProxyClient",
+with codecs.open('README.md', encoding="utf-8") as fp:
+    long_description = fp.read()
+INSTALL_REQUIRES = [
+    'MyProxyClient>=2.1.0',
+    'aiofiles>=22.1.0',
+    'alembic>=1.8.1',
+    'click>=8.1.3',
+    'click-params>=0.4.0',
+    'httpx>=0.23.0',
+    'humanize>=4.4.0',
+    'nest-asyncio>=1.5.6',
+    'pyOpenSSL>=22.1.0',
+    'pydantic>=1.10.2',
+    'pyyaml>=6.0',
+    'tomlkit>=0.11.5',
+    'rich>=12.6.0',
+    'sqlalchemy>=1.4.41',
+    'tqdm>=4.64.1',
+    'setuptools>=65.4.1',
+]
+ENTRY_POINTS = {
+    'console_scripts': [
+        'esgpull = esgpull.cli:main',
     ],
-    extras_require={
-        "dev": [
-            "pytest >= 6.2.4",
-            "pytest-cov",
-            "flake8",
-            "mypy",
-            "mkdocs-material",
-        ]
-    },
-)
+}
+
+setup_kwargs = {
+    'name': 'esgpull',
+    'version': '4.0.0',
+    'description': 'ESGF Data transfer Program',
+    'long_description': long_description,
+    'license': 'Public',
+    'author': '',
+    'author_email': 'Sven Rodriguez <srodriguez@ipsl.fr>',
+    'maintainer': '',
+    'maintainer_email': 'Sven Rodriguez <srodriguez@ipsl.fr>',
+    'url': '',
+    'packages': [
+        'esgpull',
+        'esgpull.cli',
+    ],
+    'package_data': {'': ['*']},
+    'long_description_content_type': 'text/markdown',
+    'install_requires': INSTALL_REQUIRES,
+    'python_requires': '>=3.10',
+    'entry_points': ENTRY_POINTS,
+
+}
+
+
+setup(**setup_kwargs)
+
