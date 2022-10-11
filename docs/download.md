@@ -10,37 +10,35 @@ Using a `search` command with either _facet_ or _free-text_ terms, through comma
 Then downloading those files is trivial, since the `install` syntax is exactly the same as for a `search` command.
 
 ```sh title="Search command to find what you want to download"
-esgpull search mip_era:CMIP6 experiment_id:historical table_id:fx --file
+esgpull search mip_era:CMIP6 experiment_id:historical table_id:fx member_id:r1i1p1f1
 ```
-```{.sh .markdown .result}
-Found 9 files.
-┏━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ # ┃   size ┃ id                                                                                         ┃
-┡━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 0 │  27.3K │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.historical.r1i1p1f1.fx.areacella.gr.v20200729.areacella_f… │
-│ 1 │   1.6M │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.historical.r1i1p1f1.fx.zfull.gr.v20200729.zfull_fx_IPSL-C… │
-│ 2 │  34.9K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR-INCA.historical.r1i1p1f1.fx.mrsofc.gr.v20210216.mrsofc_fx_IP… │
-│ 3 │  31.8K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR-INCA.historical.r1i1p1f1.fx.rootd.gr.v20210216.rootd_fx_IPSL… │
-│ 4 │  29.6K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.areacella.gr.v20180803.areacella_fx_I… │
-│ 5 │  35.7K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.mrsofc.gr.v20180803.mrsofc_fx_IPSL-CM… │
-│ 6 │ 111.1K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.orog.gr.v20190516.orog_fx_IPSL-CM6A-L… │
-│ 7 │  33.0K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.rootd.gr.v20180803.rootd_fx_IPSL-CM6A… │
-│ 8 │  44.3K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.sftlf.gr.v20180803.sftlf_fx_IPSL-CM6A… │
-└───┴────────┴────────────────────────────────────────────────────────────────────────────────────────────┘
+```{.markdown .result}
+Found 9 datasets.
+┏━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ # ┃   size ┃ id                                                                            ┃
+┡━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 0 │  44.3K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.sftlf.gr.v20180803        │
+│ 1 │  35.7K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.mrsofc.gr.v20180803       │
+│ 2 │  29.6K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.areacella.gr.v20180803    │
+│ 3 │  33.0K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.rootd.gr.v20180803        │
+│ 4 │ 111.1K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r1i1p1f1.fx.orog.gr.v20190516         │
+│ 5 │  27.3K │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.historical.r1i1p1f1.fx.areacella.gr.v20200729 │
+│ 6 │   1.6M │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.historical.r1i1p1f1.fx.zfull.gr.v20200729     │
+│ 7 │  34.9K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR-INCA.historical.r1i1p1f1.fx.mrsofc.gr.v20210216  │
+│ 8 │  31.8K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR-INCA.historical.r1i1p1f1.fx.rootd.gr.v20210216   │
+└───┴────────┴───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 !!! note "Install command with the same arguments"
         ```sh
-        esgpull install mip_era:CMIP6 experiment_id:historical table_id:fx
+        esgpull install mip_era:CMIP6 experiment_id:historical table_id:fx member_id:r1i1p1f1
         ```
-        ```{.sh .markdown .result}
+        ```{.markdown .result}
         Found 9 files.
         Total size: 2.0M
         Continue? [Y/n]: Y
-        Installed 7 new files.
+        Installed 9 new files.
         ```
-
-        Only 7 out of 9 files were installed in this example. That means 2 files were either downloaded or queued already.
 
 !!! warning "Search options"
 
@@ -49,13 +47,20 @@ Found 9 files.
         That includes the `--file` to display files instead of datasets, since the `install` command assumes only **files** can be downloaded.
 
         ```sh title="Failing install command"
-        esgpull install mip_era:CMIP6 experiment_id:historical table_id:fx -- file
+        esgpull install mip_era:CMIP6 experiment_id:historical table_id:fx --file
         ```
-        ```{.sh .markdown .result}
-        Usage: esgpull install [OPTIONS] [FACETS]...
-        Try 'esgpull install -h' for help.
-
+        ```{.markdown .result}
         Error: No such option: --file
         ```
 
 ## Download process
+
+After *installing* any number of files, downloading is simple:
+
+```sh
+esgpull download start
+```
+```{.markdown .result}
+100%|██████████████████████████████████████████████████████████████████████████████| 1.96M/1.96M [00:00<00:00, 3.31MiB/s]
+Downloaded 9 new files for a total size of 2.0M
+```

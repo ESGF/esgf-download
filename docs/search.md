@@ -28,7 +28,7 @@ Multiples values can be used, either by specifying the facet name for every valu
         ```sh title="Single variable c2h2"
         esgpull search variable_id:c2h2 -0
         ```
-        ```{.sh .markdown .result}
+        ```{.markdown .result}
         Found 5 datasets.
         ```
     </div>
@@ -36,7 +36,7 @@ Multiples values can be used, either by specifying the facet name for every valu
         ```sh title="Single variable c2h6"
         esgpull search variable_id:c2h6 -0
         ```
-        ```{.sh .markdown .result}
+        ```{.markdown .result}
         Found 5 datasets.
         ```
     </div>
@@ -45,7 +45,7 @@ Multiples values can be used, either by specifying the facet name for every valu
 ```sh title="Both variables c2h2 and c2h6"
 esgpull search variable_id:c2h2 variable_id:c2h6 -0
 ```
-```{.sh .markdown .result}
+```{.markdown .result}
 Found 10 datasets.
 ```
 
