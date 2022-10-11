@@ -12,6 +12,9 @@ Dec: TypeAlias = Callable[[Callable], Callable]
 
 class args:
     facets: Dec = click.argument("facets", nargs=-1)
+    status: Dec = click.argument(
+        "status", type=EnumParam(FileStatus), nargs=1, default="error"
+    )
 
 
 class opts:
