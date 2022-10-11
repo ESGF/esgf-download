@@ -45,9 +45,10 @@ def queue(all: bool):
         counts = Counter(stmt.where(status_attr.in_(statuses)).scalars)
     if not counts:
         click.echo("Queue is empty")
-    table = rich.table.Table()
-    table.add_column("status")
-    table.add_column("#")
-    for status, count in counts.items():
-        table.add_row(status.name, str(count))
-    rich.print(table)
+    else:
+        table = rich.table.Table()
+        table.add_column("status")
+        table.add_column("#")
+        for status, count in counts.items():
+            table.add_row(status.name, str(count))
+        rich.print(table)
