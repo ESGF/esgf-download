@@ -32,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 
 [tool.pdm.dev-dependencies]
-docs = [
+doc = [
     "mkdocs-material>=8.5.6",
 ]
 test = [

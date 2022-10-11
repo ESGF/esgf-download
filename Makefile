@@ -51,3 +51,7 @@ covtest:
 
 fulltest:
 	pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull -vv
+
+pdm:
+	pdm install
+	pdm export -f setuppy > setup.py
