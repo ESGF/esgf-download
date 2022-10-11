@@ -12,7 +12,10 @@ class Result:
 
 
 class Ok(Result):
-    __match_args__ = ("file", "data")
+    __match_args__ = (
+        "file",
+        "data",
+    )
 
     file: File
     ok = True

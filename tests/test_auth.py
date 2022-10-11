@@ -10,7 +10,7 @@ def auth(tmp_path):
 
 
 def test_auth(auth):
-    assert auth.status == auth.MISSING
+    assert auth.status == auth.Missing
     identity = Identity("esgf-node.ipsl.upmc.fr", "foo", "foobar")
     with pytest.raises(HTTPStatusError):
         auth.renew(identity)

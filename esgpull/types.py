@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TypeAlias, TypeGuard, Any
 
-from enum import Enum, auto, unique
+from enum import Enum, unique
 from datetime import datetime
 from dataclasses import dataclass, field
 
@@ -64,20 +64,15 @@ def find_int(container: list | int) -> int:
 
 
 @unique
-class FileStatus(Enum):
-    # deleted = auto()
-    new = auto()
-    queued = auto()
-    starting = auto()
-    started = auto()
-    pausing = auto()
-    paused = auto()
-    error = auto()
-    done = auto()
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + "." + self.name
-        # return self.name
+class FileStatus(str, Enum):
+    new = "new"
+    queued = "queued"
+    starting = "starting"
+    started = "started"
+    pausing = "pausing"
+    paused = "paused"
+    error = "error"
+    done = "done"
 
 
 @dataclass
@@ -207,5 +202,13 @@ class File:
 
 
 Table: TypeAlias = Version | Param | File
+
+
+@unique
+class DownloadMethod(str, Enum):
+    Download = "Download"
+    ChunkedDownload = "ChunkedDownload"
+    MultiSourceChunkedDownload = "MultiSourceChunkedDownload"
+
 
 __all__ = ["FileStatus", "Version", "Param", "File", "Table"]

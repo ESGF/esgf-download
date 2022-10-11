@@ -2,7 +2,7 @@ from typing import Any
 
 from pathlib import Path
 from shutil import rmtree
-from enum import Enum, auto, unique
+from enum import Enum, unique
 from dataclasses import dataclass, field
 
 import httpx
@@ -71,10 +71,10 @@ class Identity:
 
 
 @unique
-class AuthStatus(Enum):
-    VALID = auto()
-    EXPIRED = auto()
-    MISSING = auto()
+class AuthStatus(str, Enum):
+    Valid = "Valid"
+    Expired = "Expired"
+    Missing = "Missing"
 
 
 @dataclass
@@ -86,9 +86,9 @@ class Auth:
     cert_file: Path = field(init=False)
     __status: AuthStatus | None = field(init=False, default=None)
 
-    VALID = AuthStatus.VALID
-    EXPIRED = AuthStatus.EXPIRED
-    MISSING = AuthStatus.MISSING
+    Valid = AuthStatus.Valid
+    Expired = AuthStatus.Expired
+    Missing = AuthStatus.Missing
 
     def __post_init__(self) -> None:
         if isinstance(self.path, str):
@@ -98,7 +98,7 @@ class Auth:
 
     @property
     def cert(self) -> str | None:
-        if self.status == AuthStatus.VALID:
+        if self.status == AuthStatus.Valid:
             return str(self.cert_file)
         else:
             return None
@@ -111,14 +111,14 @@ class Auth:
 
     def _get_status(self) -> AuthStatus:
         if not self.cert_file.exists():
-            return AuthStatus.MISSING
+            return AuthStatus.Missing
         with self.cert_file.open("rb") as f:
             content = f.read()
         filetype = crypto.FILETYPE_PEM
         pem = crypto.load_certificate(filetype, content)
         if pem.has_expired():
-            return AuthStatus.EXPIRED
-        return AuthStatus.VALID
+            return AuthStatus.Expired
+        return AuthStatus.Valid
 
     def renew(self, identity: Identity | None = None) -> None:
         if identity is None:
