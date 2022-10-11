@@ -22,9 +22,9 @@ class Esgpull:
     def __init__(self, path: str | Path | None = None) -> None:
         self.fs = Filesystem(path)
         self.db = Database(self.fs.db / "esgpull.db")
-        CredentialsPath.path = self.fs.settings / "credentials.yaml"
+        CredentialsPath.path = self.fs.settings / "credentials.toml"
         self.auth = Auth(self.fs.auth, credentials=Credentials())
-        SettingsPath.path = self.fs.settings / "settings.yaml"
+        SettingsPath.path = self.fs.settings / "settings.toml"
         self.settings = Settings()
 
     def fetch_index_nodes(self) -> list[str]:

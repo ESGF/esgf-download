@@ -1,13 +1,54 @@
-from typing import Type
+from typing import Type, Any
 
 import rich
 import yaml
+import httpx
 import click
+import tomlkit
+import asyncio
+import httpcore
+from rich import traceback
+
 from enum import Enum
 from click_params import ListParamType
 
+from esgpull.result import Err
 from esgpull.query import Query
 from esgpull.utils import naturalsize
+
+MAX_FRAMES = 1
+SHOW_LOCALS = True
+SUPPRESS = [httpx, click, asyncio, httpcore]
+traceback.install(
+    max_frames=MAX_FRAMES,
+    show_locals=SHOW_LOCALS,
+    suppress=SUPPRESS,
+)
+
+
+def print_errors(errors: list[Err]) -> None:
+    console = rich.console.Console()
+    for error in errors:
+        try:
+            raise error.err
+        except Exception:
+            console.print_exception(
+                max_frames=MAX_FRAMES,
+                show_locals=SHOW_LOCALS,
+                suppress=SUPPRESS,
+            )
+
+
+def print_yaml(data: Any) -> None:
+    yml = yaml.dump(data)
+    syntax = rich.syntax.Syntax(yml, "yaml", theme="ansi_dark")
+    rich.print(syntax)
+
+
+def print_toml(data: Any) -> None:
+    tml = tomlkit.dumps(data)
+    syntax = rich.syntax.Syntax(tml, "toml", theme="ansi_dark")
+    rich.print(syntax)
 
 
 class EnumParam(click.Choice):
@@ -96,13 +137,11 @@ def load_facets(
         query.load_file(selection_file)
 
 
-def print_yaml(d: dict) -> None:
-    if d:
-        yml = yaml.dump(d)
-        syntax = rich.syntax.Syntax(yml, "yaml")
-        rich.print(syntax)
-    else:
-        click.echo("Nothing to configure.")
-
-
-__all__ = ["SliceParam", "totable", "load_facets", "print_yaml"]
+__all__ = [
+    "print_errors",
+    "print_yaml",
+    "print_toml",
+    "SliceParam",
+    "totable",
+    "load_facets",
+]
