@@ -21,12 +21,15 @@ def remove(
     esg = Esgpull()
     query = Query()
     load_facets(query, facets, selection_file)
-    files = esg.db.search(query=query, status=status)
-    if files:
-        click.echo(f"Found {len(files)} files to remove.")
-        if not force:
-            click.confirm("Continue?", default=True, abort=True)
-        removed = esg.remove(*files)
-        click.echo(f"Removed {len(removed)} files.")
+    if query.dump() == {} and status is None:
+        click.echo("Use valid search terms or status.")
     else:
-        click.echo("No matching file found.")
+        files = esg.db.search(query=query, status=status)
+        if files:
+            click.echo(f"Found {len(files)} files to remove.")
+            if not force:
+                click.confirm("Continue?", default=True, abort=True)
+            removed = esg.remove(*files)
+            click.echo(f"Removed {len(removed)} files.")
+        else:
+            click.echo("No matching file found.")
