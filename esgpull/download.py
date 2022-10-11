@@ -1,23 +1,21 @@
 from __future__ import annotations
-from typing import TypeAlias, Type
+from typing import TypeAlias
 from collections.abc import AsyncIterator, AsyncGenerator
 
 from math import ceil
 from pathlib import Path
 from tqdm.auto import tqdm
-from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 
 import asyncio
 from urllib.parse import urlsplit
-from httpx import AsyncClient, RequestError
+from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
-from esgpull.types import File
+from esgpull.types import File, DownloadMethod
 from esgpull.context import Context
 from esgpull.settings import Settings
 from esgpull.result import Result, Ok, Err
-from esgpull.exceptions import DownloadMethodError
 
 
 class Download:
@@ -71,8 +69,6 @@ class Download:
                 timeout=self.settings.download.http_timeout,
             )
             yield client
-        except Exception as e:
-            print(e)
         finally:
             await client.aclose()
 
@@ -134,7 +130,6 @@ class ChunkedDownload(Download):
         return b"".join(chunks)
 
 
-@dataclass(init=False)
 class MultiSourceChunkedDownload(Download):
     """
     Concurrent chunked downloader that resolves chunks from multiple URLs
@@ -170,9 +165,9 @@ class MultiSourceChunkedDownload(Download):
                 result = str(resp.url)
             else:
                 print(dict(resp.headers))
-        except RequestError as e:
-            print(type(e))
-            print(e.request.headers)
+        except HTTPError as err:
+            print(type(err))
+            print(err.request.headers)
         return result
 
     async def process_queue(
@@ -185,7 +180,6 @@ class MultiSourceChunkedDownload(Download):
             final_url = await self.try_url(url, client)
             if final_url is None:
                 print(f"no url found for '{node}'")
-                await client.aclose()
                 return chunks, url
             else:
                 url = final_url
@@ -238,21 +232,28 @@ class MultiSourceChunkedDownload(Download):
 Process: TypeAlias = Download | ChunkedDownload | MultiSourceChunkedDownload
 
 
-@dataclass
 class Processor:
-    auth: Auth
-    files: list[File]
-    max_concurrent: int = 5
-    settings: Settings = field(default_factory=Settings)
+    METHODS = {
+        DownloadMethod.Download: Download,
+        DownloadMethod.ChunkedDownload: ChunkedDownload,
+        DownloadMethod.MultiSourceChunkedDownload: MultiSourceChunkedDownload,
+    }
 
-    @property
-    def method(self) -> Type[Download]:
-        methods = [Download, ChunkedDownload, MultiSourceChunkedDownload]
-        choice = self.settings.download.method
-        for method in methods:
-            if choice == method.__name__:
-                return method
-        raise DownloadMethodError(choice)
+    def __init__(
+        self,
+        auth: Auth,
+        files: list[File],
+        max_concurrent: int = 5,
+        settings: Settings | None = None,
+    ) -> None:
+        self.auth = auth
+        self.files = files
+        self.max_concurrent = max_concurrent
+        if settings is None:
+            self.settings = Settings()
+        else:
+            self.settings = settings
+        self.method = self.METHODS[self.settings.download.method]
 
     async def process_one(
         self, process: Process, semaphore: asyncio.Semaphore
@@ -262,7 +263,7 @@ class Processor:
             try:
                 result = Ok(process.file)
                 result.data = await process.aget()
-            except Exception as err:
+            except HTTPError as err:
                 result = Err(process.file)
                 result.err = err
         return result

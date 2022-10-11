@@ -21,8 +21,6 @@ from esgpull.cli.upgrade import upgrade
 #   - total disk usage
 #   - per-setting stats for optimisation purpose ?
 
-__all__ = ["cli"]
-
 SUBCOMMANDS: list[click.Command] = [
     autoremove,
     settings,
@@ -42,7 +40,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(__version__, "--version", "-v")
+@click.version_option(__version__, "--version", "-V")
 def cli():
     """
     esgpull is a management utility for files and datasets from ESGF.
@@ -55,3 +53,6 @@ for subcmd in SUBCOMMANDS:
 
 def main():
     cli()
+
+
+__all__ = ["cli"]

@@ -8,8 +8,9 @@ from collections import Counter
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull import Esgpull
-from esgpull.utils import naturalsize
 from esgpull.types import File, FileStatus
+from esgpull.utils import naturalsize
+from esgpull.cli.utils import print_errors
 
 
 @click.group()
@@ -21,12 +22,15 @@ def download():
 def start():
     esg = Esgpull()
     coro = esg.download_queued(use_bar=True)
-    size_install, nok, nerr = asyncio.run(coro)
-    size_str = naturalsize(size_install)
-    if nok:
-        click.echo(f"Installed {nok} new files for a total size of {size_str}")
-    if nerr:
-        click.echo(f"{nerr} files could not be installed.")
+    files, errors = asyncio.run(coro)
+    if files:
+        size = naturalsize(sum(file.size for file in files))
+        click.echo(
+            f"Downloaded {len(files)} new files for a total size of {size}"
+        )
+    if errors:
+        print_errors(errors)
+        click.echo(f"{len(errors)} files could not be installed.")
 
 
 @download.command()

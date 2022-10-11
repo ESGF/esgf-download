@@ -162,7 +162,9 @@ class Esgpull:
         deprecated = self.db.get_deprecated_files()
         return self.remove(*deprecated)
 
-    async def download_queued(self, use_bar=True) -> tuple[int, int, int]:
+    async def download_queued(
+        self, use_bar=True
+    ) -> tuple[list[File], list[Err]]:
         """
         Download all files from db for which status is `queued`.
         """
@@ -173,24 +175,19 @@ class Esgpull:
         processor = Processor(
             auth=self.auth, files=queued, settings=self.settings
         )
-        installed: list[File] = []
-        errored: list[File] = []
+        files: list[File] = []
+        errors: list[Err] = []
         async for result in processor.process(use_bar):
             match result:
                 case Ok(file, data):
                     # TODO: add checksum verif
                     await self.fs.write(file, data)
                     file.status = FileStatus.done
-                    installed.append(file)
-                case Err(file, err):
-                    print(err)
+                    files.append(file)
+                case Err(file):
                     file.status = FileStatus.error
-                    errored.append(file)
+                    errors.append(result)
                 case _:
                     raise TypeError("Unexpected result")
             self.db.add(file)
-        return (
-            sum(file.size for file in installed),
-            len(installed),
-            len(errored),
-        )
+        return files, errors
