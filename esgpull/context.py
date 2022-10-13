@@ -287,25 +287,25 @@ class Context:
         queries = self._build_queries_search(
             hits=hits, file=file, max_results=max_results, offset=offset
         )
-        ids = set()
+        checksums = set()
         result = []
         async for json in self._fetch(queries):
             for doc in json["response"]["docs"]:
                 if file:
                     f = File.from_dict(doc)
-                    _id = f.file_id
+                    checksum = f.checksum
                 else:
-                    _id = doc["id"].partition("|")[0]
-                if _id not in ids:
+                    checksum = doc["instance_id"]
+                if checksum not in checksums:
                     result.append(doc)
-                    ids.add(_id)
+                    checksums.add(checksum)
         if max_results is None:
             nb_expected = sum(hits)
         else:
             nb_expected = min(sum(hits), max_results)
-        nb_dropped = nb_expected - len(ids)
+        nb_dropped = nb_expected - len(checksums)
         if nb_dropped:
-            print(f"Dropped {nb_dropped} duplicate results.")
+            print(f"Dropped {nb_dropped} duplicates.")
         return result
 
     @property
