@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
-from typing import AsyncIterator, Callable
+from functools import partial
+from typing import AsyncIterator, TypeAlias
 
 from aiostream.stream import merge
 from httpx import AsyncClient, HTTPError
@@ -15,6 +16,10 @@ from esgpull.settings import Settings
 from esgpull.types import File
 
 
+# Callback: TypeAlias = Callable[[], None] | partial[None]
+Callback: TypeAlias = partial[None]
+
+
 class Task:
     def __init__(
         self,
@@ -24,7 +29,7 @@ class Task:
         *,
         url: str | None = None,
         file: File | None = None,
-        start_callbacks: list[Callable] | None = None,
+        start_callbacks: list[Callback] | None = None,
     ) -> None:
         self.auth = auth
         self.settings = settings
@@ -91,7 +96,7 @@ class Processor:
         fs: Filesystem,
         files: list[File],
         settings: Settings,
-        start_callbacks: dict[int, list[Callable]],
+        start_callbacks: dict[int, list[Callback]],
     ) -> None:
         self.files = files
         self.settings = settings
@@ -102,7 +107,7 @@ class Processor:
                 fs=fs,
                 settings=settings,
                 file=file,
-                start_callback=start_callbacks[file.id],
+                start_callbacks=start_callbacks[file.id],
             )
             for file in files
         ]

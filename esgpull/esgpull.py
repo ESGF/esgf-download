@@ -11,7 +11,7 @@ from rich.progress import (
     MofNCompleteColumn,
     Progress,
     SpinnerColumn,
-    Task,
+    TaskID,
     TextColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
@@ -182,7 +182,7 @@ class Esgpull:
         self,
         processor: Processor,
         progress: Progress,
-        task_ids: dict[int, Task],
+        task_ids: dict[int, TaskID],
     ) -> AsyncIterator[Result]:
         async for result in processor.process():
             task = progress.tasks[task_ids[result.file.id]]
@@ -194,12 +194,14 @@ class Esgpull:
                         # TODO: add checksum verif here
                         progress.stop_task(task.id)
                         progress.update(task.id, visible=False)
-                        if task.finished_speed is None:
-                            task.finished_speed = task.total / task.elapsed
                         id = f"[bold cyan]id:{result.file.id}[/]"
-                        size = f"[green]{decimal(task.completed)}[/]"
-                        speed = f"[red]{decimal(task.finished_speed)}/s[/]"
-                        progress.log(f"✓ {id} · {size} · {speed}")
+                        size = f"[green]{decimal(int(task.completed))}[/]"
+                        items = [id, size]
+                        if task.elapsed is not None:
+                            final_speed = int(task.completed / task.elapsed)
+                            speed = f"[red]{decimal(final_speed)}/s[/]"
+                            items.append(speed)
+                        progress.log("✓ " + " · ".join(items))
                         yield result
                 case Err():
                     progress.remove_task(task.id)
