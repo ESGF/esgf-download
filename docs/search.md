@@ -9,14 +9,14 @@ Both are done through the `esgpull search` command.
 esgpull search project:CMIP6 --slice 3
 ```
 ```{.markdown .result}
-Found 1493626 datasets.
-┏━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ # ┃  size ┃ id                                                                                  ┃
-┡━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 0 │ 10.2G │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.hfls.gr.v20181203              │
-│ 1 │  7.3G │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.clt.gr.v20181203               │
-│ 2 │ 10.3G │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.cfadLidarsr532.gr.v20181203 │
-└───┴───────┴─────────────────────────────────────────────────────────────────────────────────────┘
+Found 1539146 datasets.
+    ╷         ╷                                                             
+  # │    size │ id                                                          
+╶───┼─────────┼────────────────────────────────────────────────────────────╴
+  0 │ 10.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.hfls…  
+  1 │  7.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.clt.…  
+  2 │ 11.1 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.c…  
+    ╵         ╵
 ```
 
 ### Multiple values for a facet
@@ -101,16 +101,16 @@ esgpull search "member_id:r1i*p1f1" table_id:fx variable_id:areacella experiment
 ```
 ``` {.markdown .result}
 Found 6 datasets.
-┏━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ # ┃  size ┃ id                                                                           ┃
-┡━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 0 │ 27.8K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i2p1f1.fx.areacella.gr.v20190319    │
-│ 1 │ 26.2K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areacella.gr.v20180802    │
-│ 2 │ 26.2K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areacella.gr.v20181022    │
-│ 3 │ 26.2K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areacella.gr.v20181123    │
-│ 4 │ 28.0K │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areacella.gr.v20200326    │
-│ 5 │ 27.5K │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.piControl.r1i1p1f1.fx.areacella.gr.v20210216 │
-└───┴───────┴──────────────────────────────────────────────────────────────────────────────┘
+    ╷         ╷                                                             
+  # │    size │ id                                                          
+╶───┼─────────┼────────────────────────────────────────────────────────────╴
+  0 │ 28.5 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i2p1f1.fx.areace…  
+  1 │ 26.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…  
+  2 │ 26.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…  
+  3 │ 26.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…  
+  4 │ 28.6 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…  
+  5 │ 28.1 kB │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.piControl.r1i1p1f1.fx.are…  
+    ╵         ╵
 ```
 
 
@@ -322,11 +322,11 @@ A selection file is written using either [Yaml/1.0](https://yaml.org/spec/1.0/) 
     ```
     ```{.markdown .result}
     Found 2346 datasets.
-    ┏━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ┃ # ┃   size ┃ id                                                                       ┃
-    ┡━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-    │ 0 │ 338.9G │ cmip5.output1.CNRM-CERFACS.CNRM-CM5.rcp26.day.atmos.day.r1i1p1.v20121001 │
-    └───┴────────┴──────────────────────────────────────────────────────────────────────────┘
+        ╷          ╷                                                                       
+      # │     size │ id                                                                    
+    ╶───┼──────────┼──────────────────────────────────────────────────────────────────────╴
+      0 │ 363.9 GB │ cmip5.output1.CNRM-CERFACS.CNRM-CM5.rcp26.day.atmos.day.r1i1p1.v201…  
+        ╵          ╵
     ```
 
 !!! tip "Synda users"
