@@ -44,13 +44,13 @@ develop: distclean
 	pip install -e .[dev]
 
 test:
-	pytest
+	pytest tests
 
 covtest:
-	pytest --cov-report term-missing:skip-covered --cov=esgpull -vv
+	pytest --cov-report term-missing:skip-covered --cov=esgpull -vv tests
 
 fulltest:
-	pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull -vv
+	pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull -vv tests
 
 pdm:
 	pdm install
