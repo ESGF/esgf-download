@@ -115,10 +115,10 @@
 
 Run `pip install esgpull` to install the latest release and its dependencies.
 
-Have a look at the [Installation page](/installation) for more ways to install.
+Have a look at the [Installation page](installation) for more ways to install.
 
 ## Quickstart
 
-Jump directly to the [Quickstart guide](/quickstart) to get to know how to use `esgpull`.
+Jump directly to the [Quickstart guide](quickstart) to get to know how to use `esgpull`.
 
 [^1]: ESGF: [https://pcmdi.llnl.gov/](https://pcmdi.llnl.gov/)

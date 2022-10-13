@@ -11,7 +11,7 @@
 
 ## Initialisation
 
-Before anything, make sure `esgpull` is correctly [installed](/installation).
+Before anything, make sure `esgpull` is correctly [installed](installation).
 Then you can run this next command to fill the database with all _facets_ that can be found in ESGF index nodes.
 
 ```sh title="Initialize facets"
@@ -20,10 +20,10 @@ esgpull facet init
 
 ## Data discovery
 
-Look at the [data discovery](/search) page for more information.
+Look at the [data discovery](search) page for more information.
 
 
 ## Downloading
 
-Loop at the [download](/download) page for more information.
+Loop at the [download](download) page for more information.
 
