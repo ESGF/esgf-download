@@ -52,6 +52,9 @@ esgpull = "esgpull.cli:main"
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"
 
+[tool.black]
+line-length = 79
+
 [tool.pdm.version]
 source = "file"
 path = "esgpull/version.py"
