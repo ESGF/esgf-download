@@ -10,7 +10,7 @@ class NoRootError(EsgpullException):
     msg = "Environment variable `ESGPULL_HOME` must be set."
 
 
-class FacetNameError(AttributeError, EsgpullException):
+class FacetNameError(EsgpullException, AttributeError):
     """
     AttributeError is required for autocomplete engines (e.g. jupyter).
     """
@@ -36,12 +36,20 @@ class QuerySourceError(EsgpullException):
     {}"""
 
 
-class DownloadMethodError(EsgpullException):
-    msg = """{} is not a valid download method. Choose from:
+class DownloadKindError(EsgpullException):
+    msg = """{} is not a valid download kind. Choose from:
     * Download
     * ChunkedDownload
     * MultiSourceChunkedDownload
     """
+
+
+class DownloadSizeError(EsgpullException):
+    msg = """Downloaded file is larger than expected: {} > {}"""
+
+
+class DownloadCancelled(EsgpullException):
+    msg = """Download cancelled by user."""
 
 
 __all__ = [
@@ -49,5 +57,7 @@ __all__ = [
     "FacetNameError",
     "SolrUnstableQueryError",
     "QuerySourceError",
-    "DownloadMethodError",
+    "DownloadKindError",
+    "DownloadSizeError",
+    "DownloadCancelled",
 ]
