@@ -13,11 +13,12 @@ Dec: TypeAlias = Callable[[Callable], Callable]
 class args:
     facets: Dec = click.argument("facets", nargs=-1)
     status: Dec = click.argument(
-        "status", type=EnumParam(FileStatus), nargs=1, default="error"
+        "status", type=EnumParam(FileStatus), nargs=-1
     )
 
 
 class opts:
+    all: Dec = click.option("all_", "--all", "-a", is_flag=True, default=False)
     date: Dec = click.option("--date", "-D", is_flag=True, default=False)
     data_node: Dec = click.option(
         "--data-node", "-n", is_flag=True, default=False
@@ -51,6 +52,6 @@ class opts:
         "slice_", "--slice", "-S", type=SliceParam(), default="0:20"
     )
     status: Dec = click.option(
-        "--status", type=EnumParam(FileStatus), default=None
+        "--status", type=EnumParam(FileStatus), default=None, multiple=True
     )
     zero: Dec = click.option("--zero", "-0", is_flag=True, default=False)

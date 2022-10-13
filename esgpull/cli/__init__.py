@@ -14,6 +14,7 @@ from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search
 from esgpull.cli.settings import settings
+from esgpull.cli.status import status
 from esgpull.cli.upgrade import upgrade
 
 # [-]TODO: stats
@@ -32,6 +33,8 @@ SUBCOMMANDS: list[click.Command] = [
     remove,
     retry,
     search,
+    settings,
+    status,
     # stats,
     upgrade,
 ]

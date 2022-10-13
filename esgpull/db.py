@@ -332,14 +332,15 @@ class Database:
     def search(
         self,
         query: Query | None = None,
-        status: FileStatus | None = None,
+        statuses: Collection[FileStatus] | None = None,
+        file_ids: Collection[int] | None = None,
     ) -> list[File]:
         clauses = []
-        if query is None and status is None:
+        if query is None and statuses is None and file_ids is None:
             raise ValueError("TODO: custom error")
-        if status is not None:
+        if statuses is not None:
             status_attr = cast(InstrumentedAttribute, File.status)
-            clauses.append(status_attr == status)
+            clauses.append(status_attr.in_(statuses))
         if query is not None:
             for q in query.flatten():
                 query_clauses = []
@@ -352,6 +353,9 @@ class Database:
                     query_clauses.append(facet_clause)
                 if query_clauses:
                     clauses.append(reduce(sa.and_, query_clauses))
+        if file_ids is not None:
+            id_attr = cast(InstrumentedAttribute, File.id)
+            clauses.append(id_attr.in_(file_ids))
         if clauses:
             with self.select(File) as sel:
                 result = sel.where(reduce(sa.or_, clauses)).scalars

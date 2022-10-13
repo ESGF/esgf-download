@@ -119,6 +119,6 @@ def test_search(db, file_):
 
 def test_search_status(db, file_):
     db.add(file_)
-    assert db.search(status=FileStatus.queued) == [file_]
-    assert db.search(status=FileStatus.done) == []
+    assert db.search(statuses=[FileStatus.queued]) == [file_]
+    assert db.search(statuses=[FileStatus.done]) == []
     assert db.has(file_)
