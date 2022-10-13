@@ -206,10 +206,9 @@ Table: TypeAlias = Version | Param | File
 
 
 @unique
-class DownloadMethod(str, Enum):
-    Download = "Download"
-    ChunkedDownload = "ChunkedDownload"
-    MultiSourceChunkedDownload = "MultiSourceChunkedDownload"
+class DownloadKind(str, Enum):
+    Simple = "Simple"
+    Distributed = "Distributed"
 
 
-__all__ = ["FileStatus", "Version", "Param", "File", "Table"]
+__all__ = ["FileStatus", "Version", "Param", "File", "Table", "DownloadKind"]

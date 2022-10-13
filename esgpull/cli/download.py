@@ -1,54 +1,37 @@
-from typing import cast
-
 import rich
 import click
+from rich.filesize import decimal
 
 import asyncio
-from collections import Counter
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull import Esgpull
-from esgpull.types import File, FileStatus
-from esgpull.utils import naturalsize
-from esgpull.cli.utils import print_errors
+from esgpull.types import FileStatus
+
+# from esgpull.cli.utils import print_errors
+from esgpull.cli.decorators import opts
 
 
-@click.group()
-def download():
-    ...
-
-
-@download.command()
-def start():
+@click.command()
+@opts.quiet
+def download(quiet: bool):
     esg = Esgpull()
-    coro = esg.download_queued(use_bar=True)
+    if quiet:
+        progress_level = 0
+    else:
+        progress_level = 1
+    queue = esg.db.search(statuses=[FileStatus.queued])
+    if not queue:
+        rich.print("Download queue is empty.")
+        raise click.exceptions.Exit(0)
+    coro = esg.download(queue, progress_level=progress_level)
     files, errors = asyncio.run(coro)
     if files:
-        size = naturalsize(sum(file.size for file in files))
-        click.echo(
+        size = decimal(sum(file.size for file in files))
+        rich.print(
             f"Downloaded {len(files)} new files for a total size of {size}"
         )
     if errors:
-        print_errors(errors)
-        click.echo(f"{len(errors)} files could not be installed.")
-
-
-@download.command()
-@click.option("--all", "-a", is_flag=True, default=False)
-def queue(all: bool):
-    esg = Esgpull()
-    statuses = set(FileStatus)
-    if not all:
-        statuses.remove(FileStatus.done)
-    status_attr = cast(InstrumentedAttribute, File.status)
-    with esg.db.select(status_attr) as stmt:
-        counts = Counter(stmt.where(status_attr.in_(statuses)).scalars)
-    if not counts:
-        click.echo("Queue is empty")
-    else:
-        table = rich.table.Table()
-        table.add_column("status")
-        table.add_column("#")
-        for status, count in counts.items():
-            table.add_row(status.name, str(count))
-        rich.print(table)
+        for error in errors:
+            rich.print(error.err)
+        rich.print(f"{len(errors)} files could not be installed.")
+        raise click.exceptions.Exit(1)

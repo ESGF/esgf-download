@@ -5,7 +5,7 @@ import tomlkit
 from pathlib import Path
 from pydantic import BaseModel, BaseSettings, NoneStr, SecretStr
 
-from esgpull.types import DownloadMethod
+from esgpull.types import DownloadKind
 
 
 class BasePath:
@@ -43,8 +43,9 @@ class Context(BaseModel):
 
 class Download(BaseModel):
     chunk_size: int = 1 << 26
-    method: DownloadMethod = DownloadMethod.Download
+    kind: DownloadKind = DownloadKind.Simple
     http_timeout: int = 20
+    max_concurrent: int = 5
 
 
 class Settings(BaseSettings):

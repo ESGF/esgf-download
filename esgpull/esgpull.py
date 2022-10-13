@@ -1,21 +1,37 @@
 from pathlib import Path
-from typing import cast
+from functools import partial
+from typing import AsyncIterator, cast
 
+from rich.live import Live
+from rich.console import Group
+from rich.filesize import decimal
+from rich.progress import (
+    Progress,
+    BarColumn,
+    DownloadColumn,
+    MofNCompleteColumn,
+    SpinnerColumn,
+    Task,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull.types import File, Param, FileStatus
 from esgpull.context import Context
 from esgpull.auth import Auth  # , Identity
 from esgpull.db import Database
-from esgpull.download import Processor
-from esgpull.result import Ok, Err
+from esgpull.result import Result, Ok, Err
 from esgpull.fs import Filesystem
+from esgpull.processor import Processor
 from esgpull.settings import (
     Settings,
     SettingsPath,
     Credentials,
     CredentialsPath,
 )
+from esgpull.exceptions import DownloadCancelled
 
 
 class Esgpull:
@@ -162,32 +178,118 @@ class Esgpull:
         deprecated = self.db.get_deprecated_files()
         return self.remove(*deprecated)
 
-    async def download_queued(
-        self, use_bar=True
+    async def iter_results(
+        self,
+        processor: Processor,
+        progress: Progress,
+        task_ids: dict[int, Task],
+    ) -> AsyncIterator[Result]:
+        async for result in processor.process():
+            task = progress.tasks[task_ids[result.file.id]]
+            progress.update(task.id, visible=True)
+            match result:
+                case Ok():
+                    progress.update(task.id, completed=result.completed)
+                    if task.finished:
+                        # TODO: add checksum verif here
+                        progress.stop_task(task.id)
+                        progress.update(task.id, visible=False)
+                        if task.finished_speed is None:
+                            task.finished_speed = task.total / task.elapsed
+                        id = f"[bold cyan]id:{result.file.id}[/]"
+                        size = f"[green]{decimal(task.completed)}[/]"
+                        speed = f"[red]{decimal(task.finished_speed)}/s[/]"
+                        progress.log(f"✓ {id} · {size} · {speed}")
+                        yield result
+                case Err():
+                    progress.remove_task(task.id)
+                    yield result
+                case _:
+                    raise ValueError("Unexpected result")
+
+    async def download(
+        self, queue: list[File], progress_level: int = 0
     ) -> tuple[list[File], list[Err]]:
         """
         Download all files from db for which status is `queued`.
         """
-        queued = self.db.search(status=FileStatus.queued)
-        for file in queued:
+        for file in queue:
             file.status = FileStatus.starting
-        self.db.add(*queued)
-        processor = Processor(
-            auth=self.auth, files=queued, settings=self.settings
+        self.db.add(*queue)
+        main_progress = Progress(
+            SpinnerColumn(),
+            MofNCompleteColumn(),
+            TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+            disable=progress_level < 1,
+            # transient=True,
         )
-        files: list[File] = []
+        file_progress = Progress(
+            TextColumn("[cyan][{task.id}]"),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            BarColumn(),
+            "·",
+            DownloadColumn(),
+            "·",
+            TransferSpeedColumn(),
+            disable=progress_level < 1,
+            transient=True,
+        )
+        progress = Group(
+            main_progress,
+            file_progress,
+        )
+        queue_size = len(queue)
+        main_task_id = main_progress.add_task("", total=queue_size)
+        file_task_ids = {}
+        start_callbacks = {}
+        for file in queue:
+            task_id = file_progress.add_task(
+                "", total=file.size, visible=False, start=False
+            )
+            callback = partial(file_progress.start_task, task_id)
+            file_task_ids[file.id] = task_id
+            start_callbacks[file.id] = callback
+        processor = Processor(
+            auth=self.auth,
+            fs=self.fs,
+            files=queue,
+            settings=self.settings,
+            start_callbacks=start_callbacks,
+        )
+        files: list[
+            File
+        ] = []  # TODO: rename ? installed/downloaded/completed/...
         errors: list[Err] = []
-        async for result in processor.process(use_bar):
-            match result:
-                case Ok(file, data):
-                    # TODO: add checksum verif
-                    await self.fs.write(file, data)
-                    file.status = FileStatus.done
-                    files.append(file)
-                case Err(file):
-                    file.status = FileStatus.error
-                    errors.append(result)
-                case _:
-                    raise TypeError("Unexpected result")
-            self.db.add(file)
+        try:
+            with Live(progress):
+                async for result in self.iter_results(
+                    processor, file_progress, file_task_ids
+                ):
+                    match result:
+                        case Ok():
+                            main_progress.update(main_task_id, advance=1)
+                            result.file.status = FileStatus.done
+                            files.append(result.file)
+                        case Err():
+                            queue_size -= 1
+                            main_progress.update(
+                                main_task_id, total=queue_size
+                            )
+                            result.file.status = FileStatus.error
+                            errors.append(result)
+                    self.db.add(result.file)
+        finally:
+            remaining = [
+                file for file in queue if file.id in processor.remaining_ids
+            ]
+            if remaining:
+                main_progress.log(
+                    f"Putting {len(remaining)} back to the queue."
+                )
+                cancelled: list[File] = []
+                for file in remaining:
+                    file.status = FileStatus.cancelled
+                    cancelled.append(file)
+                    errors.append(Err(file, 0, DownloadCancelled()))
+                self.db.add(*cancelled)
         return files, errors

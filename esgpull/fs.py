@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os
-from typing import Iterator
+from contextlib import asynccontextmanager
+from typing import Iterator, AsyncIterator, Awaitable, Callable
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -27,6 +30,7 @@ class Filesystem:
         self.data.mkdir(exist_ok=True)
         self.db.mkdir(exist_ok=True)
         self.settings.mkdir(exist_ok=True)
+        self.tmp.mkdir(exist_ok=True)
 
     @property
     def auth(self) -> Path:
@@ -44,18 +48,24 @@ class Filesystem:
     def settings(self) -> Path:
         return self.root / "settings"
 
+    @property
+    def tmp(self) -> Path:
+        return self.root / ".tmp"
+
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
+
+    def tmp_path_of(self, file: File) -> Path:
+        return self.tmp / f"{file.id}.{file.filename}"
 
     def glob_netcdf(self) -> Iterator[Path]:
         for path in self.data.glob("**/*.nc"):
             yield path
 
-    async def write(self, file: File, data: bytes) -> None:
-        path = self.path_of(file)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        async with aiofiles.open(path, "wb") as f:
-            await f.write(data)
+    def make_writer(self, file: File) -> Writer:
+        tmp_path = self.tmp_path_of(file)
+        final_path = self.path_of(file)
+        return Writer(file, tmp_path, final_path)
 
     def isempty(self, path: Path) -> bool:
         if next(path.iterdir(), None) is None:
@@ -84,4 +94,26 @@ class Filesystem:
                 subpath.rmdir()
 
 
-__all__ = ["Filesystem"]
+class Writer:
+    def __init__(self, file: File, tmp_path: Path, final_path: Path) -> None:
+        self.file = File
+        self.tmp_path = tmp_path
+        self.final_path = final_path
+        self.can_write = False
+
+    @asynccontextmanager
+    async def open(self) -> AsyncIterator[Callable[[bytes], Awaitable[None]]]:
+        tmp = await aiofiles.open(self.tmp_path, "wb")
+
+        async def write(chunk: bytes) -> None:
+            await tmp.write(chunk)
+
+        try:
+            yield write
+        finally:
+            await tmp.close()
+            self.final_path.parent.mkdir(parents=True, exist_ok=True)
+            self.tmp_path.rename(self.final_path)
+
+
+__all__ = ["Filesystem", "Writer"]
