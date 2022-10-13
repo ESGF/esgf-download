@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import TypeAlias, TypeGuard, Any
+from typing import Any, Collection, TypeAlias, TypeGuard
 
 from enum import Enum, unique
 from datetime import datetime
 from dataclasses import dataclass, field
 
-FacetValues: TypeAlias = str | set[str] | list[str] | tuple[str]
+FacetValues: TypeAlias = str | Collection[str]
 FacetDict: TypeAlias = dict[str, FacetValues]
 NestedFacetDict: TypeAlias = dict[str, FacetValues | list[FacetDict]]
 
@@ -124,18 +124,24 @@ class File:
     @staticmethod
     def get_local_path(metadata: dict, version: str) -> str:
         # template = metadata["directory_format_template_"]
-        template = find_str(metadata["directory_format_template_"])
+        flat_metadata = {}
+        for k, v in metadata.items():
+            if isinstance(v, list) and len(v) == 1:
+                flat_metadata[k] = v[0]
+            else:
+                flat_metadata[k] = v
+        template = find_str(flat_metadata["directory_format_template_"])
         # format: "%(a)/%(b)/%(c)/..."
         template = template.removeprefix("%(root)s/")
         template = template.replace("%(", "{")
         template = template.replace(")s", "}")
-        metadata.pop("version", None)
-        if "rcm_name" in metadata:  # cordex special case
-            institute = find_str(metadata["institute"])
-            rcm_name = find_str(metadata["rcm_name"])
+        flat_metadata.pop("version", None)
+        if "rcm_name" in flat_metadata:  # cordex special case
+            institute = flat_metadata["institute"]
+            rcm_name = flat_metadata["rcm_name"]
             rcm_model = institute + "-" + rcm_name
-            metadata["rcm_model"] = rcm_model
-        return template.format(version=version, **metadata)
+            flat_metadata["rcm_model"] = rcm_model
+        return template.format(version=version, **flat_metadata)
 
     @classmethod
     def from_dict(cls, metadata: dict) -> "File":
