@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import TypeAlias
-from collections.abc import AsyncIterator
+from typing import TypeAlias, AsyncIterator
 
+import rich
 import asyncio
 from datetime import datetime
 from httpx import Response, AsyncClient
@@ -18,6 +18,8 @@ if asyncio.get_event_loop().is_running():
     import nest_asyncio
 
     nest_asyncio.apply()
+
+console = rich.console.Console()
 
 FacetCounts: TypeAlias = dict[str, dict[str, int]]
 
@@ -107,8 +109,11 @@ class Context:
             if "query" in facets:
                 freetext = facets.pop("query")
                 if isinstance(freetext, (list, tuple, set)):
-                    freetext = " ".join(freetext)
-                facets_.append(freetext)
+                    facets_.append(" ".join(freetext))
+                elif isinstance(freetext, str):
+                    facets_.append(freetext)
+                else:
+                    raise TypeError(freetext)
             for name, values in facets.items():
                 if isinstance(values, list):
                     values = "(" + " ".join(values) + ")"
@@ -223,25 +228,24 @@ class Context:
 
     async def _fetch(self, queries) -> AsyncIterator[dict]:
         client = AsyncClient(timeout=self.settings.context.http_timeout)
-        tasks = []
+        coroutines = []
         for query in queries:
             url = query.pop("url")
             if url not in self.semaphores:
                 self.semaphores[url] = asyncio.Semaphore(self.max_concurrent)
             sem = self.semaphores[url]
             coro = self._fetch_one(url, query, client, sem)
-            tasks.append(asyncio.ensure_future(coro))
-        for i, future in enumerate(tasks):
+            coroutines.append(asyncio.ensure_future(coro))
+        for future in coroutines:
             try:
                 resp = await future
                 resp.raise_for_status()
                 if self.show_url:
                     print(resp.url)
                 yield resp.json()
-            except Exception as e:
+            except Exception:
                 # TODO: clearer 404/501/TimeoutError/...
-                print(queries[i])
-                print(e)
+                console.print_exception(show_locals=True)
         await client.aclose()
 
     async def _hits(self, file=False) -> list[int]:

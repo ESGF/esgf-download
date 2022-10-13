@@ -19,8 +19,7 @@ def extract_command(info: dict, command: str | None) -> dict:
 @click.command()
 @click.argument("command", type=str, nargs=1, required=False, default=None)
 # @click.argument("value", type=str, nargs=1, required=False, default=None)
-@click.pass_context
-def settings(ctx, command: str | None):
+def settings(command: str | None):
     # [?]TODO: load Filesystem for SettingsPath
     # [?]TODO: load Esgpull for auto SettingsPath
     esg = Esgpull()
