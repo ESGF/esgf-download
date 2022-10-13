@@ -5,6 +5,11 @@ requires_python = ">=3.7,<4.0"
 summary = "File support for asyncio."
 
 [[package]]
+name = "aiostream"
+version = "0.4.5"
+summary = "Generator-based operators for asynchronous iteration"
+
+[[package]]
 name = "alembic"
 version = "1.8.1"
 requires_python = ">=3.7"
@@ -179,12 +184,6 @@ dependencies = [
     "rfc3986[idna2008]<2,>=1.3",
     "sniffio",
 ]
-
-[[package]]
-name = "humanize"
-version = "4.4.0"
-requires_python = ">=3.7"
-summary = "Python humanize utilities"
 
 [[package]]
 name = "idna"
@@ -562,12 +561,16 @@ summary = "Filesystem events monitoring"
 
 [metadata]
 lock_version = "4.0"
-content_hash = "sha256:bed875076c3d19df6edd901f19324aad250a586872db131d8a3b2373a0e5fe63"
+content_hash = "sha256:07a50b375f659b55c1ebe01c72660b9a70f517af6685a95538246de05205aa55"
 
 [metadata.files]
 "aiofiles 22.1.0" = [
     {url = "https://files.pythonhosted.org/packages/86/26/6e5060a159a6131c430e8a01ec8327405a19a449a506224b394e36f2ebc9/aiofiles-22.1.0.tar.gz", hash = "sha256:9107f1ca0b2a5553987a94a3c9959fe5b491fdf731389aa5b7b1bd0733e32de6"},
     {url = "https://files.pythonhosted.org/packages/a0/48/d5d1ab7cfe46e573c3694fa1365442a7d7cadc3abb03d8507e58a3755bb2/aiofiles-22.1.0-py3-none-any.whl", hash = "sha256:1142fa8e80dbae46bb6339573ad4c8c0841358f79c6eb50a493dceca14621bad"},
+]
+"aiostream 0.4.5" = [
+    {url = "https://files.pythonhosted.org/packages/4a/29/d94dc724b543d0ff16e177a3ce4eaa6253afb6350aa7ba372a8fe7e01f20/aiostream-0.4.5-py3-none-any.whl", hash = "sha256:25b7c2d9c83570d78c0ef5a20e949b7d0b8ea3b0b0a4f22c49d3f721105a6057"},
+    {url = "https://files.pythonhosted.org/packages/9f/92/e10c6232f2e2e21a24ae9e6534292bd2d808ae43b719298f5599a2a38e4b/aiostream-0.4.5.tar.gz", hash = "sha256:3ecbf87085230fbcd9605c32ca20c4fb41af02c71d076eab246ea22e35947d88"},
 ]
 "alembic 1.8.1" = [
     {url = "https://files.pythonhosted.org/packages/37/ab/80e6d86ca81235ea1a7104089dddf74de4b45f8af0a05d4b265be44d6ff9/alembic-1.8.1.tar.gz", hash = "sha256:cd0b5e45b14b706426b833f06369b9a6d5ee03f826ec3238723ce8caaf6e5ffa"},
@@ -891,10 +894,6 @@ content_hash = "sha256:bed875076c3d19df6edd901f19324aad250a586872db131d8a3b2373a
 "httpx 0.23.0" = [
     {url = "https://files.pythonhosted.org/packages/43/cd/677173d194b4839e5b196709e3819ffca2a4bc58b0538f4ae4be877ad480/httpx-0.23.0.tar.gz", hash = "sha256:f28eac771ec9eb4866d3fb4ab65abd42d38c424739e80c08d8d20570de60b0ef"},
     {url = "https://files.pythonhosted.org/packages/e9/fd/d8ff4bbf7ade1c9d60b53bf8234b44dcb2a9fcc7ae6933ae80ba38582f3e/httpx-0.23.0-py3-none-any.whl", hash = "sha256:42974f577483e1e932c3cdc3cd2303e883cbfba17fe228b0f63589764d7b9c4b"},
-]
-"humanize 4.4.0" = [
-    {url = "https://files.pythonhosted.org/packages/51/19/3e1adf0e7a8c8361496b085edcab2ddcd85410735a2b6fdd044247fc5b75/humanize-4.4.0.tar.gz", hash = "sha256:efb2584565cc86b7ea87a977a15066de34cdedaf341b11c851cfcfd2b964779c"},
-    {url = "https://files.pythonhosted.org/packages/9d/fc/28d2b631c5220b2a594d5d13b6ad79ee60d50688f1cd43f6707c06fb0db4/humanize-4.4.0-py3-none-any.whl", hash = "sha256:8830ebf2d65d0395c1bd4c79189ad71e023f277c2c7ae00f263124432e6f2ffa"},
 ]
 "idna 3.4" = [
     {url = "https://files.pythonhosted.org/packages/8b/e1/43beb3d38dba6cb420cefa297822eac205a277ab43e5ba5d5c46faf96438/idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},

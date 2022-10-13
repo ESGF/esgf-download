@@ -1,3 +1,4 @@
+import rich
 import click
 
 from esgpull import Esgpull

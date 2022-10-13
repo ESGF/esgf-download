@@ -13,7 +13,6 @@ INSTALL_REQUIRES = [
     'click>=8.1.3',
     'click-params>=0.4.0',
     'httpx>=0.23.0',
-    'humanize>=4.4.0',
     'nest-asyncio>=1.5.6',
     'pyOpenSSL>=22.1.0',
     'pydantic>=1.10.2',
@@ -23,6 +22,7 @@ INSTALL_REQUIRES = [
     'sqlalchemy>=1.4.41',
     'tqdm>=4.64.1',
     'setuptools>=65.4.1',
+    'aiostream>=0.4.5',
 ]
 ENTRY_POINTS = {
     'console_scripts': [

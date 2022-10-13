@@ -42,6 +42,7 @@ def upgrade() -> None:
                 "pausing",
                 "paused",
                 "error",
+                "cancelled",
                 "done",
                 name="status",
             ),

@@ -24,7 +24,6 @@ from esgpull.cli.upgrade import upgrade
 
 SUBCOMMANDS: list[click.Command] = [
     autoremove,
-    settings,
     download,
     facet,
     get,

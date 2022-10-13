@@ -38,6 +38,7 @@ class opts:
         type=StringListParamType(","),
         default=None,
     )
+    quiet: Dec = click.option("--quiet", "-q", is_flag=True, default=False)
     replica: Dec = click.option(
         "--replica/--no-replica", "-r/-R", is_flag=True, default=None
     )

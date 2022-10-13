@@ -48,6 +48,7 @@ markdown_extensions:
   - footnotes
   - admonition
   - md_in_html
+  - pymdownx.keys
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true

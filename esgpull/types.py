@@ -72,15 +72,16 @@ class FileStatus(str, Enum):
     pausing = "pausing"
     paused = "paused"
     error = "error"
+    cancelled = "cancelled"
     done = "done"
 
 
-@dataclass
+@dataclass(repr=False)
 class Version:
     version_num: str
 
 
-@dataclass
+@dataclass(repr=False)
 class Param:
     id: int = field(init=False, repr=False)
     name: str
@@ -88,7 +89,7 @@ class Param:
     last_updated: datetime | None = field(init=False, repr=False)
 
 
-@dataclass
+@dataclass(repr=False)
 class File:
     id: int = field(init=False, repr=False)
     file_id: str
