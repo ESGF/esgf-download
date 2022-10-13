@@ -132,8 +132,8 @@ class SelectContext:
 
     Example:
         ```python
+        from rich.filesize import decimal
         from esgpull.db.core import Database, SelectContext
-        from esgpull.utils import naturalsize
 
         db = Database(...)
 
@@ -144,7 +144,7 @@ class SelectContext:
         with db.select(stmt.File.file_id, stmt.File.size) as stmt:
             stmt.where(db.File.file_id >= 1)
             for id, size in stmt.result:
-                print(f"id: {id}, size: {naturalsize(size)})")
+                print(f"id: {id}, size: {decimal(size)})")
 
         with db.select(db.Param) as stmt:
             for param in stmt.where(db.Param.name.like("%ess")).scalars:

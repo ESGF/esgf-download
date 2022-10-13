@@ -1,12 +1,5 @@
-import humanize
 import datetime
 from urllib.parse import urlparse
-
-
-def naturalsize(value: int | float) -> str:
-    """Get size in K/M/G/etc."""
-    return humanize.naturalsize(value, gnu=True)
-    # return humanize.naturalsize(value, binary=True)
 
 
 def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
@@ -32,4 +25,4 @@ def index2url(index: str) -> str:
     return "https://" + url2index(index) + "/esg-search/search"
 
 
-__all__ = ["naturalsize", "format_date", "url2index", "index2url"]
+__all__ = ["format_date", "url2index", "index2url"]

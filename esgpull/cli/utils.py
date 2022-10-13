@@ -1,25 +1,26 @@
 from typing import Type, Any
 
 import rich
+from rich.filesize import decimal
+from rich.traceback import install
+
 import yaml
 import httpx
 import click
 import tomlkit
 import asyncio
 import httpcore
-from rich import traceback
 
 from enum import Enum
 from click_params import ListParamType
 
 from esgpull.result import Err
 from esgpull.query import Query
-from esgpull.utils import naturalsize
 
 MAX_FRAMES = 1
 SHOW_LOCALS = True
 SUPPRESS = [httpx, click, asyncio, httpcore]
-traceback.install(
+install(
     max_frames=MAX_FRAMES,
     show_locals=SHOW_LOCALS,
     suppress=SUPPRESS,
@@ -98,12 +99,13 @@ def totable(
         _slice = slice(0, len(results))
     _slice_no_offset = slice(0, _slice.stop - _slice.start)
     rows: list[map | list]
-    table = rich.table.Table()
+    # table = rich.table.Table(box=rich.box.MINIMAL_DOUBLE_HEAD)
+    table = rich.table.Table(box=rich.box.MINIMAL)
     table.add_column("#", justify="right")
     table.add_column("size", justify="right")
     table.add_column("id", justify="left")
     indices = map(str, range(_slice.start, _slice.stop))
-    sizes = map(naturalsize, [r["size"] for r in results][_slice_no_offset])
+    sizes = map(decimal, [r["size"] for r in results][_slice_no_offset])
     ids = map(pretty_id, [r["id"] for r in results][_slice_no_offset])
     rows = [indices, sizes, ids]
     if node:

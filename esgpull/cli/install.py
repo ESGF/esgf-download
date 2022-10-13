@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import rich
 import click
+from rich.filesize import decimal
 
 from esgpull import Esgpull, Context
 from esgpull.types import File
-from esgpull.utils import naturalsize
 from esgpull.cli.utils import load_facets
 from esgpull.cli.decorators import args, opts
 
@@ -36,6 +36,8 @@ def install(
     esg = Esgpull()
     ctx = Context(distrib=distrib, latest=latest, since=since, replica=replica)
     load_facets(ctx.query, facets, selection_file)
+    if not ctx.query.dump():
+        raise click.UsageError("No search terms provided.")
     hits = ctx.file_hits
     nb_files = sum(hits)
     if dry_run:
@@ -44,7 +46,7 @@ def install(
         )
         rich.print(queries)
     else:
-        click.echo(f"Found {nb_files} files.")
+        rich.print(f"Found {nb_files} files.")
         if not force and nb_files > 5000:
             nb_req = nb_files // 50
             message = f"{nb_req} requests will be send to ESGF. Continue?"
@@ -55,8 +57,8 @@ def install(
         results = ctx.search(file=True, max_results=None, offset=0)
         files = [File.from_dict(result) for result in results]
         total_size = sum([file.size for file in files])
-        click.echo(f"Total size: {naturalsize(total_size)}")
+        rich.print(f"Total size: {decimal(total_size)}")
         if not force:
             click.confirm("Continue?", default=True, abort=True)
         installed = esg.install(*files)
-        click.echo(f"Installed {len(installed)} new files.")
+        rich.print(f"Installed {len(installed)} new files.")
