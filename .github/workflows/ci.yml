@@ -11,7 +11,7 @@ on:
       - .github/workflows/ci.yml
 
 jobs:
-  documentation:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,7 +26,7 @@ jobs:
           enable-pep582: true  # Enable PEP 582 package loading globally
 
       - name: install dependencies
-        run: pdm install --prod -dG test
+        run: pdm install -dG test
 
       - name: run tests
         run: pdm run pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull tests
