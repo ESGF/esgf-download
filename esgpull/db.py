@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Type, TypeAlias, cast
+from typing import Any, Callable, Collection, Iterator, Type, TypeAlias, cast
 
 # import os
 import logging
@@ -232,9 +232,8 @@ class Database:
         self.setup_path()
         self.apply_verbosity()
         self.engine: Engine = sa.create_engine(self.path, future=True)
-        session_cls = sa.orm.sessionmaker(bind=self.engine, future=True)
-        self.session: Session = session_cls()
-
+        sessionmaker = sa.orm.sessionmaker(bind=self.engine, future=True)
+        self._session = sessionmaker()
         self.Version = Version
         self.File = File
         self.Param = Param
@@ -288,21 +287,32 @@ class Database:
         #     script.run_env()
 
     @contextmanager
-    def select(self, *selectable):
+    def get_session(self) -> Iterator[Session]:
         try:
-            yield SelectContext(self.session, *selectable)
-        finally:
-            ...
+            yield self._session
+        except (Exception, KeyboardInterrupt):
+            self._session.rollback()
+            raise
+        else:
+            self._session.commit()
+
+    @contextmanager
+    def select(self, *selectable):
+        with self.get_session() as session:
+            try:
+                yield SelectContext(session, *selectable)
+            finally:
+                ...
 
     def add(self, *items: Table) -> None:
-        for item in items:
-            self.session.add(item)
-        self.session.commit()
+        with self.get_session() as session:
+            for item in items:
+                session.add(item)
 
     def delete(self, *items: Table) -> None:
-        for item in items:
-            self.session.delete(item)
-        self.session.commit()
+        with self.get_session() as session:
+            for item in items:
+                session.delete(item)
         for item in items:
             sa.orm.session.make_transient(item)
 
