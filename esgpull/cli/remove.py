@@ -16,20 +16,19 @@ def remove(
     facets: list[str],
     force: bool,
     selection_file: str | None,
-    status: FileStatus | None,
+    status: list[FileStatus] | None,
 ):
     esg = Esgpull()
     query = Query()
     load_facets(query, facets, selection_file)
-    if query.dump() == {} and status is None:
-        click.echo("Use valid search terms or status.")
-    else:
-        files = esg.db.search(query=query, status=status)
-        if files:
-            click.echo(f"Found {len(files)} files to remove.")
-            if not force:
-                click.confirm("Continue?", default=True, abort=True)
-            removed = esg.remove(*files)
-            click.echo(f"Removed {len(removed)} files.")
-        else:
-            click.echo("No matching file found.")
+    if not query.dump() and not status:
+        raise click.UsageError("No search terms or status provided.")
+    files = esg.db.search(query=query, statuses=status)
+    if not files:
+        rich.print("No matching file found.")
+        raise click.exceptions.Exit(0)
+    rich.print(f"Found {len(files)} files to remove.")
+    if not force:
+        click.confirm("Continue?", default=True, abort=True)
+    removed = esg.remove(*files)
+    rich.print(f"Removed {len(removed)} files.")

@@ -14,16 +14,16 @@ def facet():
 def init():
     esg = Esgpull()
     if esg.fetch_params(update=False):
-        click.echo("Params are initialised.")
+        rich.print("Params are initialised.")
     else:
-        click.echo("Params already initialised.")
+        rich.print("Params already initialised.")
 
 
 @facet.command()
 def update():
     esg = Esgpull()
     esg.fetch_params(update=True)
-    click.echo("Params are up to date.")
+    rich.print("Params are up to date.")
 
 
 @facet.command("list")

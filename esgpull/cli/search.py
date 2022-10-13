@@ -76,6 +76,6 @@ def search(
         results = ctx.search(file=file, max_results=size, offset=offset)
         nb = sum(hits)
         item_type = "file" if file else "dataset"
-        click.echo(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
-        if len(results):
+        rich.print(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
+        if results:
             rich.print(totable(results, data_node, date, slice_))
