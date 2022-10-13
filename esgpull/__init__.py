@@ -1,8 +1,8 @@
-from esgpull.version import __version__
+from esgpull.context import Context
 from esgpull.esgpull import Esgpull
 from esgpull.query import Query
-from esgpull.context import Context
-from esgpull.types import File, Param, FileStatus
+from esgpull.types import File, FileStatus, Param
+from esgpull.version import __version__
 
 __all__ = [
     "__version__",

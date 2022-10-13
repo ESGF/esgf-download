@@ -1,24 +1,22 @@
-from typing import Any
-
+from dataclasses import dataclass, field
+from enum import Enum, unique
 from pathlib import Path
 from shutil import rmtree
-from enum import Enum, unique
-from dataclasses import dataclass, field
-
-import httpx
-from OpenSSL import crypto
-from xml.etree import ElementTree
-from myproxy.client import MyProxyClient
+from typing import Any
 from urllib.parse import (
-    urlunparse,
-    urljoin,
-    urlparse,
     ParseResult,
     ParseResultBytes,
+    urljoin,
+    urlparse,
+    urlunparse,
 )
+from xml.etree import ElementTree
+
+import httpx
+from myproxy.client import MyProxyClient
+from OpenSSL import crypto
 
 from esgpull.settings import Credentials
-
 
 IDP = "/esgf-idp/openid/"
 CEDA_IDP = "/OpenID/Provider/server/"

@@ -1,15 +1,15 @@
-from pathlib import Path
 from functools import partial
+from pathlib import Path
 from typing import AsyncIterator, cast
 
-from rich.live import Live
 from rich.console import Group
 from rich.filesize import decimal
+from rich.live import Live
 from rich.progress import (
-    Progress,
     BarColumn,
     DownloadColumn,
     MofNCompleteColumn,
+    Progress,
     SpinnerColumn,
     Task,
     TextColumn,
@@ -18,20 +18,20 @@ from rich.progress import (
 )
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from esgpull.types import File, Param, FileStatus
-from esgpull.context import Context
 from esgpull.auth import Auth  # , Identity
+from esgpull.context import Context
 from esgpull.db import Database
-from esgpull.result import Result, Ok, Err
+from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
+from esgpull.result import Err, Ok, Result
 from esgpull.settings import (
-    Settings,
-    SettingsPath,
     Credentials,
     CredentialsPath,
+    Settings,
+    SettingsPath,
 )
-from esgpull.exceptions import DownloadCancelled
+from esgpull.types import File, FileStatus, Param
 
 
 class Esgpull:

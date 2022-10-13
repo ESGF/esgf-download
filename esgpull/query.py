@@ -1,20 +1,21 @@
 from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Iterator, TypeVar
 
 import yaml
-from pathlib import Path
-from dataclasses import dataclass, field
 
+from esgpull.constants import DEFAULT_FACETS, EXTRA_FACETS
+from esgpull.exceptions import FacetNameError
 from esgpull.facet import Facet
 from esgpull.types import (
-    FacetValues,
     FacetDict,
+    FacetValues,
     NestedFacetDict,
-    split_nested_facet_dict,
     is_nested_facet_dict,
+    split_nested_facet_dict,
 )
-from esgpull.exceptions import FacetNameError
-from esgpull.constants import DEFAULT_FACETS, EXTRA_FACETS
 
 DEFAULT_FACET_VALUE: FacetValues = "*"
 

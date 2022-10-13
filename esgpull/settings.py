@@ -1,8 +1,9 @@
 from __future__ import annotations
+
+from pathlib import Path
 from typing import Any
 
 import tomlkit
-from pathlib import Path
 from pydantic import BaseModel, BaseSettings, NoneStr, SecretStr
 
 from esgpull.types import DownloadKind

@@ -1,21 +1,19 @@
-from typing import Type, Any
+import asyncio
+from enum import Enum
+from typing import Any, Type
 
+import click
+import httpcore
+import httpx
 import rich
+import tomlkit
+import yaml
+from click_params import ListParamType
 from rich.filesize import decimal
 from rich.traceback import install
 
-import yaml
-import httpx
-import click
-import tomlkit
-import asyncio
-import httpcore
-
-from enum import Enum
-from click_params import ListParamType
-
-from esgpull.result import Err
 from esgpull.query import Query
+from esgpull.result import Err
 
 MAX_FRAMES = 1
 SHOW_LOCALS = True

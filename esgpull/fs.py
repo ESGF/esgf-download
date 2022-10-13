@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
-from typing import Iterator, AsyncIterator, Awaitable, Callable
-
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import AsyncIterator, Awaitable, Callable, Iterator
 
 import aiofiles
 
-from esgpull.types import File
 from esgpull.exceptions import NoRootError
+from esgpull.types import File
 
 
 @dataclass(init=False)

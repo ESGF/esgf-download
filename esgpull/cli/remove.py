@@ -1,11 +1,11 @@
-import rich
 import click
+import rich
 
 from esgpull import Esgpull
+from esgpull.cli.decorators import args, opts
+from esgpull.cli.utils import load_facets
 from esgpull.query import Query
 from esgpull.types import FileStatus
-from esgpull.cli.utils import load_facets
-from esgpull.cli.decorators import args, opts
 
 
 @click.command()

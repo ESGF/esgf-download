@@ -1,15 +1,14 @@
+from collections import Counter
 from typing import cast
 
+import click
 import rich
 from rich.filesize import decimal
-import click
-
-from collections import Counter
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull import Esgpull
-from esgpull.types import File, FileStatus
 from esgpull.cli.decorators import opts
+from esgpull.types import File, FileStatus
 
 
 @click.command()

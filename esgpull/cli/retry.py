@@ -1,12 +1,12 @@
-from typing import Collection
 from collections import Counter
+from typing import Collection
 
-import rich
 import click
+import rich
 
 from esgpull import Esgpull
-from esgpull.types import FileStatus
 from esgpull.cli.decorators import args, opts
+from esgpull.types import FileStatus
 
 
 @click.command()

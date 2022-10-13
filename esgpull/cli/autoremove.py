@@ -1,5 +1,5 @@
-import rich
 import click
+import rich
 
 from esgpull import Esgpull
 from esgpull.cli.utils import totable

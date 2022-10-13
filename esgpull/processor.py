@@ -1,18 +1,18 @@
-from typing import AsyncIterator, Callable
-from pathlib import Path
-
 import asyncio
+from pathlib import Path
+from typing import AsyncIterator, Callable
+
 from aiostream.stream import merge
 from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
-from esgpull.fs import Filesystem
-from esgpull.settings import Settings
-from esgpull.types import File
 from esgpull.context import Context
-from esgpull.result import Result, Ok, Err
 from esgpull.download import Downloaders
 from esgpull.exceptions import DownloadSizeError
+from esgpull.fs import Filesystem
+from esgpull.result import Err, Ok, Result
+from esgpull.settings import Settings
+from esgpull.types import File
 
 
 class Task:

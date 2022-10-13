@@ -1,11 +1,11 @@
-from typing import Callable, TypeAlias
 from pathlib import Path
+from typing import Callable, TypeAlias
 
 import click
 from click_params import StringListParamType
 
-from esgpull.types import FileStatus
 from esgpull.cli.utils import EnumParam, SliceParam
+from esgpull.types import FileStatus
 
 Dec: TypeAlias = Callable[[Callable], Callable]
 

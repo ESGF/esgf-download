@@ -1,29 +1,22 @@
 from __future__ import annotations
-from typing import Any, Callable, Collection, Iterator, Type, TypeAlias, cast
 
 # import os
 import logging
-from pathlib import Path
-from functools import reduce
 from contextlib import contextmanager
+from functools import reduce
+from pathlib import Path
+from typing import Any, Callable, Collection, Iterator, Type, TypeAlias, cast
 
+import alembic.command
+import alembic.config
 import sqlalchemy as sa
 import sqlalchemy.orm
-import alembic.config
-import alembic.command
 from alembic.migration import MigrationContext
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 import esgpull
 from esgpull.query import Query
-from esgpull.types import (
-    FileStatus,
-    Version,
-    Param,
-    File,
-    Table,
-)
-
+from esgpull.types import File, FileStatus, Param, Table, Version
 
 Row: TypeAlias = sa.engine.row.Row
 Registry: TypeAlias = sa.orm.registry

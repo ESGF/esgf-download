@@ -6,10 +6,10 @@ import click
 from esgpull import __version__
 from esgpull.cli.autoremove import autoremove
 from esgpull.cli.download import download
-from esgpull.cli.get import get
-from esgpull.cli.login import login
-from esgpull.cli.install import install
 from esgpull.cli.facet import facet
+from esgpull.cli.get import get
+from esgpull.cli.install import install
+from esgpull.cli.login import login
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search

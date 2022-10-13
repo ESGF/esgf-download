@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from esgpull.types import FacetValues, FacetDict
+from esgpull.types import FacetDict, FacetValues
 
 
 class Facet:

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import rich
 import click
+import rich
 from rich.filesize import decimal
 
-from esgpull import Esgpull, Context
-from esgpull.types import File
-from esgpull.cli.utils import load_facets
+from esgpull import Context, Esgpull
 from esgpull.cli.decorators import args, opts
+from esgpull.cli.utils import load_facets
+from esgpull.types import File
 
 
 @click.command()

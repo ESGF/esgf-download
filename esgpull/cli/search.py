@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import rich
 import click
+import rich
 
 from esgpull import Context
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import totable, load_facets, print_yaml
+from esgpull.cli.utils import load_facets, print_yaml, totable
 
 
 @click.command()

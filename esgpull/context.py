@@ -1,17 +1,16 @@
-from pathlib import Path
-from typing import TypeAlias, AsyncIterator
-
-import rich
 import asyncio
 from datetime import datetime
-from httpx import Response, AsyncClient
+from pathlib import Path
+from typing import AsyncIterator, TypeAlias
 
+import rich
+from httpx import AsyncClient, Response
+
+from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.query import Query
 from esgpull.settings import Settings
 from esgpull.types import FacetDict, File
 from esgpull.utils import format_date, index2url
-from esgpull.exceptions import SolrUnstableQueryError
-
 
 # workaround for notebooks with running event loop
 if asyncio.get_event_loop().is_running():

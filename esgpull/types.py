@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Any, Collection, TypeAlias, TypeGuard
 
-from enum import Enum, unique
-from datetime import datetime
 from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum, unique
+from typing import Any, Collection, TypeAlias, TypeGuard
 
 FacetValues: TypeAlias = str | Collection[str]
 FacetDict: TypeAlias = dict[str, FacetValues]
