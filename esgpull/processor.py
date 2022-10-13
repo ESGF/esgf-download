@@ -24,7 +24,7 @@ class Task:
         *,
         url: str | None = None,
         file: File | None = None,
-        start_callback: Callable,
+        start_callbacks: list[Callable] | None = None,
     ) -> None:
         self.auth = auth
         self.settings = settings
@@ -36,7 +36,10 @@ class Task:
             raise ValueError("no arguments")
         self.writer = fs.make_writer(self.file)
         self.downloader = Downloaders[settings.download.kind]()
-        self.start_callback = start_callback
+        if start_callbacks is None:
+            self.start_callbacks = []
+        else:
+            self.start_callbacks = start_callbacks
 
     def fetch_file(self, url: str) -> File:
         ctx = Context()
@@ -64,7 +67,8 @@ class Task:
                     timeout=self.settings.download.http_timeout,
                 ) as client,
             ):
-                self.start_callback()
+                for callback in self.start_callbacks:
+                    callback()
                 async for chunk in self.downloader.stream(client, self.file):
                     await write(chunk)
                     completed += len(chunk)
@@ -87,7 +91,7 @@ class Processor:
         fs: Filesystem,
         files: list[File],
         settings: Settings,
-        start_callbacks: dict[int, Callable],
+        start_callbacks: dict[int, list[Callable]],
     ) -> None:
         self.files = files
         self.settings = settings

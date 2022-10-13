@@ -248,7 +248,7 @@ class Esgpull:
             )
             callback = partial(file_progress.start_task, task_id)
             file_task_ids[file.id] = task_id
-            start_callbacks[file.id] = callback
+            start_callbacks[file.id] = [callback]
         processor = Processor(
             auth=self.auth,
             fs=self.fs,
