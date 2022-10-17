@@ -71,3 +71,8 @@ minversion = "6.2.4"
 filterwarnings = [
     "ignore:There is no current event loop:DeprecationWarning"
 ]
+
+[tool.isort]
+profile = "black"
+line_length = 79
+src_paths = ["esgpull", "tests", "migrations", "examples"]

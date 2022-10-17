@@ -26,8 +26,8 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8 and mypy
-	flake8 esgpull tests migrations
-	mypy esgpull tests migrations
+	flake8 esgpull tests migrations examples
+	mypy esgpull tests migrations examples
 
 build-translate-lib:
 	nim c --mm:orc --app:lib --out:build/translate.so ext/translate.nim
