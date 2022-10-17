@@ -30,12 +30,10 @@ lint: ## check style with flake8 and mypy
 	mypy esgpull tests migrations
 
 build-translate-lib:
-	mkdir build
 	nim c --mm:orc --app:lib --out:build/translate.so ext/translate.nim
 
 build-translate-cli:
-	mkdir build
-	nim c --mm:orc --app:console --out:build/translate ext/translate.nim
+	nim c --mm:orc --app:console --out:build/translate -d:cli ext/translate.nim
 
 install: distclean
 	pip install -e .

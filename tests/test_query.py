@@ -1,8 +1,8 @@
-import yaml
 import pytest
+import yaml
 
-from esgpull.query import Query
 from esgpull.exceptions import FacetNameError
+from esgpull.query import Query
 
 
 @pytest.fixture
@@ -131,3 +131,71 @@ def test_from_file(tmp_path):
         f.write(yaml.dump(source))
     q = Query.from_file(source_file)
     assert q.dump() == source
+
+
+def test_example(q):
+    # Set facets using `=`
+    q.project = "CMIP5"
+    q.experiment = "historical"
+    q.ensemble = "r1i1p1"
+    q.realm = "atmos"
+    q.time_frequency = "day"
+
+    a = q.add()
+    # Appending to previously set facet is done with `+`
+    a.experiment + "rcp26"
+    # Setting the facet with `=` replaces the previous value
+    a.time_frequency = "mon"
+    a.variable = "tasmin"
+
+    b = q.add()
+    b.experiment = "rcp85"
+    b.variable = ["tas", "ua"]
+
+    c = q.add()
+    c.time_frequency + ["mon", "fx"]
+    c.variable = "tasmax"
+
+    assert q.dump() == {
+        "ensemble": "r1i1p1",
+        "experiment": "historical",
+        "project": "CMIP5",
+        "realm": "atmos",
+        "requests": [
+            {
+                "+experiment": "rcp26",
+                "time_frequency": "mon",
+                "variable": "tasmin",
+            },
+            {"experiment": "rcp85", "variable": ["tas", "ua"]},
+            {"+time_frequency": ["fx", "mon"], "variable": "tasmax"},
+        ],
+        "time_frequency": "day",
+    }
+
+    assert [flat.dump() for flat in q.flatten()] == [
+        {
+            "ensemble": "r1i1p1",
+            "experiment": ["historical", "rcp26"],
+            "project": "CMIP5",
+            "realm": "atmos",
+            "time_frequency": "mon",
+            "variable": "tasmin",
+        },
+        {
+            "ensemble": "r1i1p1",
+            "experiment": "rcp85",
+            "project": "CMIP5",
+            "realm": "atmos",
+            "time_frequency": "day",
+            "variable": ["tas", "ua"],
+        },
+        {
+            "ensemble": "r1i1p1",
+            "experiment": "historical",
+            "project": "CMIP5",
+            "realm": "atmos",
+            "time_frequency": ["day", "fx", "mon"],
+            "variable": "tasmax",
+        },
+    ]

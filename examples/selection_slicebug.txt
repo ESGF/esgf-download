@@ -1,7 +1,0 @@
-#abennasser@ipsl.fr
-project=CMIP6
-mip_era=CMIP6
-experiment_id=historical
-variable[day variant_label:r1i*]=tas tasmin tasmax pr
-timeslice=185001-201412
-#variant_label=r1i1000p1f1 r1i1000p1f2 r1i14p1f1 r1i15p1f1 r1i1p1f1 r1i1p1f2 r1i1p1f3 r1i1p1f4 r1i1p1f99 r1i1p2f1 r1i1p2f2 r1i1p2f3 r1i1p3f1 r1i1p3f2 r1i1p3f3 r1i1p5f1 r1i1p5f2 r1i2p1f1 r1i3p1f1 r1i4p1f1 r1i5p1f1 r1i6p1f1 r1i7p1f1 r1i8p1f1

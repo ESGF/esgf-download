@@ -1,0 +1,9 @@
+project: "CMIP5"
+experiment: "historical,rcp85"
+ensemble: "r1i1p1"
+realm: "atmos"
+requests:
+  - time_frequency: "day"
+    variable: "tas"
+  - time_frequency: "mon"
+    variable: "tasmin"
