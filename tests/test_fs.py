@@ -1,8 +1,9 @@
-import pytest
 import asyncio
 
-from esgpull.types import File
+import pytest
+
 from esgpull.fs import Filesystem
+from esgpull.types import File
 
 
 @pytest.fixture

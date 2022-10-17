@@ -1,11 +1,11 @@
-import pytest
-
 from pathlib import Path
+
+import pytest
 
 from esgpull import __version__
 from esgpull.db import Database
 from esgpull.query import Query
-from esgpull.types import Param, File, FileStatus
+from esgpull.types import File, FileStatus, Param
 
 
 @pytest.fixture

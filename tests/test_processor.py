@@ -1,12 +1,12 @@
-import pytest
-
 import asyncio
 
-from esgpull.processor import Task
+import pytest
+
 from esgpull.auth import Auth
-from esgpull.types import File
 from esgpull.fs import Filesystem
+from esgpull.processor import Task
 from esgpull.settings import Settings
+from esgpull.types import File
 
 
 # fmt:off

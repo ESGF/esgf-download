@@ -1,6 +1,6 @@
 import pytest
-
 from httpx import HTTPStatusError
+
 from esgpull.auth import Auth, Identity
 
 

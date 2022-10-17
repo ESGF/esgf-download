@@ -1,6 +1,6 @@
 import asyncio
-from pathlib import Path
 from functools import partial
+from pathlib import Path
 from typing import AsyncIterator, TypeAlias
 
 from aiostream.stream import merge
@@ -14,7 +14,6 @@ from esgpull.fs import Filesystem
 from esgpull.result import Err, Ok, Result
 from esgpull.settings import Settings
 from esgpull.types import File
-
 
 # Callback: TypeAlias = Callable[[], None] | partial[None]
 Callback: TypeAlias = partial[None]
