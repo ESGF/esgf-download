@@ -8,6 +8,7 @@ from typing import AsyncIterator, Awaitable, Callable, Iterator
 
 import aiofiles
 
+from esgpull.constants import ENV_VARNAME
 from esgpull.exceptions import NoRootError
 from esgpull.types import File
 
@@ -17,7 +18,7 @@ class Filesystem:
     root: Path
 
     def __init__(self, path: str | Path | None = None) -> None:
-        env_home = os.environ.get("ESGPULL_HOME")
+        env_home = os.environ.get(ENV_VARNAME)
         if path is not None:
             self.root = Path(path)
         elif env_home is not None:

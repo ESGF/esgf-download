@@ -1,3 +1,5 @@
+ENV_VARNAME = "ESGPULL_HOME"
+
 DEFAULT_FACETS = [
     "project",
     "mip_era",

@@ -1,3 +1,6 @@
+from esgpull.constants import ENV_VARNAME
+
+
 class EsgpullException(Exception):
     msg: str = NotImplemented
 
@@ -7,7 +10,7 @@ class EsgpullException(Exception):
 
 
 class NoRootError(EsgpullException):
-    msg = "Environment variable `ESGPULL_HOME` must be set."
+    msg = f"Environment variable `{ENV_VARNAME}` must be set."
 
 
 class FacetNameError(EsgpullException, AttributeError):
