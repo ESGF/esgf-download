@@ -8,6 +8,7 @@ from esgpull.cli.autoremove import autoremove
 from esgpull.cli.download import download
 from esgpull.cli.facet import facet
 from esgpull.cli.get import get
+from esgpull.cli.init import init
 from esgpull.cli.install import install
 from esgpull.cli.login import login
 from esgpull.cli.remove import remove
@@ -27,6 +28,7 @@ SUBCOMMANDS: list[click.Command] = [
     download,
     facet,
     get,
+    init,
     install,
     login,
     remove,
@@ -42,7 +44,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(__version__, "--version", "-V")
+@click.version_option(__version__, "-V", "--version")
 def cli():
     """
     esgpull is a management utility for files and datasets from ESGF.

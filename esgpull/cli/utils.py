@@ -15,7 +15,7 @@ from rich.traceback import install
 from esgpull.query import Query
 from esgpull.result import Err
 
-MAX_FRAMES = 1
+MAX_FRAMES = 100
 SHOW_LOCALS = True
 SUPPRESS = [httpx, click, asyncio, httpcore]
 install(
