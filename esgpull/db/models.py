@@ -5,12 +5,11 @@ from enum import Enum, unique
 from typing import Annotated, Sequence
 
 import sqlalchemy as sa
-from sqlalchemy.orm import (
+from sqlalchemy.orm import (  # registry,
     DeclarativeBase,
     Mapped,
     MappedAsDataclass,
     mapped_column,
-    # registry,
 )
 
 from esgpull.utils import find_int, find_str

@@ -1,14 +1,13 @@
 import logging
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Sequence, Iterator
+from typing import Iterator, Sequence
 
 import alembic.command
 import alembic.config
 import sqlalchemy as sa
 import sqlalchemy.orm
 from alembic.migration import MigrationContext
-
 
 from esgpull import __file__
 from esgpull.db.models import File, FileStatus, Param, Table, Version
