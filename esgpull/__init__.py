@@ -1,7 +1,7 @@
 from esgpull.context import Context
+from esgpull.db.models import File, FileStatus, Param
 from esgpull.esgpull import Esgpull
 from esgpull.query import Query
-from esgpull.types import File, FileStatus, Param
 from esgpull.version import __version__
 
 __all__ = [

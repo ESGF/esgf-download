@@ -6,10 +6,11 @@ from typing import AsyncIterator, TypeAlias
 import rich
 from httpx import AsyncClient, Response
 
+from esgpull.db.models import File
 from esgpull.exceptions import SolrUnstableQueryError
+from esgpull.facet import FacetDict
 from esgpull.query import Query
 from esgpull.settings import Settings
-from esgpull.types import FacetDict, File
 from esgpull.utils import format_date, index2url
 
 # workaround for notebooks with running event loop

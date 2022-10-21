@@ -5,9 +5,10 @@ from typing import AsyncIterator
 # from urllib.parse import urlsplit
 from httpx import AsyncClient
 
+from esgpull.db.models import File
+
 # from esgpull.auth import Auth
 # from esgpull.context import Context
-from esgpull.types import File
 from esgpull.settings import DownloadKind
 
 

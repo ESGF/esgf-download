@@ -1,6 +1,6 @@
 from functools import partial
 from pathlib import Path
-from typing import AsyncIterator, cast
+from typing import AsyncIterator
 
 from rich.console import Group
 from rich.filesize import decimal
@@ -16,27 +16,25 @@ from rich.progress import (
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull.auth import Auth, Credentials
 from esgpull.context import Context
 from esgpull.db import Database
+from esgpull.db.models import File, FileStatus, Param
 from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
-from esgpull.types import File, FileStatus, Param
 from esgpull.settings import Settings
 
 
 class Esgpull:
-    def __init__(self, path: str | Path | None = None) -> None:
-        self.fs = Filesystem(path)
-        self.db = Database(self.fs.db / "esgpull.db")
-        CredentialsPath.path = self.fs.settings / "credentials.toml"
-        self.auth = Auth(self.fs.auth, credentials=Credentials())
-        SettingsPath.path = self.fs.settings / "settings.toml"
-        self.settings = Settings()
+    def __init__(self, root: str | Path | None = None) -> None:
+        self.settings = Settings.from_file(root)
+        self.fs = Filesystem(self.settings.core.paths)
+        self.db = Database(self.settings)
+        credentials = Credentials()  # TODO: load file
+        self.auth = Auth(self.settings, credentials=credentials)
 
     def fetch_index_nodes(self) -> list[str]:
         """
@@ -93,14 +91,14 @@ class Esgpull:
         new_params = []
         for name, values in facet_counts.items():
             for value in values:
-                new_params.append(Param(name, value))
+                new_params.append(Param(name=name, value=value))
         self.db.add(*new_params)
         return True
 
     def scan_local_files(self, index_node=None) -> None:
         """
         Insert into db netcdf files, globbed from `fs.data` directory.
-        Only files which metadata is found on `index_node` is added.
+        Only files whose metadata exists on `index_node` is added.
 
         FileStatus is `done` regardless of the file's size (no checks).
         """
@@ -138,11 +136,8 @@ class Esgpull:
         """
         file_ids = [f.file_id for f in files]
         with self.db.select(File.file_id) as stmt:
-            # required by mypy, since dataclass + Mapped types dont work
-            # https://github.com/sqlalchemy/sqlalchemy2-stubs/issues/129
-            file_id_attr = cast(InstrumentedAttribute, File.file_id)
-            stmt.where(file_id_attr.in_(file_ids))
-            existing_file_ids = stmt.scalars
+            stmt.where(File.id.in_(file_ids))
+            existing_file_ids = set(stmt.scalars)
         installed = [f for f in files if f.file_id not in existing_file_ids]
         for file in installed:
             file.status = status
@@ -155,10 +150,7 @@ class Esgpull:
         """
         file_ids = [f.file_id for f in files]
         with self.db.select(File) as stmt:
-            # required by mypy, since dataclass + Mapped types dont work
-            # https://github.com/sqlalchemy/sqlalchemy2-stubs/issues/129
-            file_id_attr = cast(InstrumentedAttribute, File.file_id)
-            stmt.where(file_id_attr.in_(file_ids))
+            stmt.where(File.id.in_(file_ids))
             deleted = stmt.scalars
         for file in files:
             if file.status == FileStatus.done:

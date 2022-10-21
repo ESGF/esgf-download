@@ -2,13 +2,15 @@ import asyncio
 
 import pytest
 
+from esgpull.db.models import File
 from esgpull.fs import Filesystem
-from esgpull.types import File
+from esgpull.settings import Paths
 
 
 @pytest.fixture
 def fs(tmp_path):
-    return Filesystem(tmp_path)
+    paths = Paths(root=tmp_path)
+    return Filesystem(paths)
 
 
 @pytest.fixture
@@ -31,15 +33,15 @@ def file(fs):
 
 
 @pytest.fixture
-def writer(fs, file):
-    return fs.make_writer(file)
+def file_object(fs, file):
+    return fs.open(file_object)
 
 
 def test_fs(tmp_path, fs):
     assert str(fs.data) == str(tmp_path / "data")
     assert str(fs.db) == str(tmp_path / "db")
-    assert fs.data.is_dir()
-    assert fs.data.is_dir()
+    assert fs.paths.data.is_dir()
+    assert fs.paths.data.is_dir()
 
 
 def test_file_paths(fs, file):
@@ -47,11 +49,11 @@ def test_file_paths(fs, file):
     assert fs.tmp_path_of(file) == fs.tmp / "1.file.nc"
 
 
-async def writer_steps(writer):
-    async with writer.open() as write:
-        await write(b"")
+async def writer_steps(fs, file):
+    async with fs.open(file) as f:
+        await f.write(b"")
 
 
-def test_fs_writer(fs, file, writer):
-    asyncio.run(writer_steps(writer))
+def test_fs_writer(fs, file):
+    asyncio.run(writer_steps(fs, file))
     assert list(fs.glob_netcdf()) == [fs.path_of(file)]

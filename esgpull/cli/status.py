@@ -8,7 +8,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import opts
-from esgpull.types import File, FileStatus
+from esgpull.db.models import File, FileStatus
 
 
 @click.command()

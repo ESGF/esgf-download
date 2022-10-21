@@ -3,10 +3,10 @@ import asyncio
 import pytest
 
 from esgpull.auth import Auth
+from esgpull.db.models import File
 from esgpull.fs import Filesystem
 from esgpull.processor import Task
 from esgpull.settings import Settings
-from esgpull.types import File
 
 
 # fmt:off

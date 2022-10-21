@@ -7,7 +7,7 @@ from rich.filesize import decimal
 from esgpull import Context, Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import load_facets
-from esgpull.types import File
+from esgpull.db.models import File
 
 
 @click.command()

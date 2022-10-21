@@ -8,7 +8,7 @@ from esgpull import Esgpull
 
 # from esgpull.cli.utils import print_errors
 from esgpull.cli.decorators import opts
-from esgpull.types import FileStatus
+from esgpull.db.models import FileStatus
 
 
 @click.command()

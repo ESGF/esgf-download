@@ -1,4 +1,4 @@
-from esgpull.types import File
+from esgpull.db.models import File
 
 
 class Result:

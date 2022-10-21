@@ -5,7 +5,7 @@ import click
 from click_params import StringListParamType
 
 from esgpull.cli.utils import EnumParam, SliceParam
-from esgpull.types import FileStatus
+from esgpull.db.models import FileStatus
 
 Dec: TypeAlias = Callable[[Callable], Callable]
 

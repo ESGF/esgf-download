@@ -4,8 +4,8 @@ import pytest
 
 from esgpull import __version__
 from esgpull.db import Database
+from esgpull.db.models import File, FileStatus, Param
 from esgpull.query import Query
-from esgpull.types import File, FileStatus, Param
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def test_search(db, file_):
         f = file_.clone()
         # required for UniqueConstraint on file_id
         f.file_id += variable_id
-        f.metadata = {"project": ["test"], "variable_id": [variable_id]}
+        f.raw = {"project": ["test"], "variable_id": [variable_id]}
         files.append(f)
     db.add(*files)
 

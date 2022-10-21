@@ -8,8 +8,8 @@ import yaml
 
 from esgpull.constants import DEFAULT_FACETS, EXTRA_FACETS
 from esgpull.exceptions import FacetNameError
-from esgpull.facet import Facet
-from esgpull.types import (
+from esgpull.facet import (
+    Facet,
     FacetDict,
     FacetValues,
     NestedFacetDict,

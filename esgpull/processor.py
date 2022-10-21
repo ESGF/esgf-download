@@ -8,12 +8,12 @@ from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
 from esgpull.context import Context
+from esgpull.db.models import File
 from esgpull.download import Downloaders
 from esgpull.exceptions import DownloadSizeError
 from esgpull.fs import Filesystem
 from esgpull.result import Err, Ok, Result
 from esgpull.settings import Settings
-from esgpull.types import File
 
 # Callback: TypeAlias = Callable[[], None] | partial[None]
 Callback: TypeAlias = partial[None]

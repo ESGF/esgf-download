@@ -2,7 +2,7 @@ import click
 import rich
 
 from esgpull import Esgpull
-from esgpull.types import Param
+from esgpull.db.models import Param
 
 
 @click.command()

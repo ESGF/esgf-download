@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from esgpull.types import FacetDict, FacetValues
+from typing import Any, Collection, TypeAlias, TypeGuard
+
+FacetValues: TypeAlias = str | Collection[str]
+FacetDict: TypeAlias = dict[str, FacetValues]
+NestedFacetDict: TypeAlias = dict[str, FacetValues | list[FacetDict]]
 
 
 class Facet:
@@ -73,4 +77,46 @@ class Facet:
         self.appended = True
 
 
-__all__ = ["Facet"]
+def is_facet_values(values: Any) -> TypeGuard[FacetValues]:
+    if isinstance(values, str):
+        return True
+    elif isinstance(values, (list, tuple, set)) and all(
+        isinstance(x, str) for x in values
+    ):
+        return True
+    else:
+        return False
+
+
+def is_facet_dict(d: dict[str, Any]) -> TypeGuard[FacetDict]:
+    return all(is_facet_values(x) for x in d.values())
+
+
+def split_nested_facet_dict(
+    d: dict[str, Any]
+) -> tuple[FacetDict, list[FacetDict]]:
+    simple = dict(d)
+    requests = simple.pop("requests", [])
+    if not is_facet_dict(simple) or not isinstance(requests, list):
+        raise TypeError
+    if any(not is_facet_dict(x) for x in requests):
+        raise TypeError
+    return simple, requests
+
+
+def is_nested_facet_dict(d: dict[str, Any]) -> TypeGuard[NestedFacetDict]:
+    try:
+        simple, requests = split_nested_facet_dict(d)
+        return True
+    except TypeError:
+        return False
+
+
+__all__ = [
+    "Facet",
+    "FacetDict",
+    "FacetValues",
+    "NestedFacetDict",
+    "is_nested_facet_dict",
+    "split_nested_facet_dict",
+]

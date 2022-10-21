@@ -1,12 +1,13 @@
-"""init tables
+"""update tables
 
 Revision ID: 4.0.0
 Revises:
-Create Date: 2022-08-08 16:12:36.535701
+Create Date: 2022-10-20 14:14:23.851116
 
 """
-import sqlalchemy as sa
 from alembic import op
+import sqlalchemy as sa
+
 
 # revision identifiers, used by Alembic.
 revision = "4.0.0"
@@ -20,10 +21,10 @@ def upgrade() -> None:
     op.create_table(
         "file",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("file_id", sa.Text(), nullable=False),
-        sa.Column("dataset_id", sa.Text(), nullable=False),
-        sa.Column("master_id", sa.Text(), nullable=False),
-        sa.Column("url", sa.Text(), nullable=False),
+        sa.Column("file_id", sa.String(), nullable=False),
+        sa.Column("dataset_id", sa.String(), nullable=False),
+        sa.Column("master_id", sa.String(), nullable=False),
+        sa.Column("url", sa.String(), nullable=False),
         sa.Column("version", sa.String(length=16), nullable=False),
         sa.Column("filename", sa.String(length=255), nullable=False),
         sa.Column("local_path", sa.String(length=255), nullable=False),
@@ -43,16 +44,16 @@ def upgrade() -> None:
                 "error",
                 "cancelled",
                 "done",
-                name="status",
+                name="filestatus",
             ),
             nullable=False,
         ),
-        sa.Column("metadata", sa.JSON(), nullable=False),
+        sa.Column("raw", sa.JSON(), nullable=False),
         sa.Column(
             "last_updated",
-            sa.DateTime(timezone=True),
+            sa.DateTime(),
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
-            nullable=True,
+            nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("file_id"),
@@ -64,12 +65,11 @@ def upgrade() -> None:
         sa.Column("value", sa.String(length=255), nullable=False),
         sa.Column(
             "last_updated",
-            sa.DateTime(timezone=True),
+            sa.DateTime(),
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
-            nullable=True,
+            nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name", "value"),
     )
     # ### end Alembic commands ###
 

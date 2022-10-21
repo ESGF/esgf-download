@@ -1,20 +1,21 @@
 from collections import Counter
-from typing import Collection
+from typing import Sequence
 
 import click
 import rich
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.types import FileStatus
+from esgpull.db.models import FileStatus
 
 
 @click.command()
 @args.status
 @opts.all
-def retry(status: Collection[FileStatus], all_: bool):
+def retry(status: Sequence[FileStatus], all_: bool):
     if all_:
-        status = set(FileStatus) - {FileStatus.done, FileStatus.queued}
+        status = FileStatus.retryable()
+        # status = list(set(FileStatus) - {FileStatus.done, FileStatus.queued})
     if not status:
         status = [FileStatus.error, FileStatus.cancelled]
     esg = Esgpull()

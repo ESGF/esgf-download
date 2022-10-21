@@ -1,9 +1,13 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
-from esgpull.db import Mapper
+from esgpull.db import Database
+from esgpull.db.models import Table
+from esgpull.settings import Settings
+
+# from sqlalchemy import engine_from_config, pool
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,7 +18,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Mapper.metadata
+target_metadata = Table.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -54,11 +58,18 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = config.attributes.get("connection", None)
+
+    if connectable is None:
+        settings = Settings()
+        db = Database(settings, dry_run=True)
+        connectable = db.engine
+
+        # connectable = engine_from_config(
+        #     config.get_section(config.config_ini_section),
+        #     prefix="sqlalchemy.",
+        #     poolclass=pool.NullPool,
+        # )
 
     with connectable.connect() as connection:
         context.configure(

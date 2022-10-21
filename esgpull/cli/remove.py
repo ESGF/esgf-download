@@ -4,8 +4,8 @@ import rich
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import load_facets
+from esgpull.db.models import FileStatus
 from esgpull.query import Query
-from esgpull.types import FileStatus
 
 
 @click.command()

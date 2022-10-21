@@ -25,4 +25,22 @@ def index2url(index: str) -> str:
     return "https://" + url2index(index) + "/esg-search/search"
 
 
-__all__ = ["format_date", "url2index", "index2url"]
+def find_str(container: list | str) -> str:
+    if isinstance(container, list):
+        return find_str(container[0])
+    elif isinstance(container, str):
+        return container
+    else:
+        raise ValueError(container)
+
+
+def find_int(container: list | int) -> int:
+    if isinstance(container, list):
+        return find_int(container[0])
+    elif isinstance(container, int):
+        return container
+    else:
+        raise ValueError(container)
+
+
+__all__ = ["format_date", "url2index", "index2url", "find_str", "find_int"]
