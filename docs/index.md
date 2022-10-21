@@ -1,6 +1,6 @@
 # esgpull
 
-`esgpull` is a management utility for files and datasets from ESGF[^1].
+`esgpull` is a tool that simplifies usage of the [ESGF Search API] for data discovery, and manages procedures related to downloading and storing files from ESGF.
 
 ## Features
 
@@ -121,4 +121,6 @@ Have a look at the [Installation page](installation) for more ways to install.
 
 Jump directly to the [Quickstart guide](quickstart) to get to know how to use `esgpull`.
 
-[^1]: ESGF: [https://pcmdi.llnl.gov/](https://pcmdi.llnl.gov/)
+
+<!-- [ESGF portal]: https://esgf-node.ipsl.upmc.fr/search/cmip6-ipsl -->
+[ESGF Search API]: https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html

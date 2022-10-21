@@ -4,9 +4,22 @@ This document covers a few ways to install `esgpull`, a necessary first step int
 
 Run this command:
 
-```shell
+```shell title="Install esgpull from pip"
 pip install git+ssh://git@github.com/svenrdz/esg-pull
 ```
+
+
+!!! warning "Initialize the database and working directories"
+
+    The `init` command sets up the directories and files required for `esgpull` to work correctly.
+
+    It also fetches and stores the full vocabulary of *facets* from ESGF index nodes and store it locally.
+
+    It will take a few minutes to complete but only needs to be run once.
+
+    ```sh
+    esgpull init
+    ```
 
 ## Get the source code
 

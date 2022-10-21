@@ -1,4 +1,6 @@
-`esgpull` is a tool that simplifies usage of the [ESGF Search API](https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html) for data discovery, and manages procedures related to downloading and storing files from ESGF.
+`esgpull` is a tool that simplifies usage of the [ESGF Search API] for data discovery, and manages procedures related to downloading and storing files from ESGF.
+
+Before anything, make sure `esgpull` is correctly [installed](installation).
 
 !!! Glossary
 
@@ -9,15 +11,6 @@
     : basic element of a dataset's _metadata_. Pair of strings in the form `name:value`, equivalent to a python dictionary's item.
 
 
-## Initialisation
-
-Before anything, make sure `esgpull` is correctly [installed](installation).
-Then you can run this next command to fill the database with all _facets_ that can be found in ESGF index nodes.
-
-```sh title="Initialize facets"
-esgpull facet init
-```
-
 ## Data discovery
 
 Look at the [data discovery](search) page for more information.
@@ -27,3 +20,5 @@ Look at the [data discovery](search) page for more information.
 
 Loop at the [download](download) page for more information.
 
+
+[ESGF Search API]: https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html
