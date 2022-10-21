@@ -99,7 +99,6 @@ class Processor:
     ) -> None:
         self.files = files
         self.settings = settings
-        self.remaining_ids = set([file.id for file in self.files])
         self.tasks = [
             Task(
                 auth=auth,
@@ -117,8 +116,6 @@ class Processor:
         async with merge(*streams).stream() as stream:
             async for result in stream:
                 yield result
-                if result.completed == result.file.size:
-                    self.remaining_ids.remove(result.file.id)
 
 
 __all__ = ["Processor"]

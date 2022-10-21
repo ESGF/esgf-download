@@ -20,7 +20,7 @@ def status(all_: bool):
         statuses.remove(FileStatus.done)
     status_attr = cast(InstrumentedAttribute, File.status)
     with esg.db.select(File) as stmt:
-        files = stmt.where(status_attr.in_(statuses)).scalars
+        files = stmt.where(status_attr.in_(list(statuses))).scalars
     counts = Counter(file.status for file in files)
     sizes = {
         status: sum(file.size for file in files if file.status == status)

@@ -15,7 +15,7 @@ def autoremove(force: bool):
         rich.print("All files are up to date.")
         raise click.exceptions.Exit(0)
     if not force:
-        rich.print(totable([file.metadata for file in deprecated]))
+        rich.print(totable([file.raw for file in deprecated]))
         s = "s" if nb > 1 else ""
         rich.print(f"Removing {nb} file{s}")
         click.confirm("Continue?", default=True, abort=True)
@@ -25,4 +25,4 @@ def autoremove(force: bool):
     if nb_remain:
         rich.print(f"{nb_remain} files could not be removed.")
     if force:
-        rich.print(totable([file.metadata for file in removed]))
+        rich.print(totable([file.raw for file in removed]))

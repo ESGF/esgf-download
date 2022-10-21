@@ -172,7 +172,8 @@ class Esgpull:
         task_ids: dict[int, TaskID],
     ) -> AsyncIterator[Result]:
         async for result in processor.process():
-            task = progress.tasks[task_ids[result.file.id]]
+            task_idx = progress.task_ids.index(task_ids[result.file.id])
+            task = progress.tasks[task_idx]
             progress.update(task.id, visible=True)
             match result:
                 case Ok():
@@ -224,8 +225,8 @@ class Esgpull:
             transient=True,
         )
         progress = Group(
-            main_progress,
             file_progress,
+            main_progress,
         )
         queue_size = len(queue)
         main_task_id = main_progress.add_task("", total=queue_size)
@@ -249,6 +250,7 @@ class Esgpull:
             File
         ] = []  # TODO: rename ? installed/downloaded/completed/...
         errors: list[Err] = []
+        remaining = queue[:]  # copy list
         try:
             with Live(progress):
                 async for result in self.iter_results(
@@ -267,10 +269,13 @@ class Esgpull:
                             result.file.status = FileStatus.error
                             errors.append(result)
                     self.db.add(result.file)
+                    remaining_idx = [
+                        i
+                        for i, file in enumerate(remaining)
+                        if file.id == result.file.id
+                    ][0]
+                    remaining.pop(remaining_idx)
         finally:
-            remaining = [
-                file for file in queue if file.id in processor.remaining_ids
-            ]
             if remaining:
                 main_progress.log(
                     f"Putting {len(remaining)} back to the queue."

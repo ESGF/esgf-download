@@ -1,7 +1,8 @@
 from esgpull.context import Context
+from esgpull.query import Query
 
 c = Context(distrib=False, latest=True)
-q = c.query
+q = Query()
 
 q.project = "CMIP5"
 q.experiment = "historical"
@@ -23,15 +24,16 @@ qq = q.add()
 qq.time_frequency + ["mon", "fx"]
 qq.variable = "tasmax"
 
-# q.reduce()
-print(q)
+c.query = q
+
+print(q.dump())
 print(c.hits)
 print(len(c.search()))
 
 ######################
 
 c = Context(distrib=False, latest=True)
-q = c.query
+q = Query()
 
 q.project = "CMIP6"
 q.experiment_id = "historical"
@@ -42,20 +44,21 @@ q.frequency = "day"
 qq = q.add()
 # Add to already set experiment with `+`
 # q.experiment_id + "rcp26"
-q.experiment_id + "ssp245"
-q.frequency = "mon"
-q.variable_id = "tasmin"
+qq.experiment_id + "ssp245"
+qq.frequency = "mon"
+qq.variable_id = "tasmin"
 
 qq = q.add()
 # q.experiment_id = "rcp85"
-q.experiment_id = "ssp126"
-q.variable_id = ["tas", "ua"]
+qq.experiment_id = "ssp126"
+qq.variable_id = ["tas", "ua"]
 
 qq = q.add()
-q.frequency + ["mon", "fx"]
-q.variable_id = "tasmax"
+qq.frequency + ["mon", "fx"]
+qq.variable_id = "tasmax"
 
-# q.reduce()
-print(q)
+c.query = q
+
+print(q.dump())
 print(c.hits)
 print(len(c.search()))
