@@ -52,12 +52,20 @@ esgpull = "esgpull.cli:main"
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"
 
-[tool.black]
-line-length = 79
-
 [tool.pdm.version]
 source = "file"
 path = "esgpull/version.py"
+
+[tool.pdm.scripts]
+lint_flake8 = "flake8 esgpull tests migrations examples"
+lint_mypy = "mypy esgpull tests migrations examples"
+lint = {composite = ["lint_flake8", "lint_mypy"]}
+test = "pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull -vv tests"
+all = {composite = ["lint", "test"]}
+
+[tool.black]
+line-length = 79
+extend-exclude = "setup.py"
 
 [tool.mypy]
 ignore_missing_imports = true
