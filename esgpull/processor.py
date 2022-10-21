@@ -31,6 +31,7 @@ class Task:
         start_callbacks: list[Callback] | None = None,
     ) -> None:
         self.auth = auth
+        self.fs = fs
         self.settings = settings
         if file is None and url is not None:
             self.file = self.fetch_file(url)
@@ -38,7 +39,6 @@ class Task:
             self.file = file
         else:
             raise ValueError("no arguments")
-        self.writer = fs.make_writer(self.file)
         self.downloader = Downloaders[settings.download.kind]()
         if start_callbacks is None:
             self.start_callbacks = []
@@ -64,7 +64,7 @@ class Task:
         try:
             async with (
                 semaphore,
-                self.writer.open() as write,
+                self.fs.open(self.file) as file_obj,
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
@@ -74,7 +74,7 @@ class Task:
                 for callback in self.start_callbacks:
                     callback()
                 async for chunk in self.downloader.stream(client, self.file):
-                    await write(chunk)
+                    await file_obj.write(chunk)
                     completed += len(chunk)
                     if completed > self.file.size:
                         raise DownloadSizeError(completed, self.file.size)

@@ -7,8 +7,8 @@ from httpx import AsyncClient
 
 # from esgpull.auth import Auth
 # from esgpull.context import Context
-# from esgpull.settings import Settings
-from esgpull.types import DownloadKind, File
+from esgpull.types import File
+from esgpull.settings import DownloadKind
 
 
 class BaseDownloader:

@@ -96,7 +96,7 @@ class Context:
         elif "url" in facets:
             query["url"] = facets.pop("url")
         else:
-            query["url"] = index2url(self.settings.context.index_node)
+            query["url"] = index2url(self.settings.search.index_node)
         if "facets" in facets:
             query["facets"] = facets.pop("facets")
         if "start" in facets:
@@ -226,7 +226,7 @@ class Context:
             return await client.get(url, params=query)
 
     async def _fetch(self, queries) -> AsyncIterator[dict]:
-        client = AsyncClient(timeout=self.settings.context.http_timeout)
+        client = AsyncClient(timeout=self.settings.search.http_timeout)
         coroutines = []
         for query in queries:
             url = query.pop("url")

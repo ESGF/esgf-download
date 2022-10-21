@@ -17,11 +17,12 @@ def extract_command(info: dict, command: str | None) -> dict:
 
 
 @click.command()
-@click.argument("command", type=str, nargs=1, required=False, default=None)
+@click.argument("key", type=str, nargs=1, required=False, default=None)
+@click.argument("value", type=str, nargs=1, required=False, default=None)
 # @click.argument("value", type=str, nargs=1, required=False, default=None)
-def settings(command: str | None):
+def settings(key: str | None, value: str | None):
     # [?]TODO: load Filesystem for SettingsPath
     # [?]TODO: load Esgpull for auto SettingsPath
     esg = Esgpull()
-    info = extract_command(esg.settings.dict(), command)
+    info = extract_command(esg.settings.dict(), key)
     print_toml(info)

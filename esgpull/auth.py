@@ -13,35 +13,40 @@ from urllib.parse import (
 from xml.etree import ElementTree
 
 import httpx
+from attrs import define
 from myproxy.client import MyProxyClient
 from OpenSSL import crypto
 
-from esgpull.settings import Credentials
-
-IDP = "/esgf-idp/openid/"
-CEDA_IDP = "/OpenID/Provider/server/"
-PROVIDERS = {
-    "esg-dn1.nsc.liu.se": IDP,
-    "esgf-data.dkrz.de": IDP,
-    "ceda.ac.uk": CEDA_IDP,
-    "esgf-node.ipsl.upmc.fr": IDP,
-    "esgf-node.llnl.gov": IDP,
-    "esgf.nci.org.au": IDP,
-}
+from esgpull.constants import PROVIDERS
+from esgpull.settings import Settings
 
 
-@dataclass(repr=False)
-class Identity:
-    provider: str
-    user: str
-    password: str
+class Secret:
+    def __new__(cls, value: str | None):
+        if value is None:
+            return None
+        else:
+            return super().__new__(cls)
 
-    def __post_init__(self):
-        assert self.provider in PROVIDERS
-        # self.__password = self.password
-        # self.password = "*" * len(self.__password)
+    def __init__(self, value: str) -> None:
+        self._value = value
+
+    def get_value(self) -> str:
+        return self._value
+
+    def __str__(self) -> str:
+        return "*" * 10 if self.get_value() else ""
+
+
+@define
+class Credentials:
+    provider: str | None = None
+    user: str | None = None
+    password: Secret | None = None
 
     def parse_openid(self) -> ParseResult | ParseResultBytes | Any:
+        if self.provider not in PROVIDERS:
+            raise ValueError(f"unknown provider: {self.provider}")
         ns = {"x": "xri://$xrd*($v*2.0)"}
         provider = urlunparse(
             [
@@ -77,8 +82,8 @@ class AuthStatus(str, Enum):
 
 @dataclass
 class Auth:
-    path: str | Path
-    credentials: Credentials = Credentials()
+    settings: Settings
+    credentials: Credentials
 
     cert_dir: Path = field(init=False)
     cert_file: Path = field(init=False)
@@ -89,8 +94,7 @@ class Auth:
     Missing = AuthStatus.Missing
 
     def __post_init__(self) -> None:
-        if isinstance(self.path, str):
-            self.path = Path(self.path)
+        self.path = self.settings.core.paths.auth
         self.cert_dir = self.path / "certificates"
         self.cert_file = self.path / "credentials.pem"
 
@@ -118,36 +122,25 @@ class Auth:
             return AuthStatus.Expired
         return AuthStatus.Valid
 
-    def renew(self, identity: Identity | None = None) -> None:
-        if identity is None:
-            provider = self.credentials.provider
-            user = self.credentials.user
-            password = self.credentials.password
-            if (
-                provider is not None
-                and user is not None
-                and password is not None
-            ):
-                identity = Identity(
-                    provider=provider,
-                    user=user,
-                    password=password.get_secret_value(),
-                )
-            else:
-                raise ValueError("TODO: custom error")
+    # TODO: review this
+    def renew(self, creds: Credentials) -> None:
         if self.cert_dir.is_dir():
             rmtree(self.cert_dir)
         self.cert_file.unlink(missing_ok=True)
-        openid = identity.parse_openid()
+        openid = creds.parse_openid()
         client = MyProxyClient(
             hostname=openid.hostname,
             port=openid.port,
             caCertDir=str(self.cert_dir),
             proxyCertLifetime=12 * 60 * 60,
         )
+        if creds.password is None:
+            password = None
+        else:
+            password = creds.password.get_value()
         credentials = client.logon(
-            identity.user,
-            identity.password,
+            creds.user,
+            password,
             bootstrap=True,
             updateTrustRoots=True,
             authnGetTrustRootsCall=False,

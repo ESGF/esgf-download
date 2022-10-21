@@ -18,20 +18,15 @@ from rich.progress import (
 )
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from esgpull.auth import Auth  # , Identity
+from esgpull.auth import Auth, Credentials
 from esgpull.context import Context
 from esgpull.db import Database
 from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
-from esgpull.settings import (
-    Credentials,
-    CredentialsPath,
-    Settings,
-    SettingsPath,
-)
 from esgpull.types import File, FileStatus, Param
+from esgpull.settings import Settings
 
 
 class Esgpull:

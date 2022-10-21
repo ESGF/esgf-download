@@ -1,4 +1,17 @@
+SETTINGS_FILENAME = "settings.toml"
 ENV_VARNAME = "ESGPULL_HOME"
+
+IDP = "/esgf-idp/openid/"
+CEDA_IDP = "/OpenID/Provider/server/"
+PROVIDERS = {
+    "esg-dn1.nsc.liu.se": IDP,
+    "esgf-data.dkrz.de": IDP,
+    "ceda.ac.uk": CEDA_IDP,
+    "esgf-node.ipsl.upmc.fr": IDP,
+    "esgf-node.llnl.gov": IDP,
+    "esgf.nci.org.au": IDP,
+}
+
 
 DEFAULT_FACETS = [
     "project",
