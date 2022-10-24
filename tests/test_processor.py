@@ -30,7 +30,7 @@ def smallfile():
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings.from_path(tmp_path)
+    return Settings.from_root(tmp_path)
 
 
 @pytest.fixture

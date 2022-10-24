@@ -29,13 +29,10 @@ from esgpull.settings import Settings
 
 
 class Esgpull:
-    def __init__(self, root: str | Path | None = None) -> None:
-        if root is None:
-            self.settings = Settings()
-        else:
-            if isinstance(root, str):
-                root = Path(root)
-            self.settings = Settings.from_path(root)
+    def __init__(self, root: Path | str | None = None) -> None:
+        if isinstance(root, str):
+            root = Path(root)
+        self.settings = Settings.from_root(root=root)
         self.fs = Filesystem.from_settings(self.settings)
         self.db = Database.from_settings(self.settings)
         credentials = Credentials()  # TODO: load file
