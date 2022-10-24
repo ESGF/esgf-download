@@ -136,7 +136,7 @@ class Esgpull:
         """
         file_ids = [f.file_id for f in files]
         with self.db.select(File.file_id) as stmt:
-            stmt.where(File.id.in_(file_ids))
+            stmt.where(File.file_id.in_(file_ids))
             existing_file_ids = set(stmt.scalars)
         installed = [f for f in files if f.file_id not in existing_file_ids]
         for file in installed:
@@ -150,7 +150,7 @@ class Esgpull:
         """
         file_ids = [f.file_id for f in files]
         with self.db.select(File) as stmt:
-            stmt.where(File.id.in_(file_ids))
+            stmt.where(File.file_id.in_(file_ids))
             deleted = stmt.scalars
         for file in files:
             if file.status == FileStatus.done:
