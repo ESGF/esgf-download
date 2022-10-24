@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
+
 from enum import Enum, unique
 from pathlib import Path
 from shutil import rmtree
@@ -13,7 +14,7 @@ from urllib.parse import (
 from xml.etree import ElementTree
 
 import httpx
-from attrs import define
+from attrs import Factory, define, field
 from myproxy.client import MyProxyClient
 from OpenSSL import crypto
 
@@ -22,27 +23,25 @@ from esgpull.settings import Settings
 
 
 class Secret:
-    def __new__(cls, value: str | None):
-        if value is None:
-            return None
-        else:
-            return super().__new__(cls)
-
-    def __init__(self, value: str) -> None:
+    def __init__(self, value: str | None = None) -> None:
         self._value = value
 
-    def get_value(self) -> str:
+    def get_value(self) -> str | None:
         return self._value
 
     def __str__(self) -> str:
-        return "*" * 10 if self.get_value() else ""
+        value = self.get_value()
+        if value is None:
+            return ""
+        else:
+            return "*" * 10 if value else ""
 
 
 @define
 class Credentials:
     provider: str | None = None
     user: str | None = None
-    password: Secret | None = None
+    password: Secret = Factory(Secret)
 
     def parse_openid(self) -> ParseResult | ParseResultBytes | Any:
         if self.provider not in PROVIDERS:
@@ -80,23 +79,30 @@ class AuthStatus(str, Enum):
     Missing = "Missing"
 
 
-@dataclass
+@define
 class Auth:
-    settings: Settings
-    credentials: Credentials
-
-    cert_dir: Path = field(init=False)
-    cert_file: Path = field(init=False)
+    cert_dir: Path
+    cert_file: Path
+    credentials: Credentials = Factory(Credentials)
     __status: AuthStatus | None = field(init=False, default=None)
 
     Valid = AuthStatus.Valid
     Expired = AuthStatus.Expired
     Missing = AuthStatus.Missing
 
-    def __post_init__(self) -> None:
-        self.path = self.settings.core.paths.auth
-        self.cert_dir = self.path / "certificates"
-        self.cert_file = self.path / "credentials.pem"
+    @staticmethod
+    def from_settings(
+        settings: Settings, credentials: Credentials = Credentials()
+    ) -> Auth:
+        return Auth.from_path(settings.core.paths.auth, credentials)
+
+    @staticmethod
+    def from_path(
+        path: Path, credentials: Credentials = Credentials()
+    ) -> Auth:
+        cert_dir = path / "certificates"
+        cert_file = path / "credentials.pem"
+        return Auth(cert_dir, cert_file, credentials)
 
     @property
     def cert(self) -> str | None:
@@ -123,29 +129,25 @@ class Auth:
         return AuthStatus.Valid
 
     # TODO: review this
-    def renew(self, creds: Credentials) -> None:
+    def renew(self) -> None:
         if self.cert_dir.is_dir():
             rmtree(self.cert_dir)
         self.cert_file.unlink(missing_ok=True)
-        openid = creds.parse_openid()
+        openid = self.credentials.parse_openid()
         client = MyProxyClient(
             hostname=openid.hostname,
             port=openid.port,
             caCertDir=str(self.cert_dir),
             proxyCertLifetime=12 * 60 * 60,
         )
-        if creds.password is None:
-            password = None
-        else:
-            password = creds.password.get_value()
-        credentials = client.logon(
-            creds.user,
-            password,
+        creds = client.logon(
+            self.credentials.user,
+            self.credentials.password.get_value(),
             bootstrap=True,
             updateTrustRoots=True,
             authnGetTrustRootsCall=False,
         )
         with self.cert_file.open("wb") as file:
-            for cred in credentials:
+            for cred in creds:
                 file.write(cred)
         self.__status = None

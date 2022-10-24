@@ -29,18 +29,18 @@ def smallfile():
 
 
 @pytest.fixture
-def fs(tmp_path):
-    return Filesystem(tmp_path)
+def settings(tmp_path):
+    return Settings.from_path(tmp_path)
 
 
 @pytest.fixture
-def auth(fs):
-    return Auth(fs.auth)
+def fs(settings):
+    return Filesystem.from_settings(settings)
 
 
 @pytest.fixture
-def settings():
-    return Settings()
+def auth(settings):
+    return Auth.from_settings(settings)
 
 
 @pytest.fixture

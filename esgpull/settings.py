@@ -95,17 +95,14 @@ class Settings:
     download: Download = Factory(Download)
 
     @classmethod
-    def from_file(cls, root: Path | str | None = None) -> "Settings":
-        if root is not None:
-            paths = Paths(root=Path(root))
-        else:
-            paths = Paths()
-
+    def from_path(cls, root: Path) -> "Settings":
+        paths = Paths(root=root)
         # path = paths.settings / paths.settings_filename
         path = paths.settings / SETTINGS_FILENAME
         if not path.exists():
-            # path.touch()  # [?]TODO: maybe do not do this implicitly
-            settings = cls()
+            # path.touch()  # TODO: implicit touch ?
+            core = Core(paths=paths)
+            settings = cls(core=core)
         else:
             with path.open() as fh:
                 settings = typedload.load(tomlkit.load(fh), cls)

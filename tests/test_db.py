@@ -3,19 +3,14 @@ from pathlib import Path
 import pytest
 
 from esgpull import __version__
-from esgpull.db import Database
+from esgpull.db.core import Database
 from esgpull.db.models import File, FileStatus, Param
 from esgpull.query import Query
 
 
 @pytest.fixture
-def db_path(tmp_path):
-    return tmp_path / "db.db"
-
-
-@pytest.fixture
-def db(db_path):
-    return Database(db_path)
+def db(tmp_path):
+    return Database.from_path(tmp_path)
 
 
 @pytest.fixture
@@ -36,8 +31,8 @@ def file_(tmp_path):
     )
 
 
-def test_empty(db_path, db):
-    assert db.path.endswith(str(db_path))
+def test_empty(tmp_path, db):
+    assert str(tmp_path) in db.url
     assert db.version == __version__
 
 

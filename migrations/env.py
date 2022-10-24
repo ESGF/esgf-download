@@ -2,7 +2,7 @@ from logging.config import fileConfig
 
 from alembic import context
 
-from esgpull.db import Database
+from esgpull.db.core import Database
 from esgpull.db.models import Table
 from esgpull.settings import Settings
 
@@ -62,7 +62,7 @@ def run_migrations_online() -> None:
 
     if connectable is None:
         settings = Settings()
-        db = Database(settings, dry_run=True)
+        db = Database.from_settings(settings, dry_run=True)
         connectable = db.engine
 
         # connectable = engine_from_config(

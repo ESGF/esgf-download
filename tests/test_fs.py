@@ -10,7 +10,7 @@ from esgpull.settings import Paths
 @pytest.fixture
 def fs(tmp_path):
     paths = Paths(root=tmp_path)
-    return Filesystem(paths)
+    return Filesystem.from_paths(paths)
 
 
 @pytest.fixture
@@ -40,8 +40,8 @@ def file_object(fs, file):
 def test_fs(tmp_path, fs):
     assert str(fs.data) == str(tmp_path / "data")
     assert str(fs.db) == str(tmp_path / "db")
-    assert fs.paths.data.is_dir()
-    assert fs.paths.data.is_dir()
+    assert fs.data.is_dir()
+    assert fs.data.is_dir()
 
 
 def test_file_paths(fs, file):

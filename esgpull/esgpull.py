@@ -19,7 +19,7 @@ from rich.progress import (
 
 from esgpull.auth import Auth, Credentials
 from esgpull.context import Context
-from esgpull.db import Database
+from esgpull.db.core import Database
 from esgpull.db.models import File, FileStatus, Param
 from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
@@ -30,11 +30,16 @@ from esgpull.settings import Settings
 
 class Esgpull:
     def __init__(self, root: str | Path | None = None) -> None:
-        self.settings = Settings.from_file(root)
-        self.fs = Filesystem(self.settings.core.paths)
-        self.db = Database(self.settings)
+        if root is None:
+            self.settings = Settings()
+        else:
+            if isinstance(root, str):
+                root = Path(root)
+            self.settings = Settings.from_path(root)
+        self.fs = Filesystem.from_settings(self.settings)
+        self.db = Database.from_settings(self.settings)
         credentials = Credentials()  # TODO: load file
-        self.auth = Auth(self.settings, credentials=credentials)
+        self.auth = Auth.from_settings(self.settings, credentials)
 
     def fetch_index_nodes(self) -> list[str]:
         """

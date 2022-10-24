@@ -8,29 +8,49 @@ from aiofiles.threadpool.binary import AsyncBufferedIOBase
 from attrs import define, field
 
 from esgpull.db.models import File
-from esgpull.settings import Paths
+from esgpull.settings import Paths, Settings
 
 
 @define
 class Filesystem:
-    paths: Paths
+    root: Path
+    auth: Path
+    data: Path
+    db: Path
+    settings: Path
+    tmp: Path
+
+    @staticmethod
+    def from_settings(settings: Settings) -> Filesystem:
+        return Filesystem.from_paths(settings.core.paths)
+
+    @staticmethod
+    def from_paths(paths: Paths) -> Filesystem:
+        return Filesystem(
+            paths.root,
+            paths.auth,
+            paths.data,
+            paths.db,
+            paths.settings,
+            paths.tmp,
+        )
 
     def __attrs_post_init__(self) -> None:
-        self.paths.root.mkdir(exist_ok=True)
-        self.paths.auth.mkdir(exist_ok=True)
-        self.paths.data.mkdir(exist_ok=True)
-        self.paths.db.mkdir(exist_ok=True)
-        self.paths.settings.mkdir(exist_ok=True)
-        self.paths.tmp.mkdir(exist_ok=True)
+        self.root.mkdir(exist_ok=True)
+        self.auth.mkdir(exist_ok=True)
+        self.data.mkdir(exist_ok=True)
+        self.db.mkdir(exist_ok=True)
+        self.settings.mkdir(exist_ok=True)
+        self.tmp.mkdir(exist_ok=True)
 
     def path_of(self, file: File) -> Path:
-        return self.paths.data / file.local_path / file.filename
+        return self.data / file.local_path / file.filename
 
     def tmp_path_of(self, file: File) -> Path:
-        return self.paths.tmp / f"{file.id}.{file.filename}"
+        return self.tmp / f"{file.id}.{file.filename}"
 
     def glob_netcdf(self) -> Iterator[Path]:
-        for path in self.paths.data.glob("**/*.nc"):
+        for path in self.data.glob("**/*.nc"):
             yield path
 
     def open(self, file: File) -> FileObject:

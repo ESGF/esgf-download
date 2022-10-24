@@ -1,40 +1,66 @@
+from __future__ import annotations
+
 import logging
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, Sequence
 
 import alembic.command
-import alembic.config
 import sqlalchemy as sa
 import sqlalchemy.orm
+from alembic.config import Config
 from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from attrs import define, field
 
 from esgpull import __file__
-from esgpull.db.models import File, FileStatus, Param, Table, Version
+from esgpull.db.models import File, FileStatus, Table
 from esgpull.db.utils import SelectContext, Session
 from esgpull.query import Query
 from esgpull.settings import Settings
 from esgpull.version import __version__
 
 
+@define
 class Database:
     """
     Main class to interact with esgpull's sqlite db.
     """
 
-    def __init__(self, settings: Settings, dry_run: bool = False) -> None:
-        db_path = settings.core.paths.db / settings.core.db_filename
-        self.path = f"sqlite:///{db_path}"
-        self.apply_verbosity(settings.db.verbosity)
-        self.engine = sa.create_engine(self.path, future=True)
+    url: str
+    verbosity: int = 0
+    dry_run: bool = False
+    version: str | None = field(init=False, default=None)
+    engine: sa.Engine = field(init=False)
+    _session: sa.orm.Session = field(init=False)
+
+    @staticmethod
+    def from_settings(settings: Settings, dry_run: bool = False) -> Database:
+        return Database.from_path(
+            settings.core.paths.db,
+            settings.core.db_filename,
+            settings.db.verbosity,
+            dry_run,
+        )
+
+    @staticmethod
+    def from_path(
+        path: Path,
+        filename: str = "esgpull.db",
+        verbosity: int = 0,
+        dry_run: bool = False,
+    ) -> Database:
+        url = f"sqlite:///{path / filename}"
+        return Database(url, verbosity, dry_run)
+
+    def __attrs_post_init__(self) -> None:
+        self.apply_verbosity(self.verbosity)
+        self.engine = sa.create_engine(self.url, future=True)
         sessionmaker: sa.orm.sessionmaker = sa.orm.sessionmaker(
             bind=self.engine, future=True
         )
-        self._session: sa.orm.Session = sessionmaker()
-        self.Version = Version
-        self.File = File
-        self.Param = Param
-        if not dry_run:
+        self._session = sessionmaker()
+        if not self.dry_run:
             self.update()
 
     def apply_verbosity(self, verbosity: int) -> None:
@@ -49,25 +75,26 @@ class Database:
         engine.setLevel(engine_lvl)
 
     def update(self) -> None:
+        config = Config()
+        migrations_path = Path(__file__).parent.parent / "migrations"
+        config.set_main_option("script_location", str(migrations_path))
+        config.attributes["connection"] = self.engine
+        script = ScriptDirectory.from_config(config)
+        head = script.get_current_head()
         with self.engine.begin() as conn:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
             self.version = ctx.get_current_revision()
-            heads = ctx.get_current_heads()
-        if self.version != __version__:
-            pkg_path = Path(__file__).parent.parent
-            migrations_path = str(pkg_path / "migrations")
-            config = alembic.config.Config()
-            config.set_main_option("script_location", migrations_path)
-            config.attributes["connection"] = self.engine
-            if __version__ not in heads:
-                alembic.command.revision(
-                    config,
-                    message="update tables",
-                    autogenerate=True,
-                    rev_id=__version__,
-                )
+        if self.version != head:
             alembic.command.upgrade(config, __version__)
+            self.version = head
+        if self.version != __version__:
+            alembic.command.revision(
+                config,
+                message="update tables",
+                autogenerate=True,
+                rev_id=__version__,
+            )
             self.version = __version__
 
     @contextmanager
