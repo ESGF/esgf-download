@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "mkdocs-material"
-version = "8.5.6"
+version = "8.5.7"
 requires_python = ">=3.7"
 summary = "Documentation that simply works"
 dependencies = [
@@ -998,9 +998,9 @@ content_hash = "sha256:fe0a38ffcbc3758854d440958fcd7dd2ceb2d108a381927086f8d76db
     {url = "https://files.pythonhosted.org/packages/27/81/7219ab996d6f7ef74370a37e7c0a24d5c24f42ba4499ca5f2127221ee9df/mkdocs-1.4.1-py3-none-any.whl", hash = "sha256:2b7845c2775396214cd408753e4cfb01af3cfed36acc141a84bce2ceec9d705d"},
     {url = "https://files.pythonhosted.org/packages/89/10/f619044414b7d8605fdb560dac98c5ffcaeb44ef6fe58f08d24b1595c9a5/mkdocs-1.4.1.tar.gz", hash = "sha256:07ed90be4062e4ef732bbac2623097b9dca35c67b562c38cfd0bfbc7151758c1"},
 ]
-"mkdocs-material 8.5.6" = [
-    {url = "https://files.pythonhosted.org/packages/30/03/ba481d3a8f90035091cace3bf7f2a255ac57fec8880eeb88812c233ee2b5/mkdocs_material-8.5.6.tar.gz", hash = "sha256:38a21d817265d0c203ab3dad64996e45859c983f72180f6937bd5540a4eb84e4"},
-    {url = "https://files.pythonhosted.org/packages/c4/72/cfdc88993d73c3f3b9b3db5675c63af1e0e30327c498378b3b67dd6a6157/mkdocs_material-8.5.6-py3-none-any.whl", hash = "sha256:b473162c800321b9760453f301a91f7cb40a120a85a9d0464e1e484e74b76bb2"},
+"mkdocs-material 8.5.7" = [
+    {url = "https://files.pythonhosted.org/packages/62/38/882effce66b5865a9890dcb9ec8ba9c2afa9d3d35b10c16089779d926f7c/mkdocs_material-8.5.7.tar.gz", hash = "sha256:ff4c7851b2e5f9a6cfa0a8b247e973ebae753b9836a53bd68742827541ab73e5"},
+    {url = "https://files.pythonhosted.org/packages/9e/c3/5c15521fe72120cdfbde99da3650bc83419f9caf5af4794a83420c2c00f6/mkdocs_material-8.5.7-py3-none-any.whl", hash = "sha256:07fc70dfa325a8019b99a124751c43e4c1c2a739ed1b0b82c00f823f31c9a1e2"},
 ]
 "mkdocs-material-extensions 1.0.3" = [
     {url = "https://files.pythonhosted.org/packages/c1/6f/20b60ac8b314fd080dbab77b7a70ac3a283641a23914cb2346178875f501/mkdocs-material-extensions-1.0.3.tar.gz", hash = "sha256:bfd24dfdef7b41c312ede42648f9eb83476ea168ec163b613f9abd12bbfddba2"},
