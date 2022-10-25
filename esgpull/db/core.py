@@ -76,7 +76,7 @@ class Database:
 
     def update(self) -> None:
         config = Config()
-        migrations_path = Path(__file__).parent.parent / "migrations"
+        migrations_path = Path(__file__).parent / "db/migrations"
         config.set_main_option("script_location", str(migrations_path))
         config.attributes["connection"] = self.engine
         script = ScriptDirectory.from_config(config)
