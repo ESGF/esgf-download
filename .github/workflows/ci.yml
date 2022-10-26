@@ -26,7 +26,10 @@ jobs:
           enable-pep582: true  # Enable PEP 582 package loading globally
 
       - name: install dependencies
-        run: pdm install -dG test
+        run: pdm install
+
+      - name: run lints
+        run: pdm run lint
 
       - name: run tests
-        run: pdm run pytest --runslow --cov-report term-missing:skip-covered --cov=esgpull tests
+        run: pdm run test
