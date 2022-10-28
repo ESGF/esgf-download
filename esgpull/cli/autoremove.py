@@ -1,5 +1,6 @@
 import click
 import rich
+from click.exceptions import Exit
 
 from esgpull import Esgpull
 from esgpull.cli.utils import totable
@@ -13,7 +14,7 @@ def autoremove(force: bool):
     nb = len(deprecated)
     if not nb:
         rich.print("All files are up to date.")
-        raise click.exceptions.Exit(0)
+        raise Exit(0)
     if not force:
         rich.print(totable([file.raw for file in deprecated]))
         s = "s" if nb > 1 else ""

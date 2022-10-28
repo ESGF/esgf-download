@@ -1,41 +1,15 @@
-import asyncio
 from enum import Enum
-from typing import Any, Type
+from typing import Any
 
 import click
-import httpcore
-import httpx
 import rich
 import tomlkit
 import yaml
+from click.exceptions import BadArgumentUsage
 from click_params import ListParamType
-from rich.filesize import decimal
-from rich.traceback import install
 
 from esgpull.query import Query
-from esgpull.result import Err
-
-MAX_FRAMES = 100
-SHOW_LOCALS = True
-SUPPRESS = [httpx, click, asyncio, httpcore]
-install(
-    max_frames=MAX_FRAMES,
-    show_locals=SHOW_LOCALS,
-    suppress=SUPPRESS,
-)
-
-
-def print_errors(errors: list[Err]) -> None:
-    console = rich.console.Console()
-    for error in errors:
-        try:
-            raise error.err
-        except Exception:
-            console.print_exception(
-                max_frames=MAX_FRAMES,
-                show_locals=SHOW_LOCALS,
-                suppress=SUPPRESS,
-            )
+from esgpull.utils import format_size
 
 
 def print_yaml(data: Any) -> None:
@@ -53,7 +27,7 @@ def print_toml(data: Any) -> None:
 class EnumParam(click.Choice):
     name = "enum"
 
-    def __init__(self, enum: Type[Enum]):
+    def __init__(self, enum: type[Enum]):
         self.__enum = enum
         super().__init__(choices=[item.name for item in enum])
 
@@ -103,7 +77,7 @@ def totable(
     table.add_column("size", justify="right")
     table.add_column("id", justify="left")
     indices = map(str, range(_slice.start, _slice.stop))
-    sizes = map(decimal, [r["size"] for r in results][_slice_no_offset])
+    sizes = map(format_size, [r["size"] for r in results][_slice_no_offset])
     ids = map(pretty_id, [r["id"] for r in results][_slice_no_offset])
     rows = [indices, sizes, ids]
     if node:
@@ -123,15 +97,17 @@ def totable(
 def load_facets(
     query: Query, facets: list[str], selection_file: str | None
 ) -> None:
+    facet_dict: dict[str, set[str]] = {}
     for facet in facets:
-        parts = facet.split(":")
-        if len(parts) == 1:
-            query.query + parts
-        elif len(parts) == 2:
-            name, value = parts
-            if name:
-                query[name] + value
-            else:
-                query.query + value
+        match facet.split(":"):
+            case [value]:
+                name = "query"
+            case [name, value] if name and value:
+                ...
+            case _:
+                raise BadArgumentUsage(f"'{facet}' is not valid syntax.")
+        facet_dict.setdefault(name, set())
+        facet_dict[name].add(value)
+    query.load(facet_dict)  # type: ignore
     if selection_file is not None:
         query.load_file(selection_file)

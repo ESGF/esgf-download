@@ -1,5 +1,6 @@
 import click
 import rich
+from click.exceptions import Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
@@ -27,7 +28,7 @@ def remove(
     files = esg.db.search(query=query, statuses=status)
     if not files:
         rich.print("No matching file found.")
-        raise click.exceptions.Exit(0)
+        raise Exit(0)
     rich.print(f"Found {len(files)} files to remove.")
     if not force:
         click.confirm("Continue?", default=True, abort=True)

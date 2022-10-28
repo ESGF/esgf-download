@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import click
 import rich
-from rich.filesize import decimal
 
 from esgpull import Context, Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import load_facets
 from esgpull.db.models import File
+from esgpull.utils import format_size
 
 
 @click.command()
@@ -57,7 +57,7 @@ def install(
         results = ctx.search(file=True, max_results=None, offset=0)
         files = [File.from_dict(result) for result in results]
         total_size = sum([file.size for file in files])
-        rich.print(f"Total size: {decimal(total_size)}")
+        rich.print(f"Total size: {format_size(total_size)}")
         if not force:
             click.confirm("Continue?", default=True, abort=True)
         installed = esg.install(*files)

@@ -3,6 +3,7 @@ from typing import Sequence
 
 import click
 import rich
+from click.exceptions import Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
@@ -25,7 +26,7 @@ def retry(status: Sequence[FileStatus], all_: bool):
     status_str = "/".join(f"[bold red]{s.name}[/]" for s in status)
     if not files:
         rich.print(f"No {status_str} files found.")
-        raise click.exceptions.Exit(0)
+        raise Exit(0)
     counts = Counter(file.status for file in files)
     for file in files:
         file.status = FileStatus.queued

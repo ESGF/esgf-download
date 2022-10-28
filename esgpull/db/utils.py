@@ -28,10 +28,10 @@ class SelectContext:
 
     Example:
         ```python
-        from rich.filesize import decimal
         from esgpull.db.core import Database
         from esgpull.db.utils import SelectContext
         from esgpull.db.models import File, Param, Version
+        from esgpull.utils import format_size
 
         db = Database(...)
 
@@ -42,7 +42,7 @@ class SelectContext:
         with db.select(File.file_id, File.size) as stmt:
             stmt.where(File.file_id >= 1)
             for id, size in stmt.result:
-                print(f"id: {id}, size: {decimal(size)})")
+                print(f"id: {id}, size: {format_size(size)})")
 
         with db.select(Param) as stmt:
             for param in stmt.where(Param.name.like("%ess")).scalars:

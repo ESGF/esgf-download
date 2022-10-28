@@ -2,13 +2,12 @@ import asyncio
 
 import click
 import rich
-from rich.filesize import decimal
+from click.exceptions import Exit
 
 from esgpull import Esgpull
-
-# from esgpull.cli.utils import print_errors
 from esgpull.cli.decorators import opts
 from esgpull.db.models import FileStatus
+from esgpull.utils import format_size
 
 
 @click.command()
@@ -22,11 +21,11 @@ def download(quiet: bool):
     queue = esg.db.search(statuses=[FileStatus.queued])
     if not queue:
         rich.print("Download queue is empty.")
-        raise click.exceptions.Exit(0)
+        raise Exit(0)
     coro = esg.download(queue, progress_level=progress_level)
     files, errors = asyncio.run(coro)
     if files:
-        size = decimal(sum(file.size for file in files))
+        size = format_size(sum(file.size for file in files))
         rich.print(
             f"Downloaded {len(files)} new files for a total size of {size}"
         )
@@ -34,4 +33,4 @@ def download(quiet: bool):
         for error in errors:
             rich.print(error.err)
         rich.print(f"{len(errors)} files could not be installed.")
-        raise click.exceptions.Exit(1)
+        raise Exit(1)

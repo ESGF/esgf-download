@@ -1,6 +1,18 @@
 import datetime
 from urllib.parse import urlparse
 
+from rich.filesize import _to_str
+
+
+def format_size(size: int) -> str:
+    return _to_str(
+        size,
+        ("kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"),
+        1024,
+        precision=1,
+        separator=" ",
+    )
+
 
 def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
     match date:

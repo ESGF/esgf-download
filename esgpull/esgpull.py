@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import AsyncIterator
 
 from rich.console import Group
-from rich.filesize import decimal
 from rich.live import Live
 from rich.progress import (
     BarColumn,
@@ -26,6 +25,7 @@ from esgpull.fs import Filesystem
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
 from esgpull.settings import Settings
+from esgpull.utils import format_size
 
 
 class Esgpull:
@@ -185,11 +185,11 @@ class Esgpull:
                         progress.stop_task(task.id)
                         progress.update(task.id, visible=False)
                         id = f"[bold cyan]id:{result.file.id}[/]"
-                        size = f"[green]{decimal(int(task.completed))}[/]"
+                        size = f"[green]{format_size(int(task.completed))}[/]"
                         items = [id, size]
                         if task.elapsed is not None:
                             final_speed = int(task.completed / task.elapsed)
-                            speed = f"[red]{decimal(final_speed)}/s[/]"
+                            speed = f"[red]{format_size(final_speed)}/s[/]"
                             items.append(speed)
                         progress.log("✓ " + " · ".join(items))
                         yield result
