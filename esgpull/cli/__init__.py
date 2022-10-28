@@ -57,6 +57,3 @@ for subcmd in SUBCOMMANDS:
 
 def main():
     cli()
-
-
-__all__ = ["cli"]

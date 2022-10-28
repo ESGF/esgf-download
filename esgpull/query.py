@@ -476,5 +476,3 @@ class Query(QueryBase):
 
 SimpleQuery.configure()
 Query.configure()
-
-__all__ = ["Query"]

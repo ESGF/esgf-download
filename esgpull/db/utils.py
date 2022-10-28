@@ -117,6 +117,3 @@ class SelectContext:
         result = self.scalars
         assert len(result) == 1
         return result[0]
-
-
-__all__ = ["SelectContext"]

@@ -109,6 +109,3 @@ class FileObject:
             await self.buffer.close()
         self.final_path.parent.mkdir(parents=True, exist_ok=True)
         self.tmp_path.rename(self.final_path)
-
-
-__all__ = ["Filesystem", "FileObject"]

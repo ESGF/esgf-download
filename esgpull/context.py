@@ -345,6 +345,3 @@ class Context:
 
     def __repr__(self) -> str:
         return f"Context(query={self.query})"
-
-
-__all__ = ["Context"]

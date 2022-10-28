@@ -1,3 +1,1 @@
-from esgpull.db.core import Database
-
-__all__ = ["Database"]
+from esgpull.db.core import Database  # noqa

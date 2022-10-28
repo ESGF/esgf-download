@@ -198,6 +198,3 @@ class Database:
                 if file.version != latest_version:
                     deprecated.append(file)
         return deprecated
-
-
-__all__ = ["Database"]

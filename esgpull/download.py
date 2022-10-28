@@ -134,6 +134,3 @@ Downloaders = {
     DownloadKind.Simple: Simple,
     DownloadKind.Distributed: Distributed,
 }
-
-
-__all__ = ["BaseDownloader", "Downloaders"]

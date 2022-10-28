@@ -29,6 +29,3 @@ class Err(Result):
         self.file = file
         self.completed = completed
         self.err = err
-
-
-__all__ = ["Result", "Ok", "Err"]

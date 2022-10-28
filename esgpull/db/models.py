@@ -176,6 +176,3 @@ class Version(Table):
     __tablename__ = "version"
 
     version_num: Mapped[str_pk] = mapped_column(init=False)
-
-
-__all__ = ["Table", "FileStatus", "File", "Param", "Version"]

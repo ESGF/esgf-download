@@ -116,6 +116,3 @@ class Processor:
         async with merge(*streams).stream() as stream:
             async for result in stream:
                 yield result
-
-
-__all__ = ["Processor"]
