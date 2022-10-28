@@ -3,7 +3,7 @@ from httpx import HTTPStatusError
 
 from esgpull.auth import Auth, Credentials
 
-# from esgpull.settings import Settings, Paths
+# from esgpull.config import Config, Paths
 
 
 @pytest.fixture
@@ -12,8 +12,8 @@ def creds():
 
 
 # @pytest.fixture
-# def settings(tmp_path):
-#     return Settings(tmp_path)
+# def config(tmp_path):
+#     return Config(tmp_path)
 
 
 def test_auth_from_path(creds, tmp_path):

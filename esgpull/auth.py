@@ -18,8 +18,8 @@ from attrs import Factory, define, field
 from myproxy.client import MyProxyClient
 from OpenSSL import crypto
 
+from esgpull.config import Config
 from esgpull.constants import PROVIDERS
-from esgpull.settings import Settings
 
 
 class Secret:
@@ -91,10 +91,10 @@ class Auth:
     Missing = AuthStatus.Missing
 
     @staticmethod
-    def from_settings(
-        settings: Settings, credentials: Credentials = Credentials()
+    def from_config(
+        config: Config, credentials: Credentials = Credentials()
     ) -> Auth:
-        return Auth.from_path(settings.core.paths.auth, credentials)
+        return Auth.from_path(config.paths.auth, credentials)
 
     @staticmethod
     def from_path(

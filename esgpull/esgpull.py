@@ -1,7 +1,10 @@
+import os
 from functools import partial
 from pathlib import Path
 from typing import AsyncIterator
 
+import rich
+from attrs import define, field
 from rich.console import Group
 from rich.live import Live
 from rich.progress import (
@@ -17,6 +20,8 @@ from rich.progress import (
 )
 
 from esgpull.auth import Auth, Credentials
+from esgpull.config import Config
+from esgpull.constants import ENV_VARNAME
 from esgpull.context import Context
 from esgpull.db.core import Database
 from esgpull.db.models import File, FileStatus, Param
@@ -24,19 +29,34 @@ from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
-from esgpull.settings import Settings
 from esgpull.utils import format_size
 
 
+def _root_factory() -> Path:
+    root_env = os.environ.get(ENV_VARNAME)
+    if root_env is None:
+        root = Path.home() / ".esgpull"
+        rich.print(f":warning-emoji: Using default root directory: {root}")
+        # raise NoRootError
+    else:
+        root = Path(root_env)
+    return root
+
+
+@define
 class Esgpull:
-    def __init__(self, root: Path | str | None = None) -> None:
-        if isinstance(root, str):
-            root = Path(root)
-        self.settings = Settings.from_root(root=root)
-        self.fs = Filesystem.from_settings(self.settings)
-        self.db = Database.from_settings(self.settings)
+    root: Path = field(converter=Path, factory=_root_factory)
+    config: Config = field(init=False)
+    fs: Filesystem = field(init=False)
+    db: Database = field(init=False)
+    auth: Auth = field(init=False)
+
+    def __attrs_post_init__(self) -> None:
+        self.config = Config.load(root=self.root)
+        self.fs = Filesystem.from_config(self.config)
+        self.db = Database.from_config(self.config)
         credentials = Credentials()  # TODO: load file
-        self.auth = Auth.from_settings(self.settings, credentials)
+        self.auth = Auth.from_config(self.config, credentials)
 
     def fetch_index_nodes(self) -> list[str]:
         """
@@ -245,7 +265,7 @@ class Esgpull:
             auth=self.auth,
             fs=self.fs,
             files=queue,
-            settings=self.settings,
+            config=self.config,
             start_callbacks=start_callbacks,
         )
         files: list[

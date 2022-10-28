@@ -6,11 +6,11 @@ from typing import AsyncIterator, TypeAlias
 import rich
 from httpx import AsyncClient, Response
 
+from esgpull.config import Config
 from esgpull.db.models import File
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.facet import FacetDict
 from esgpull.query import Query
-from esgpull.settings import Settings
 from esgpull.utils import format_date, index2url
 
 # workaround for notebooks with running event loop
@@ -32,7 +32,7 @@ class Context:
     def __init__(
         self,
         selection_file_path: str | Path | None = None,
-        settings: Settings = None,
+        config: Config = None,
         /,
         *,
         fields: str = "*",
@@ -47,9 +47,9 @@ class Context:
         new_style: bool = True,
         index_nodes: list[str] | None = None,
     ):
-        if settings is None:
-            settings = Settings()
-        self.settings = settings
+        if config is None:
+            config = Config()
+        self.config = config
         self.fields = fields
         self.latest = latest
         self.replica = replica
@@ -97,7 +97,7 @@ class Context:
         elif "url" in facets:
             query["url"] = facets.pop("url")
         else:
-            query["url"] = index2url(self.settings.search.index_node)
+            query["url"] = index2url(self.config.search.index_node)
         if "facets" in facets:
             query["facets"] = facets.pop("facets")
         if "start" in facets:
@@ -227,7 +227,7 @@ class Context:
             return await client.get(url, params=query)
 
     async def _fetch(self, queries) -> AsyncIterator[dict]:
-        client = AsyncClient(timeout=self.settings.search.http_timeout)
+        client = AsyncClient(timeout=self.config.search.http_timeout)
         coroutines = []
         for query in queries:
             url = query.pop("url")

@@ -1,4 +1,4 @@
-SETTINGS_FILENAME = "settings.toml"
+CONFIG_FILENAME = "config.toml"
 ENV_VARNAME = "ESGPULL_HOME"
 
 IDP = "/esgf-idp/openid/"

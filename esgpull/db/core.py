@@ -8,16 +8,16 @@ from typing import Iterator, Sequence
 import alembic.command
 import sqlalchemy as sa
 import sqlalchemy.orm
-from alembic.config import Config
+from alembic.config import Config as AlembicConfig
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from attrs import define, field
 
 from esgpull import __file__
+from esgpull.config import Config
 from esgpull.db.models import File, FileStatus, Table
 from esgpull.db.utils import SelectContext, Session
 from esgpull.query import Query
-from esgpull.settings import Settings
 from esgpull.version import __version__
 
 
@@ -35,11 +35,11 @@ class Database:
     _session: sa.orm.Session = field(init=False)
 
     @staticmethod
-    def from_settings(settings: Settings, dry_run: bool = False) -> Database:
+    def from_config(config: Config, dry_run: bool = False) -> Database:
         return Database.from_path(
-            settings.core.paths.db,
-            settings.core.db_filename,
-            settings.db.verbosity,
+            config.paths.db,
+            config.db.filename,
+            config.db.verbosity,
             dry_run,
         )
 
@@ -75,7 +75,7 @@ class Database:
         engine.setLevel(engine_lvl)
 
     def update(self) -> None:
-        config = Config()
+        config = AlembicConfig()
         migrations_path = Path(__file__).parent / "db/migrations"
         config.set_main_option("script_location", str(migrations_path))
         config.attributes["connection"] = self.engine

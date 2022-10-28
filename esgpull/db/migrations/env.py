@@ -2,9 +2,9 @@ from logging.config import fileConfig
 
 from alembic import context
 
+from esgpull.config import Config
 from esgpull.db.core import Database
 from esgpull.db.models import Table
-from esgpull.settings import Settings
 
 # from sqlalchemy import engine_from_config, pool
 
@@ -61,15 +61,9 @@ def run_migrations_online() -> None:
     connectable = config.attributes.get("connection", None)
 
     if connectable is None:
-        settings = Settings()
-        db = Database.from_settings(settings, dry_run=True)
+        _config = Config()
+        db = Database.from_config(_config, dry_run=True)
         connectable = db.engine
-
-        # connectable = engine_from_config(
-        #     config.get_section(config.config_ini_section),
-        #     prefix="sqlalchemy.",
-        #     poolclass=pool.NullPool,
-        # )
 
     with connectable.connect() as connection:
         context.configure(

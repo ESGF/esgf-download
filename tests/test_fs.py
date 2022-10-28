@@ -2,9 +2,9 @@ import asyncio
 
 import pytest
 
+from esgpull.config import Paths
 from esgpull.db.models import File
 from esgpull.fs import Filesystem
-from esgpull.settings import Paths
 
 
 @pytest.fixture
@@ -45,8 +45,9 @@ def test_fs(tmp_path, fs):
 
 
 def test_file_paths(fs, file):
+    file.id = 1234
     assert fs.path_of(file) == fs.data / "file.nc"
-    assert fs.tmp_path_of(file) == fs.tmp / "1.file.nc"
+    assert fs.tmp_path_of(file) == fs.tmp / "1234.part"
 
 
 async def writer_steps(fs, file):

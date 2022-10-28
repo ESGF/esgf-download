@@ -7,13 +7,13 @@ from aiostream.stream import merge
 from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
+from esgpull.config import Config
 from esgpull.context import Context
 from esgpull.db.models import File
-from esgpull.download import Downloaders
+from esgpull.download import Simple
 from esgpull.exceptions import DownloadSizeError
 from esgpull.fs import Filesystem
 from esgpull.result import Err, Ok, Result
-from esgpull.settings import Settings
 
 # Callback: TypeAlias = Callable[[], None] | partial[None]
 Callback: TypeAlias = partial[None]
@@ -24,7 +24,7 @@ class Task:
         self,
         auth: Auth,
         fs: Filesystem,
-        settings: Settings,
+        config: Config,
         *,
         url: str | None = None,
         file: File | None = None,
@@ -32,14 +32,14 @@ class Task:
     ) -> None:
         self.auth = auth
         self.fs = fs
-        self.settings = settings
+        self.config = config
         if file is None and url is not None:
             self.file = self.fetch_file(url)
         elif file is not None:
             self.file = file
         else:
             raise ValueError("no arguments")
-        self.downloader = Downloaders[settings.download.kind]()
+        self.downloader = Simple()
         if start_callbacks is None:
             self.start_callbacks = []
         else:
@@ -68,7 +68,7 @@ class Task:
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
-                    timeout=self.settings.download.http_timeout,
+                    timeout=self.config.download.http_timeout,
                 ) as client,
             ):
                 for callback in self.start_callbacks:
@@ -94,16 +94,16 @@ class Processor:
         auth: Auth,
         fs: Filesystem,
         files: list[File],
-        settings: Settings,
+        config: Config,
         start_callbacks: dict[int, list[Callback]],
     ) -> None:
         self.files = files
-        self.settings = settings
+        self.config = config
         self.tasks = [
             Task(
                 auth=auth,
                 fs=fs,
-                settings=settings,
+                config=config,
                 file=file,
                 start_callbacks=start_callbacks[file.id],
             )
@@ -111,7 +111,7 @@ class Processor:
         ]
 
     async def process(self) -> AsyncIterator[Result]:
-        semaphore = asyncio.Semaphore(self.settings.download.max_concurrent)
+        semaphore = asyncio.Semaphore(self.config.download.max_concurrent)
         streams = [task.stream(semaphore) for task in self.tasks]
         async with merge(*streams).stream() as stream:
             async for result in stream:

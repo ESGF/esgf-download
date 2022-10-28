@@ -3,10 +3,10 @@ import asyncio
 import pytest
 
 from esgpull.auth import Auth
+from esgpull.config import Config
 from esgpull.db.models import File
 from esgpull.fs import Filesystem
 from esgpull.processor import Task
-from esgpull.settings import Settings
 
 
 # fmt:off
@@ -29,28 +29,28 @@ def smallfile():
 
 
 @pytest.fixture
-def settings(tmp_path):
-    return Settings.from_root(tmp_path)
+def config(tmp_path):
+    return Config.load(tmp_path)
 
 
 @pytest.fixture
-def fs(settings):
-    return Filesystem.from_settings(settings)
+def fs(config):
+    return Filesystem.from_config(config)
 
 
 @pytest.fixture
-def auth(settings):
-    return Auth.from_settings(settings)
+def auth(config):
+    return Auth.from_config(config)
 
 
 @pytest.fixture
-def from_file(auth, fs, settings, smallfile):
-    return Task(auth, fs, settings, file=smallfile)
+def from_file(auth, fs, config, smallfile):
+    return Task(auth, fs, config, file=smallfile)
 
 
 @pytest.fixture
-def from_url(auth, fs, settings, smallfile):
-    return Task(auth, fs, settings, url=smallfile.url)
+def from_url(auth, fs, config, smallfile):
+    return Task(auth, fs, config, url=smallfile.url)
 
 
 @pytest.fixture(params=["from_file", "from_url"])
@@ -65,7 +65,7 @@ async def run_task(task_):
     return chunk
 
 
-def test_task(auth, fs, settings, smallfile, task):
+def test_task(auth, fs, smallfile, task):
     result = asyncio.run(run_task(task))
     assert result.ok
     with fs.path_of(smallfile).open("rb") as f:
@@ -73,9 +73,9 @@ def test_task(auth, fs, settings, smallfile, task):
     assert len(data) == smallfile.size
 
 
-def test_task_no_file_or_url(auth, fs, settings, smallfile):
+def test_task_no_file_or_url(auth, fs, config, smallfile):
     with pytest.raises(ValueError):
-        Task(auth, fs, settings)
+        Task(auth, fs, config)
 
 
 # def test_task_url_multiple_version_correct():

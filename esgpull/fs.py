@@ -7,8 +7,8 @@ import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
 from attrs import define, field
 
+from esgpull.config import Config, Paths
 from esgpull.db.models import File
-from esgpull.settings import Paths, Settings
 
 
 @define
@@ -17,22 +17,22 @@ class Filesystem:
     auth: Path
     data: Path
     db: Path
-    settings: Path
+    log: Path
     tmp: Path
 
     @staticmethod
-    def from_settings(settings: Settings) -> Filesystem:
-        return Filesystem.from_paths(settings.core.paths)
+    def from_config(config: Config) -> Filesystem:
+        return Filesystem.from_paths(config.paths)
 
     @staticmethod
     def from_paths(paths: Paths) -> Filesystem:
         return Filesystem(
-            paths.root,
-            paths.auth,
-            paths.data,
-            paths.db,
-            paths.settings,
-            paths.tmp,
+            root=paths.root,
+            auth=paths.auth,
+            data=paths.data,
+            db=paths.db,
+            log=paths.log,
+            tmp=paths.tmp,
         )
 
     def __attrs_post_init__(self) -> None:
@@ -40,14 +40,14 @@ class Filesystem:
         self.auth.mkdir(exist_ok=True)
         self.data.mkdir(exist_ok=True)
         self.db.mkdir(exist_ok=True)
-        self.settings.mkdir(exist_ok=True)
+        self.log.mkdir(exist_ok=True)
         self.tmp.mkdir(exist_ok=True)
 
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
 
     def tmp_path_of(self, file: File) -> Path:
-        return self.tmp / f"{file.id}.{file.filename}"
+        return self.tmp / f"{file.id}.part"
 
     def glob_netcdf(self) -> Iterator[Path]:
         for path in self.data.glob("**/*.nc"):
