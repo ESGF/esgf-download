@@ -102,7 +102,7 @@ class Esgpull:
         Insert into db netcdf files, globbed from `fs.data` directory.
         Only files whose metadata exists on `index_node` is added.
 
-        FileStatus is `done` regardless of the file's size (no checks).
+        FileStatus is `Done` regardless of the file's size (no checks).
         """
         context = Context()
         if index_node is not None:
@@ -123,7 +123,7 @@ class Esgpull:
                 file = File.from_dict(metadata)
                 if file.version == filename_version_dict[file.filename]:
                     new_files.append(file)
-            self.install(*new_files, status=FileStatus.done)
+            self.install(*new_files, status=FileStatus.Done)
             nb_remaining = len(filename_version_dict) - len(new_files)
             print(f"Installed {len(new_files)} new files.")
             print(f"{nb_remaining} files remain installed (another index?).")
@@ -131,7 +131,7 @@ class Esgpull:
             print("No new files.")
 
     def install(
-        self, *files: File, status: FileStatus = FileStatus.queued
+        self, *files: File, status: FileStatus = FileStatus.Queued
     ) -> list[File]:
         """
         Insert `files` with specified `status` into db if not already there.
@@ -155,7 +155,7 @@ class Esgpull:
             stmt.where(File.file_id.in_(file_ids))
             deleted = stmt.scalars
         for file in files:
-            if file.status == FileStatus.done:
+            if file.status == FileStatus.Done:
                 self.fs.delete(file)
         self.db.delete(*deleted)
         return deleted
@@ -203,10 +203,10 @@ class Esgpull:
         self, queue: list[File], progress_level: int = 0
     ) -> tuple[list[File], list[Err]]:
         """
-        Download all files from db for which status is `queued`.
+        Download all files from db for which status is `Queued`.
         """
         for file in queue:
-            file.status = FileStatus.starting
+            file.status = FileStatus.Starting
         self.db.add(*queue)
         main_progress = Progress(
             SpinnerColumn(),
@@ -261,14 +261,14 @@ class Esgpull:
                     match result:
                         case Ok():
                             main_progress.update(main_task_id, advance=1)
-                            result.file.status = FileStatus.done
+                            result.file.status = FileStatus.Done
                             files.append(result.file)
                         case Err():
                             queue_size -= 1
                             main_progress.update(
                                 main_task_id, total=queue_size
                             )
-                            result.file.status = FileStatus.error
+                            result.file.status = FileStatus.Error
                             errors.append(result)
                     self.db.add(result.file)
                     remaining_idx = [
@@ -284,7 +284,7 @@ class Esgpull:
                 )
                 cancelled: list[File] = []
                 for file in remaining:
-                    file.status = FileStatus.cancelled
+                    file.status = FileStatus.Cancelled
                     cancelled.append(file)
                     errors.append(Err(file, 0, DownloadCancelled()))
                 self.db.add(*cancelled)

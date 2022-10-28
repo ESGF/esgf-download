@@ -27,7 +27,7 @@ def file_(tmp_path):
         checksum="0",
         checksum_type="0",
         size=0,
-        status=FileStatus.queued,
+        status=FileStatus.Queued,
     )
 
 
@@ -114,6 +114,6 @@ def test_search(db, file_):
 
 def test_search_status(db, file_):
     db.add(file_)
-    assert db.search(statuses=[FileStatus.queued]) == [file_]
-    assert db.search(statuses=[FileStatus.done]) == []
+    assert db.search(statuses=[FileStatus.Queued]) == [file_]
+    assert db.search(statuses=[FileStatus.Done]) == []
     assert db.has(file_)

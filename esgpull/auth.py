@@ -73,7 +73,7 @@ class Credentials:
 
 
 @unique
-class AuthStatus(str, Enum):
+class AuthStatus(Enum):
     Valid = "Valid"
     Expired = "Expired"
     Missing = "Missing"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum, unique
-from typing import Annotated, Sequence
+from typing import Sequence
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (  # registry,
@@ -14,9 +14,6 @@ from sqlalchemy.orm import (  # registry,
 
 from esgpull.utils import find_int, find_str
 
-int_pk = Annotated[int, mapped_column(primary_key=True)]
-str_pk = Annotated[str, mapped_column(primary_key=True)]
-
 
 class Table(MappedAsDataclass, DeclarativeBase):
     # registry = registry()
@@ -24,34 +21,34 @@ class Table(MappedAsDataclass, DeclarativeBase):
 
 
 @unique
-class FileStatus(str, Enum):
-    new = "new"
-    queued = "queued"
-    starting = "starting"
-    started = "started"
-    pausing = "pausing"
-    paused = "paused"
-    error = "error"
-    cancelled = "cancelled"
-    done = "done"
+class FileStatus(Enum):
+    New = "new"
+    Queued = "queued"
+    Starting = "starting"
+    Started = "started"
+    Pausing = "pausing"
+    Paused = "paused"
+    Error = "error"
+    Cancelled = "cancelled"
+    Done = "done"
 
     @classmethod
     def retryable(cls) -> Sequence[FileStatus]:
         return [
-            cls.new,
-            cls.starting,
-            cls.started,
-            cls.pausing,
-            cls.paused,
-            cls.error,
-            cls.cancelled,
+            cls.New,
+            cls.Starting,
+            cls.Started,
+            cls.Pausing,
+            cls.Paused,
+            cls.Error,
+            cls.Cancelled,
         ]
 
 
 class File(Table):
     __tablename__ = "file"
 
-    id: Mapped[int_pk] = mapped_column(init=False)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
     file_id: Mapped[str] = mapped_column(unique=True)
     dataset_id: Mapped[str]
     master_id: Mapped[str]
@@ -64,7 +61,7 @@ class File(Table):
     checksum_type: Mapped[str] = mapped_column(sa.String(16))
     size: Mapped[int]
     status: Mapped[FileStatus] = mapped_column(
-        sa.Enum(FileStatus), default=FileStatus.new
+        sa.Enum(FileStatus), default=FileStatus.New
     )
     raw: Mapped[dict] = mapped_column(
         sa.JSON, default_factory=dict, repr=False
@@ -160,7 +157,7 @@ class File(Table):
 class Param(Table):
     __tablename__ = "param"
 
-    id: Mapped[int_pk] = mapped_column(init=False)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(50))
     value: Mapped[str] = mapped_column(sa.String(255))
     last_updated: Mapped[datetime] = mapped_column(
@@ -175,4 +172,4 @@ class Param(Table):
 class Version(Table):
     __tablename__ = "version"
 
-    version_num: Mapped[str_pk] = mapped_column(init=False)
+    version_num: Mapped[str] = mapped_column(init=False, primary_key=True)

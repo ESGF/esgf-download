@@ -18,7 +18,7 @@ def download(quiet: bool):
         progress_level = 0
     else:
         progress_level = 1
-    queue = esg.db.search(statuses=[FileStatus.queued])
+    queue = esg.db.search(statuses=[FileStatus.Queued])
     if not queue:
         rich.print("Download queue is empty.")
         raise Exit(0)

@@ -16,12 +16,11 @@ from esgpull.db.models import FileStatus
 def retry(status: Sequence[FileStatus], all_: bool):
     if all_:
         status = FileStatus.retryable()
-        # status = list(set(FileStatus) - {FileStatus.done, FileStatus.queued})
     if not status:
-        status = [FileStatus.error, FileStatus.cancelled]
+        status = [FileStatus.Error, FileStatus.Cancelled]
     esg = Esgpull()
-    assert FileStatus.done not in status
-    assert FileStatus.queued not in status
+    assert FileStatus.Done not in status
+    assert FileStatus.Queued not in status
     files = esg.db.search(statuses=status)
     status_str = "/".join(f"[bold red]{s.name}[/]" for s in status)
     if not files:
@@ -29,7 +28,7 @@ def retry(status: Sequence[FileStatus], all_: bool):
         raise Exit(0)
     counts = Counter(file.status for file in files)
     for file in files:
-        file.status = FileStatus.queued
+        file.status = FileStatus.Queued
     esg.db.add(*files)
     msg = "Sent back to the queue: "
     msg += ", ".join(

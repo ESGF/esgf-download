@@ -18,7 +18,7 @@ def status(all_: bool):
     esg = Esgpull()
     statuses = set(FileStatus)
     if not all_:
-        statuses.remove(FileStatus.done)
+        statuses.remove(FileStatus.Done)
     status_attr = cast(InstrumentedAttribute, File.status)
     with esg.db.select(File) as stmt:
         files = stmt.where(status_attr.in_(list(statuses))).scalars
