@@ -7,7 +7,7 @@ import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
 from attrs import define, field
 
-from esgpull.config import Config, Paths
+from esgpull.config import Config
 from esgpull.db.models import File
 
 
@@ -22,17 +22,13 @@ class Filesystem:
 
     @staticmethod
     def from_config(config: Config) -> Filesystem:
-        return Filesystem.from_paths(config.paths)
-
-    @staticmethod
-    def from_paths(paths: Paths) -> Filesystem:
         return Filesystem(
-            root=paths.root,
-            auth=paths.auth,
-            data=paths.data,
-            db=paths.db,
-            log=paths.log,
-            tmp=paths.tmp,
+            root=config.paths.root,
+            auth=config.paths.auth,
+            data=config.paths.data,
+            db=config.paths.db,
+            log=config.paths.log,
+            tmp=config.paths.tmp,
         )
 
     def __attrs_post_init__(self) -> None:

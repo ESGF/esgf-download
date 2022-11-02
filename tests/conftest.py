@@ -1,5 +1,7 @@
 import pytest
 
+from esgpull.utils import Root
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -19,3 +21,10 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture
+def root(tmp_path):
+    Root.root = tmp_path / "esgpull"
+    Root.root.mkdir()
+    return Root.get()

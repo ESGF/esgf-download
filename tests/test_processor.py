@@ -29,8 +29,8 @@ def smallfile():
 
 
 @pytest.fixture
-def config(tmp_path):
-    return Config.load(tmp_path)
+def config(root):
+    return Config.load(root)
 
 
 @pytest.fixture

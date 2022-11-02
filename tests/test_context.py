@@ -4,12 +4,12 @@ from esgpull.context import Context
 
 
 @pytest.fixture
-def base():
+def base(root):
     return Context()
 
 
 @pytest.fixture
-def cmip6_ipsl():
+def cmip6_ipsl(root):
     result = Context()
     result.query.mip_era = "CMIP6"
     result.query.institution_id = "IPSL"
