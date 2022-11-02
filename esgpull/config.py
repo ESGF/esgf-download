@@ -1,37 +1,25 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
-import rich
 import tomlkit
 from attrs import Factory, define, field
 from cattrs import Converter
 from cattrs.gen import make_dict_unstructure_fn, override
 
-from esgpull.constants import CONFIG_FILENAME, ENV_VARNAME
+from esgpull.constants import CONFIG_FILENAME
+from esgpull.utils import Root
 
 
 @define
 class Paths:
-    root: Path = field(converter=Path)
+    root: Path = field(converter=Path, factory=Root.get)
     auth: Path = field(converter=Path)
     data: Path = field(converter=Path)
     db: Path = field(converter=Path)
     log: Path = field(converter=Path)
     tmp: Path = field(converter=Path)
-
-    @root.default
-    def _root_factory(self) -> Path:
-        root_env = os.environ.get(ENV_VARNAME)
-        if root_env is None:
-            root = Path.home() / ".esgpull"
-            rich.print(f":warning-emoji: Using default root directory: {root}")
-            # raise NoRootError
-        else:
-            root = Path(root_env)
-        return root
 
     @auth.default
     def _auth_factory(self) -> Path:

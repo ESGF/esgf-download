@@ -1,9 +1,7 @@
-import os
 from functools import partial
 from pathlib import Path
 from typing import AsyncIterator
 
-import rich
 from attrs import define, field
 from rich.console import Group
 from rich.live import Live
@@ -21,7 +19,6 @@ from rich.progress import (
 
 from esgpull.auth import Auth, Credentials
 from esgpull.config import Config
-from esgpull.constants import ENV_VARNAME
 from esgpull.context import Context
 from esgpull.db.core import Database
 from esgpull.db.models import File, FileStatus, Param
@@ -29,23 +26,12 @@ from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
-from esgpull.utils import format_size
-
-
-def _root_factory() -> Path:
-    root_env = os.environ.get(ENV_VARNAME)
-    if root_env is None:
-        root = Path.home() / ".esgpull"
-        rich.print(f":warning-emoji: Using default root directory: {root}")
-        # raise NoRootError
-    else:
-        root = Path(root_env)
-    return root
+from esgpull.utils import Root, format_size
 
 
 @define
 class Esgpull:
-    root: Path = field(converter=Path, factory=_root_factory)
+    root: Path = field(converter=Path, factory=Root.get)
     config: Config = field(init=False)
     fs: Filesystem = field(init=False)
     db: Database = field(init=False)

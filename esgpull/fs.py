@@ -36,7 +36,6 @@ class Filesystem:
         )
 
     def __attrs_post_init__(self) -> None:
-        self.root.mkdir(exist_ok=True)
         self.auth.mkdir(exist_ok=True)
         self.data.mkdir(exist_ok=True)
         self.db.mkdir(exist_ok=True)

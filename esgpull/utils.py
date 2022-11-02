@@ -1,7 +1,12 @@
 import datetime
+import os
+from pathlib import Path
 from urllib.parse import urlparse
 
+import rich
 from rich.filesize import _to_str
+
+from esgpull.constants import ENV_VARNAME
 
 
 def format_size(size: int) -> str:
@@ -53,3 +58,27 @@ def find_int(container: list | int) -> int:
         return container
     else:
         raise ValueError(container)
+
+
+class Root:
+    root: Path | None = None
+
+    @classmethod
+    def get(cls, mkdir=False) -> Path:
+        if cls.root is None:
+            root_env = os.environ.get(ENV_VARNAME)
+            if root_env is None:
+                cls.root = Path.home() / ".esgpull"
+                rich.print(
+                    f":warning-emoji: Using default root directory: {cls.root}"
+                )
+                rich.print(
+                    f"Set [yellow]{ENV_VARNAME}[/] to the desired root directory to disable this warning."
+                )
+            else:
+                cls.root = Path(root_env)
+        if mkdir:
+            cls.root.mkdir(parents=True, exist_ok=True)
+        elif not cls.root.is_dir():
+            raise NotADirectoryError(cls.root)
+        return cls.root
