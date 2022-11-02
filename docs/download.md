@@ -110,7 +110,7 @@ Downloaded 13 new files for a total size of 19.0 MB
 RAM usage for downloads is bounded by the following formula:
 
 ```
-RAM = Settings::download.max_concurrent * Settings::download.chunk_size
+RAM = Config::download.max_concurrent * Config::download.chunk_size
 ```
 
 ### Failed downloads

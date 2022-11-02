@@ -7,9 +7,9 @@
 ```py
 import esgpull
 
-c = esgpull.Context()
-c.query.project = "CMIP6"
-print(c.query)
+ctx = esgpull.Context()
+ctx.query.project = "CMIP6"
+print(ctx.query)
 print("Number of CMIP6 datasets:", c.hits)
 ```
 
@@ -27,98 +27,20 @@ Usage: esgpull [OPTIONS] COMMAND [ARGS]...
   esgpull is a management utility for files and datasets from ESGF.
 
 Options:
-  -v, --version  Show the version and exit.
+  -V, --version  Show the version and exit.
   -h, --help     Show this message and exit.
 
 Commands:
   autoremove
+  config
   download
   facet
-  get
+  init
   install
   login
   remove
   retry
   search      Search datasets/files on ESGF
-  settings
+  status
   upgrade
-```
-
-
-### CLI
-
-```mermaid
-classDiagram
-  class esgpull {
-    -h, --help
-    -b, --bootstrap
-  }
-
-  class autoremove {
-    -h, --help
-    -y, --yes
-  }
-  esgpull --|> autoremove: Prompt [Y/n]
-  
-  class download {
-    -h, --help
-    start()
-    stop()
-    status()
-    queue()
-    watch()
-  }
-  esgpull --|> download
-
-  class facet {
-    -h, --help
-    init()
-    update()
-    list()
-    values()
-  }
-  esgpull --|> facet
-
-  class get {
-    -h, --help
-  }
-  esgpull --|> get: Prompt [Y/n]
-
-  class install {
-    -h, --help
-  }
-  esgpull --|> install: Prompt [Y/n]
-
-  class login {
-    -h, --help
-  }
-  esgpull --|> login
-
-  class remove {
-    -h, --help
-  }
-  esgpull --|> remove: Prompt [Y/n]
-
-  class retry {
-    -h, --help
-  }
-  esgpull --|> retry: Prompt [Y/n]
-
-  class search {
-    -h, --help
-  }
-  esgpull --|> settings
-
-  class settings {
-    -h, --help
-    show()
-    get()
-    set()
-  }
-  esgpull --|> settings
-
-  class upgrade {
-    -h, --help
-  }
-  esgpull --|> upgrade: Prompt [Y/n]
 ```

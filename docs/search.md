@@ -54,7 +54,7 @@ Found 10 datasets.
     `esgpull` provides a handy way to print out all facet names:
 
     ```sh
-    esgpull facet list
+    esgpull facet
     ```
     ```{.sh .markdown .result}
     [
@@ -74,7 +74,7 @@ Found 10 datasets.
 
 ## Free-text search
 
-*Free-text search* is performed on any term *not* using the `<name>:<value>` syntax. Each term is sent to the ESGF search API, which uses [Apache Solr](https://fr.wikipedia.org/wiki/Apache_Solr) to match results.
+*Free-text search* is performed on any term *not* using the `<name>:<value>` syntax. Each term is sent to the ESGF search API, which uses [Apache Solr] to match results.
 
 !!! warning "Solr syntax"
 
@@ -128,7 +128,7 @@ With its **subrequests**, a selection file is conceptually similar to a *single-
 
 The number of requests sent to ESGF after expanding the *subrequests* is equal to the number of *subrequests*.
 
-A selection file is written using either [Yaml/1.0](https://yaml.org/spec/1.0/) or [Json](https://www.json.org/), Yaml is recommended for its human-readable syntax.
+A selection file is written using either [Yaml/1.0] or [Json], Yaml is recommended for its human-readable syntax.
 
 !!! note "Syntax Rules"
     1. key/value pair ⇒ **facet search** term
@@ -334,3 +334,8 @@ A selection file is written using either [Yaml/1.0](https://yaml.org/spec/1.0/) 
     Since the syntax is completely different from `synda` selection files, the `translate` tool is provided.
 
     It will handle most common cases, and for the others , a few manual adjustments should fix it.
+
+
+[Yaml/1.0]: https://yaml.org/spec/1.0
+[Json]: https://www.json.org/
+[Apache Solr]: https://fr.wikipedia.org/wiki/Apache_Solr
