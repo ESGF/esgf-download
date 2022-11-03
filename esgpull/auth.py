@@ -32,9 +32,12 @@ class Secret:
     def __str__(self) -> str:
         value = self.get_value()
         if value is None:
-            return ""
+            return str(None)
         else:
             return "*" * 10 if value else ""
+
+    def __repr__(self) -> str:
+        return str(self)
 
 
 @define
@@ -84,7 +87,7 @@ class Auth:
     cert_dir: Path
     cert_file: Path
     credentials: Credentials = Factory(Credentials)
-    __status: AuthStatus | None = field(init=False, default=None)
+    __status: AuthStatus | None = field(init=False, default=None, repr=False)
 
     Valid = AuthStatus.Valid
     Expired = AuthStatus.Expired

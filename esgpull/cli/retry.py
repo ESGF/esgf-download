@@ -22,7 +22,7 @@ def retry(status: Sequence[FileStatus], all_: bool):
     assert FileStatus.Done not in status
     assert FileStatus.Queued not in status
     files = esg.db.search(statuses=status)
-    status_str = "/".join(f"[bold red]{s.name}[/]" for s in status)
+    status_str = "/".join(f"[bold red]{s.value}[/]" for s in status)
     if not files:
         rich.print(f"No {status_str} files found.")
         raise Exit(0)

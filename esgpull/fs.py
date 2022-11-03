@@ -46,7 +46,7 @@ class Filesystem:
 
     def glob_netcdf(self) -> Iterator[Path]:
         for path in self.data.glob("**/*.nc"):
-            yield path
+            yield path.relative_to(self.data)
 
     def open(self, file: File) -> FileObject:
         return FileObject(

@@ -281,11 +281,19 @@ class Context:
         return hit_counts, facet_counts
 
     async def _search(
-        self, file: bool, max_results: int | None = 200, offset: int = 0
+        self,
+        file: bool,
+        max_results: int | None = 200,
+        offset: int = 0,
+        hits: list[int] | None = None,
     ) -> list[dict]:
-        hits = await self._hits(file)
+        if hits is None:
+            hits = await self._hits(file)
         queries = self._build_queries_search(
-            hits=hits, file=file, max_results=max_results, offset=offset
+            hits=hits,
+            file=file,
+            max_results=max_results,
+            offset=offset,
         )
         checksums = set()
         result = []
@@ -338,9 +346,19 @@ class Context:
         return result
 
     def search(
-        self, *, file=False, max_results: int | None = 200, offset: int = 0
+        self,
+        *,
+        file=False,
+        max_results: int | None = 200,
+        offset: int = 0,
+        hits: list[int] | None = None,
     ) -> list[dict]:
-        coro = self._search(file, max_results=max_results, offset=offset)
+        coro = self._search(
+            file,
+            max_results=max_results,
+            offset=offset,
+            hits=hits,
+        )
         return asyncio.run(coro)
 
     def __repr__(self) -> str:

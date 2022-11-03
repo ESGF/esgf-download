@@ -7,6 +7,8 @@ import tomlkit
 import yaml
 from click.exceptions import BadArgumentUsage
 from click_params import ListParamType
+from rich.syntax import Syntax
+from rich.table import Table
 
 from esgpull.query import Query
 from esgpull.utils import format_size
@@ -14,13 +16,13 @@ from esgpull.utils import format_size
 
 def print_yaml(data: Any) -> None:
     yml = yaml.dump(data)
-    syntax = rich.syntax.Syntax(yml, "yaml", theme="ansi_dark")
+    syntax = Syntax(yml, "yaml", theme="ansi_dark")
     rich.print(syntax)
 
 
 def print_toml(data: Any) -> None:
     tml = tomlkit.dumps(data)
-    syntax = rich.syntax.Syntax(tml, "toml", theme="ansi_dark")
+    syntax = Syntax(tml, "toml", theme="ansi_dark")
     rich.print(syntax)
 
 
@@ -29,11 +31,11 @@ class EnumParam(click.Choice):
 
     def __init__(self, enum: type[Enum]):
         self.__enum = enum
-        super().__init__(choices=[item.name for item in enum])
+        super().__init__(choices=[item.value for item in enum])
 
     def convert(self, value, param, ctx) -> Enum:
         converted_str = super().convert(value, param, ctx)
-        return self.__enum[converted_str]
+        return self.__enum(converted_str)
 
 
 class SliceParam(ListParamType):
@@ -66,13 +68,13 @@ def totable(
     node: bool = False,
     date: bool = False,
     _slice: slice = None,
-) -> rich.table.Table:
+) -> Table:
     if _slice is None:
         _slice = slice(0, len(results))
     _slice_no_offset = slice(0, _slice.stop - _slice.start)
     rows: list[map | list]
-    # table = rich.table.Table(box=rich.box.MINIMAL_DOUBLE_HEAD)
-    table = rich.table.Table(box=rich.box.MINIMAL)
+    # table = Table(box=rich.box.MINIMAL_DOUBLE_HEAD)
+    table = Table(box=rich.box.MINIMAL)
     table.add_column("#", justify="right")
     table.add_column("size", justify="right")
     table.add_column("id", justify="left")

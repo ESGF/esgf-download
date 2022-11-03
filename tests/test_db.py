@@ -4,31 +4,13 @@ import pytest
 
 from esgpull import __version__
 from esgpull.db.core import Database
-from esgpull.db.models import File, FileStatus, Param
+from esgpull.db.models import FileStatus, Param
 from esgpull.query import Query
 
 
 @pytest.fixture
 def db(tmp_path):
     return Database.from_path(tmp_path)
-
-
-@pytest.fixture
-def file_(tmp_path):
-    return File(
-        file_id="file",
-        dataset_id="dataset",
-        master_id="master",
-        url="file",
-        version="v0",
-        filename="file.nc",
-        local_path=str(tmp_path / "v0"),  # version is required in path
-        data_node="data_node",
-        checksum="0",
-        checksum_type="0",
-        size=0,
-        status=FileStatus.Queued,
-    )
 
 
 def test_empty(tmp_path, db):
@@ -65,26 +47,26 @@ def test_scalar(db):
         assert select.where(Param.name == "name0").scalar == params[0]
 
 
-def test_has(db, file_):
-    filepath = Path(file_.local_path, file_.filename)
-    assert not db.has(file_)
+def test_has(db, file):
+    filepath = Path(file.local_path, file.filename)
+    assert not db.has(file)
     assert not db.has(filepath=filepath)
-    db.add(file_)
-    assert db.has(file_)
+    db.add(file)
+    assert db.has(file)
     assert db.has(filepath=filepath)
-    db.delete(file_)
-    assert not db.has(file_)
+    db.delete(file)
+    assert not db.has(file)
     assert not db.has(filepath=filepath)
     with pytest.raises(ValueError):
         assert db.has()
 
 
-def test_search(db, file_):
+def test_search(db, file):
     # setup
     variable_ids = ["a", "b", "c"]
     files = []
     for variable_id in variable_ids:
-        f = file_.clone()
+        f = file.clone()
         # required for UniqueConstraint on file_id
         f.file_id += variable_id
         f.raw = {"project": ["test"], "variable_id": [variable_id]}
@@ -112,8 +94,8 @@ def test_search(db, file_):
     assert len(results_query) < len(results_a) + len(results_test)
 
 
-def test_search_status(db, file_):
-    db.add(file_)
-    assert db.search(statuses=[FileStatus.Queued]) == [file_]
+def test_search_status(db, file):
+    db.add(file)
+    assert db.search(statuses=[FileStatus.Queued]) == [file]
     assert db.search(statuses=[FileStatus.Done]) == []
-    assert db.has(file_)
+    assert db.has(file)

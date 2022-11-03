@@ -131,17 +131,16 @@ class Database:
         self,
         /,
         file: File | None = None,
-        filepath: str | Path | None = None,
+        filepath: Path | None = None,
     ) -> bool:
         if file is not None:
             clause = File.file_id == file.file_id
         elif filepath is not None:
-            if isinstance(filepath, str):
-                filepath = Path(filepath)
-            # TODO: verify format assumption: a/b/c/../<version>/<filename>
+            local_path = str(filepath.parent)
             filename = filepath.name
-            version = filepath.parent.name
-            clause = (File.filename == filename) & (File.version == version)
+            local_path_clause = File.local_path == local_path
+            filename_clause = File.filename == filename
+            clause = local_path_clause & filename_clause
         else:
             raise ValueError("TODO: custom error")
         with self.select(File) as sel:

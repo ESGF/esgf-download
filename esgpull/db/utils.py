@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence, Type, TypeAlias
+from typing import Any, Callable, Sequence, TypeAlias
 
 import sqlalchemy as sa
 import sqlalchemy.orm
@@ -60,7 +60,7 @@ class SelectContext:
         ```
     """
 
-    def __init__(self, session: Session, *tables: Type[Table]) -> None:
+    def __init__(self, session: Session, *tables: type[Table]) -> None:
         self.session = session
         self.stmt: SelectStmt = sa.select(*tables)
 
