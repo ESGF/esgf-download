@@ -11,7 +11,7 @@ INSTALL_REQUIRES = [
     'aiofiles>=22.1.0',
     'alembic>=1.8.1',
     'click>=8.1.3',
-    'click-params>=0.4.0',
+    'click-params==0.3.0',
     'httpx>=0.23.0',
     'nest-asyncio>=1.5.6',
     'pyOpenSSL>=22.1.0',
@@ -21,8 +21,8 @@ INSTALL_REQUIRES = [
     'sqlalchemy>=2.0.0b2',
     'setuptools>=65.4.1',
     'aiostream>=0.4.5',
-    'typedload>=2.19',
     'attrs>=22.1.0',
+    'cattrs>=22.2.0',
 ]
 ENTRY_POINTS = {
     'console_scripts': [
@@ -33,13 +33,13 @@ ENTRY_POINTS = {
 setup_kwargs = {
     'name': 'esgpull',
     'version': '4.0.0',
-    'description': 'ESGF Data transfer Program',
+    'description': 'ESGF data discovery, download, replication tool',
     'long_description': long_description,
     'license': 'Public',
     'author': '',
     'author_email': 'Sven Rodriguez <srodriguez@ipsl.fr>',
-    'maintainer': '',
-    'maintainer_email': 'Sven Rodriguez <srodriguez@ipsl.fr>',
+    'maintainer': None,
+    'maintainer_email': None,
     'url': '',
     'packages': [
         'esgpull',
