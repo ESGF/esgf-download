@@ -50,7 +50,6 @@ class Filesystem:
 
     def open(self, file: File) -> FileObject:
         return FileObject(
-            file,
             self.tmp_path_of(file),
             self.path_of(file),
         )
@@ -84,16 +83,9 @@ class Filesystem:
 
 @define
 class FileObject:
-    file: File
     tmp_path: Path
     final_path: Path
     buffer: AsyncBufferedIOBase = field(init=False)
-
-    async def write(self, chunk: bytes) -> None:
-        if self.buffer is not None:
-            await self.buffer.write(chunk)
-        else:
-            raise ValueError("write to closed file")
 
     async def __aenter__(self) -> AsyncBufferedIOBase:
         self.buffer = await aiofiles.open(self.tmp_path, "wb")
