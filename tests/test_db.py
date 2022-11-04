@@ -3,18 +3,26 @@ from pathlib import Path
 import pytest
 
 from esgpull import __version__
+from esgpull.config import Config
 from esgpull.db.core import Database
 from esgpull.db.models import FileStatus, Param
 from esgpull.query import Query
 
 
 @pytest.fixture
-def db(tmp_path):
-    return Database.from_path(tmp_path)
+def config(root):
+    cfg = Config.load(root)
+    cfg.paths.db.mkdir()
+    return cfg
 
 
-def test_empty(tmp_path, db):
-    assert str(tmp_path) in db.url
+@pytest.fixture
+def db(config):
+    return Database.from_config(config)
+
+
+def test_empty(root, db):
+    assert str(root) in db.url
     assert db.version == __version__
 
 
@@ -27,7 +35,7 @@ def test_CRUD(db):
         results = select.scalars
     assert results == [param]
     param.value = "other"
-    db.add(param)  # this is really UPDATE since `param` is already stored
+    db.add(param)  # this is an UPDATE as `param` comes from a SELECT
     with db.select(Param) as select:
         results = select.where(Param.name == "name").scalars
     assert len(results) == 1

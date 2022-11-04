@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence, TypeAlias
+from typing import Any, Callable, Sequence
 
 import sqlalchemy as sa
 import sqlalchemy.orm
+from sqlalchemy.engine import Result, Row
+from sqlalchemy.orm import Session
+from sqlalchemy.sql.selectable import Select
 
 from esgpull.db.models import Table
-
-Row: TypeAlias = sa.engine.row.Row
-Result: TypeAlias = sa.engine.result.Result
-Session: TypeAlias = sa.orm.session.Session
-SelectStmt: TypeAlias = sa.sql.selectable.Select
 
 
 class SelectContext:
@@ -62,7 +60,7 @@ class SelectContext:
 
     def __init__(self, session: Session, *tables: type[Table]) -> None:
         self.session = session
-        self.stmt: SelectStmt = sa.select(*tables)
+        self.stmt: Select = sa.select(*tables)
 
         # for name, table in db.tables.items():
         #     setattr(self, name, table)

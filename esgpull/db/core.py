@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, Sequence
@@ -12,11 +11,12 @@ from alembic.config import Config as AlembicConfig
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from attrs import define, field
+from sqlalchemy.orm import Session
 
 from esgpull import __file__
 from esgpull.config import Config
 from esgpull.db.models import File, FileStatus, Table
-from esgpull.db.utils import SelectContext, Session
+from esgpull.db.utils import SelectContext
 from esgpull.query import Query
 from esgpull.version import __version__
 
@@ -28,51 +28,19 @@ class Database:
     """
 
     url: str
-    verbosity: int = 0
-    dry_run: bool = False
+    run_migrations: bool = True
     version: str | None = field(init=False, default=None)
     engine: sa.Engine = field(init=False)
-    _session: sa.orm.Session = field(init=False)
 
     @staticmethod
-    def from_config(config: Config, dry_run: bool = False) -> Database:
-        return Database.from_path(
-            config.paths.db,
-            config.db.filename,
-            config.db.verbosity,
-            dry_run,
-        )
-
-    @staticmethod
-    def from_path(
-        path: Path,
-        filename: str = "esgpull.db",
-        verbosity: int = 0,
-        dry_run: bool = False,
-    ) -> Database:
-        url = f"sqlite:///{path / filename}"
-        return Database(url, verbosity, dry_run)
+    def from_config(config: Config, run_migrations: bool = True) -> Database:
+        url = f"sqlite:///{config.paths.db / config.db.filename}"
+        return Database(url, run_migrations)
 
     def __attrs_post_init__(self) -> None:
-        self.apply_verbosity(self.verbosity)
-        self.engine = sa.create_engine(self.url, future=True)
-        sessionmaker: sa.orm.sessionmaker = sa.orm.sessionmaker(
-            bind=self.engine, future=True
-        )
-        self._session = sessionmaker()
-        if not self.dry_run:
+        self.engine = sa.create_engine(self.url)
+        if self.run_migrations:
             self.update()
-
-    def apply_verbosity(self, verbosity: int) -> None:
-        logging.basicConfig()
-        engine = logging.getLogger("sqlalchemy.engine")
-        if verbosity == 1:
-            engine_lvl = logging.INFO
-        elif verbosity == 2:
-            engine_lvl = logging.DEBUG
-        else:
-            engine_lvl = logging.NOTSET
-        engine.setLevel(engine_lvl)
 
     def update(self) -> None:
         config = AlembicConfig()
@@ -98,34 +66,34 @@ class Database:
             self.version = __version__
 
     @contextmanager
-    def get_session(self) -> Iterator[Session]:
-        try:
-            yield self._session
-        except (Exception, KeyboardInterrupt):
-            self._session.rollback()
-            raise
-        else:
-            self._session.commit()
+    def session(self) -> Iterator[Session]:
+        with Session(self.engine) as s:
+            try:
+                yield s
+            except (Exception, KeyboardInterrupt):
+                s.rollback()
+                raise
 
     @contextmanager
     def select(self, *selectable):
-        with self.get_session() as session:
-            try:
-                yield SelectContext(session, *selectable)
-            finally:
-                ...
+        with self.session() as session:
+            yield SelectContext(session, *selectable)
 
     def add(self, *items: Table) -> None:
-        with self.get_session() as session:
+        with self.session() as session:
             for item in items:
                 session.add(item)
+            session.commit()
+            for item in items:
+                session.refresh(item)
 
     def delete(self, *items: Table) -> None:
-        with self.get_session() as session:
+        with self.session() as session:
             for item in items:
                 session.delete(item)
-        for item in items:
-            sa.orm.session.make_transient(item)
+            session.commit()
+        # for item in items:
+        #     sa.orm.session.make_transient(item)
 
     def has(
         self,

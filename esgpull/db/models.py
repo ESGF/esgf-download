@@ -69,7 +69,6 @@ class File(Table):
     last_updated: Mapped[datetime] = mapped_column(
         init=False,
         repr=False,
-        nullable=False,
         server_default=sa.func.now(),
         onupdate=sa.func.now(),
     )
@@ -163,7 +162,6 @@ class Param(Table):
     last_updated: Mapped[datetime] = mapped_column(
         init=False,
         repr=False,
-        nullable=False,
         server_default=sa.func.now(),
         onupdate=sa.func.now(),
     )

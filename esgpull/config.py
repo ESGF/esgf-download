@@ -52,7 +52,6 @@ class Search:
 @define
 class Db:
     filename: str = "esgpull.db"
-    verbosity: int = 0
 
 
 @define
