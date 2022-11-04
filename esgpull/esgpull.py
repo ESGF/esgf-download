@@ -1,6 +1,7 @@
+from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncIterator, Iterator
 
 from attrs import define, field
 from rich.console import Group
@@ -44,6 +45,11 @@ class Esgpull:
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
 
+    @contextmanager
+    def context(self) -> Iterator[Context]:
+        ctx = Context(self.config)
+        yield ctx
+
     def fetch_index_nodes(self) -> list[str]:
         """
         Returns a list of ESGF index nodes.
@@ -51,9 +57,10 @@ class Esgpull:
         Fetch facet_counts from ESGF search API, using `distrib=True`.
         """
 
-        ctx = Context(distrib=True)
-        ctx.query.facets = "index_node"
-        return list(ctx.facet_counts[0]["index_node"])
+        with self.context() as ctx:
+            ctx.distrib = True
+            ctx.query.facets = "index_node"
+            return list(ctx.facet_counts[0]["index_node"])
 
     def fetch_params(self, update=False) -> bool:
         """
@@ -79,14 +86,15 @@ class Esgpull:
             return False
         self.db.delete(*params)
         index_nodes = self.fetch_index_nodes()
-        ctx = Context(distrib=False, max_concurrent=len(index_nodes))
-        for index_node in index_nodes:
-            query = ctx.query.add()
-            query.index_node = index_node
-        index_facets = ctx.facet_counts
-        facet_counts: dict[str, set[str]] = {}
-        for facets in index_facets:
-            for name, values in facets.items():
+        with self.context() as ctx:
+            ctx.distrib = False
+            for index_node in index_nodes:
+                query = ctx.query.add()
+                query.index_node = index_node
+            index_facet_counts = ctx.facet_counts
+        all_facet_counts: dict[str, set[str]] = {}
+        for facet_counts in index_facet_counts:
+            for name, values in facet_counts.items():
                 if name in IGNORE_NAMES or len(values) == 0:
                     continue
                 facet_values = set()
@@ -94,11 +102,11 @@ class Esgpull:
                     if count and len(value) <= 255:
                         facet_values.add(value)
                 if facet_values:
-                    facet_counts.setdefault(name, set())
-                    facet_counts[name] |= facet_values
+                    all_facet_counts.setdefault(name, set())
+                    all_facet_counts[name] |= facet_values
         new_params = []
-        for name, values in facet_counts.items():
-            for value in values:
+        for name, values_set in all_facet_counts.items():
+            for value in values_set:
                 new_params.append(Param(name=name, value=value))
         self.db.add(*new_params)
         return True
@@ -110,31 +118,35 @@ class Esgpull:
 
         FileStatus is `Done` regardless of the file's size (no checks).
         """
-        context = Context()
-        if index_node is not None:
-            context.query.index_node = index_node
-        filename_version_dict: dict[str, str] = {}
-        for path in self.fs.glob_netcdf():
-            if self.db.has(filepath=path):
-                continue
-            filename = path.name
-            version = path.parent.name
-            filename_version_dict[filename] = version
-            query = context.query.add()
-            query.title = filename
-        if filename_version_dict:
-            search_results = context.search(file=True)
-            new_files = []
-            for metadata in search_results:
-                file = File.from_dict(metadata)
-                if file.version == filename_version_dict[file.filename]:
-                    new_files.append(file)
-            self.install(*new_files, status=FileStatus.Done)
-            nb_remaining = len(filename_version_dict) - len(new_files)
-            print(f"Installed {len(new_files)} new files.")
-            print(f"{nb_remaining} files remain installed (another index?).")
-        else:
-            print("No new files.")
+        with self.context() as ctx:
+            if index_node is not None:
+                ctx.query.index_node = index_node
+            else:
+                ctx.distrib = True
+            filename_version_dict: dict[str, str] = {}
+            for path in self.fs.glob_netcdf():
+                if self.db.has(filepath=path):
+                    continue
+                filename = path.name
+                version = path.parent.name
+                filename_version_dict[filename] = version
+                query = ctx.query.add()
+                query.title = filename
+            if filename_version_dict:
+                search_results = ctx.search(file=True)
+                new_files = []
+                for metadata in search_results:
+                    file = File.from_dict(metadata)
+                    if file.version == filename_version_dict[file.filename]:
+                        new_files.append(file)
+                self.install(*new_files, status=FileStatus.Done)
+                nb_remaining = len(filename_version_dict) - len(new_files)
+                print(f"Installed {len(new_files)} new files.")
+                print(
+                    f"{nb_remaining} files remain installed (another index?)."
+                )
+            else:
+                print("No new files.")
 
     def install(
         self, *files: File, status: FileStatus = FileStatus.Queued

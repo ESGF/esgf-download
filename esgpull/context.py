@@ -1,10 +1,11 @@
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
-from pathlib import Path
 from typing import AsyncIterator, TypeAlias
 
 import rich
-from httpx import AsyncClient, Response
+from exceptiongroup import BaseExceptionGroup
+from httpx import AsyncClient, HTTPError, Response
 
 from esgpull.config import Config
 from esgpull.db.models import File
@@ -31,16 +32,13 @@ class Context:
 
     def __init__(
         self,
-        selection_file_path: str | Path | None = None,
         config: Config = None,
-        /,
         *,
         fields: str = "*",
         distrib: bool = False,
         retracted: bool = False,
         latest: bool | None = None,
         replica: bool | None = None,
-        max_concurrent: int = 5,
         search_batchsize: int = 50,
         since: str | datetime | None = None,
         show_url: bool = False,
@@ -55,7 +53,6 @@ class Context:
         self.replica = replica
         self.distrib = distrib
         self.retracted = retracted
-        self.max_concurrent = max_concurrent
         self.semaphores: dict[str, asyncio.Semaphore] = {}
         self.search_batchsize = search_batchsize
         if since is None:
@@ -65,10 +62,7 @@ class Context:
         self.show_url = show_url
         self.new_style = new_style
         self.index_nodes = index_nodes
-        if selection_file_path is not None:
-            self.query = Query.from_file(selection_file_path)
-        else:
-            self.query = Query()
+        self.query = Query()
 
     def _build_query(
         self,
@@ -222,31 +216,42 @@ class Context:
             self.query = original_query
         return queries
 
+    @asynccontextmanager
+    async def _client(self) -> AsyncIterator[AsyncClient]:
+        try:
+            client = AsyncClient(timeout=self.config.search.http_timeout)
+            yield client
+        finally:
+            await client.aclose()
+
     async def _fetch_one(self, url, query, client, sem) -> Response:
         async with sem:
             return await client.get(url, params=query)
 
     async def _fetch(self, queries) -> AsyncIterator[dict]:
-        client = AsyncClient(timeout=self.config.search.http_timeout)
-        coroutines = []
-        for query in queries:
-            url = query.pop("url")
-            if url not in self.semaphores:
-                self.semaphores[url] = asyncio.Semaphore(self.max_concurrent)
-            sem = self.semaphores[url]
-            coro = self._fetch_one(url, query, client, sem)
-            coroutines.append(asyncio.ensure_future(coro))
-        for future in coroutines:
-            try:
-                resp = await future
-                resp.raise_for_status()
-                if self.show_url:
-                    print(resp.url)
-                yield resp.json()
-            except Exception:
-                # TODO: clearer 404/501/TimeoutError/...
-                console.print_exception(show_locals=True)
-        await client.aclose()
+        async with self._client() as client:
+            coroutines = []
+            for query in queries:
+                url = query.pop("url")
+                self.semaphores.setdefault(
+                    url,
+                    asyncio.Semaphore(self.config.search.max_concurrent),
+                )
+                sem = self.semaphores[url]
+                coro = self._fetch_one(url, query, client, sem)
+                coroutines.append(asyncio.ensure_future(coro))
+            excs = []
+            for future in coroutines:
+                try:
+                    resp = await future
+                    resp.raise_for_status()
+                    if self.show_url:
+                        print(resp.url)
+                    yield resp.json()
+                except (asyncio.CancelledError, HTTPError) as exc:
+                    excs.append(exc)
+            if excs:
+                raise BaseExceptionGroup("fetch", excs)
 
     async def _hits(self, file=False) -> list[int]:
         result = []
