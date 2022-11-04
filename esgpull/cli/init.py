@@ -1,17 +1,22 @@
 import click
-import rich
-from rich.status import Status
+from click.exceptions import Abort
 
 from esgpull import Esgpull
+from esgpull.cli.decorators import opts
+from esgpull.tui import Verbosity
 from esgpull.utils import Root
 
 
 @click.command()
-def init():
+@opts.verbosity
+def init(
+    verbosity: Verbosity,
+):
     root = Root.get(mkdir=True)
-    esg = Esgpull(root)
-    with Status("Fetching params", spinner="earth"):
-        if esg.fetch_params(update=False):
-            rich.print("Params are initialised.")
-        else:
-            rich.print("Params already initialised.")
+    esg = Esgpull.with_verbosity(verbosity, root)
+    with esg.ui.logging("init", onraise=Abort):
+        with esg.ui.spinner("Fetching params"):
+            if esg.fetch_params(update=False):
+                esg.ui.print("Params are initialised.")
+            else:
+                esg.ui.print("Params already initialised.")
