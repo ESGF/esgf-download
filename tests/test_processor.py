@@ -65,9 +65,11 @@ async def run_task(task_):
     return chunk
 
 
+@pytest.mark.slow
 def test_task(auth, fs, smallfile, task):
     result = asyncio.run(run_task(task))
-    assert result.ok
+    if not result.ok:
+        raise result.err
     with fs.path_of(smallfile).open("rb") as f:
         data = f.read()
     assert len(data) == smallfile.size
