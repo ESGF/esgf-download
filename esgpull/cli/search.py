@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import click
-import rich
-from click.exceptions import Exit
+from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import load_facets, print_yaml, totable
+from esgpull.tui import Verbosity
 
 
 @click.command()
@@ -24,6 +24,7 @@ from esgpull.cli.utils import load_facets, print_yaml, totable
 @opts.selection_file
 @opts.since
 @opts.slice
+@opts.verbosity
 @opts.zero
 def search(
     facets: list[str],
@@ -40,6 +41,7 @@ def search(
     selection_file: str | None,
     since: str | None,
     slice_: slice,
+    verbosity: Verbosity,
     zero: bool,
 ) -> None:
     """
@@ -48,7 +50,7 @@ def search(
     More info
     """
 
-    esg = Esgpull()
+    esg = Esgpull.with_verbosity(verbosity)
     # TODO: bug with slice_:
     # -> numeric ids are not consistent due to sort by instance_id
     if zero:
@@ -57,7 +59,7 @@ def search(
         slice_ = slice(0, 1)
     offset = slice_.start
     size = slice_.stop - slice_.start
-    with esg.context() as ctx:
+    with esg.context() as ctx, esg.ui.logging("search", onraise=Abort):
         ctx.distrib = distrib
         ctx.latest = latest
         ctx.since = since
@@ -71,12 +73,12 @@ def search(
             queries = ctx._build_queries_search(
                 hits, file=file, max_results=size, offset=offset
             )
-            rich.print(queries)
+            esg.ui.print(queries)
             raise Exit(0)
         if options:
             ctx.query.facets = options
             results = ctx.options()
-            rich.print(results)
+            esg.ui.print(results)
             raise Exit(0)
         if dump:
             print_yaml(ctx.query.dump())
@@ -89,6 +91,6 @@ def search(
         )
         nb = sum(hits)
         item_type = "file" if file else "dataset"
-        rich.print(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
+        esg.ui.print(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
         if results:
-            rich.print(totable(results, data_node, date, slice_))
+            esg.ui.print(totable(results, data_node, date, slice_))
