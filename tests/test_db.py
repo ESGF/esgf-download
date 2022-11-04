@@ -46,7 +46,7 @@ def test_CRUD(db):
 
 
 def test_scalar(db):
-    params = [Param(f"name{i}", "value{i}") for i in range(2)]
+    params = [Param(f"name{i}", f"value{i}") for i in range(2)]
     db.add(*params)
     with db.select(Param) as select:
         assert select.results == [(params[0],), (params[1],)]
