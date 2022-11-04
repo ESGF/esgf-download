@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 from typing import AsyncIterator, Iterator
 
 from attrs import define, field
-from rich.console import Group
-from rich.live import Live
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -27,6 +27,7 @@ from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
+from esgpull.tui import UI, Verbosity, logger
 from esgpull.utils import Root, format_size
 
 
@@ -34,12 +35,26 @@ from esgpull.utils import Root, format_size
 class Esgpull:
     root: Path = field(converter=Path, factory=Root.get)
     config: Config = field(init=False)
+    ui: UI = field(init=False)
     fs: Filesystem = field(init=False)
     db: Database = field(init=False)
     auth: Auth = field(init=False)
 
+    @classmethod
+    def with_verbosity(
+        cls,
+        verbosity: Verbosity,
+        root: Path | None = None,
+    ) -> Esgpull:
+        if root is None:
+            root = Root.get()
+        esg = Esgpull(root)
+        esg.ui.verbosity = verbosity
+        return esg
+
     def __attrs_post_init__(self) -> None:
         self.config = Config.load(root=self.root)
+        self.ui = UI.from_config(self.config)
         self.fs = Filesystem.from_config(self.config)
         self.db = Database.from_config(self.config)
         credentials = Credentials()  # TODO: load file
@@ -211,7 +226,7 @@ class Esgpull:
                             final_speed = int(task.completed / task.elapsed)
                             speed = f"[red]{format_size(final_speed)}/s[/]"
                             items.append(speed)
-                        progress.log("✓ " + " · ".join(items))
+                        logger.info("✓ " + " · ".join(items))
                         yield result
                 case Err():
                     progress.remove_task(task.id)
@@ -220,7 +235,9 @@ class Esgpull:
                     raise ValueError("Unexpected result")
 
     async def download(
-        self, queue: list[File], progress_level: int = 0
+        self,
+        queue: list[File],
+        show_progress: bool = True,
     ) -> tuple[list[File], list[Err]]:
         """
         Download all files from db for which status is `Queued`.
@@ -228,14 +245,12 @@ class Esgpull:
         for file in queue:
             file.status = FileStatus.Starting
         self.db.add(*queue)
-        main_progress = Progress(
+        main_progress = self.ui.make_progress(
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
-            disable=progress_level < 1,
-            # transient=True,
         )
-        file_progress = Progress(
+        file_progress = self.ui.make_progress(
             TextColumn("[cyan][{task.id}]"),
             "[progress.percentage]{task.percentage:>3.0f}%",
             BarColumn(),
@@ -243,12 +258,7 @@ class Esgpull:
             DownloadColumn(),
             "·",
             TransferSpeedColumn(),
-            disable=progress_level < 1,
             transient=True,
-        )
-        progress = Group(
-            file_progress,
-            main_progress,
         )
         queue_size = len(queue)
         main_task_id = main_progress.add_task("", total=queue_size)
@@ -273,7 +283,11 @@ class Esgpull:
         errors: list[Err] = []
         remaining_dict = {file.id: file for file in queue}
         try:
-            with Live(progress):
+            with self.ui.live(
+                file_progress,
+                main_progress,
+                disable=not show_progress,
+            ):
                 async for result in self.iter_results(
                     processor, file_progress, file_task_ids
                 ):
@@ -293,9 +307,7 @@ class Esgpull:
                     remaining_dict.pop(result.file.id)
         finally:
             if remaining_dict:
-                main_progress.log(
-                    f"Cancelling {len(remaining_dict)} downloads."
-                )
+                logger.warning(f"Cancelling {len(remaining_dict)} downloads.")
                 cancelled: list[File] = []
                 for file in remaining_dict.values():
                     file.status = FileStatus.Cancelled

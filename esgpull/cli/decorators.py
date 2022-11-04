@@ -6,6 +6,7 @@ from click_params import StringListParamType
 
 from esgpull.cli.utils import EnumParam, SliceParam
 from esgpull.db.models import FileStatus
+from esgpull.tui import Verbosity
 
 Dec: TypeAlias = Callable[[Callable], Callable]
 
@@ -137,6 +138,12 @@ class opts:
         type=EnumParam(FileStatus),
         default=None,
         multiple=True,
+    )
+    verbosity: Dec = click.option(
+        "verbosity",
+        "-v",
+        count=True,
+        type=EnumParam(Verbosity),
     )
     zero: Dec = click.option(
         "--zero",
