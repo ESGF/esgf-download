@@ -1,4 +1,5 @@
 import click
+from click.exceptions import Abort
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
@@ -28,6 +29,6 @@ def config(
     verbosity: Verbosity,
 ):
     esg = Esgpull.with_verbosity(verbosity)
-    with esg.ui.logging("config"):
+    with esg.ui.logging("config", onraise=Abort):
         info = extract_command(esg.config.dump(), key)
         esg.ui.print(toml_syntax(info))

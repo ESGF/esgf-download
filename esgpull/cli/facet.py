@@ -1,4 +1,5 @@
 import click
+from click.exceptions import Abort
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
@@ -14,7 +15,7 @@ def facet(
     verbosity: Verbosity,
 ):
     esg = Esgpull.with_verbosity(verbosity)
-    with esg.ui.logging("facet"):
+    with esg.ui.logging("facet", onraise=Abort):
         if key is None:
             with esg.db.select(Param.name) as stmt:
                 params = stmt.distinct().scalars

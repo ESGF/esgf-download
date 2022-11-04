@@ -1,5 +1,5 @@
 import click
-from click.exceptions import Exit
+from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import opts
@@ -15,7 +15,7 @@ def autoremove(
     verbosity: Verbosity,
 ):
     esg = Esgpull.with_verbosity(verbosity)
-    with esg.ui.logging("autoremove"):
+    with esg.ui.logging("autoremove", onraise=Abort):
         deprecated = esg.db.get_deprecated_files()
         nb = len(deprecated)
         if not nb:
