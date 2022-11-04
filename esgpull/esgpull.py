@@ -248,17 +248,16 @@ class Esgpull:
             file_task_ids[file.id] = task_id
             start_callbacks[file.id] = [callback]
         processor = Processor(
+            config=self.config,
             auth=self.auth,
             fs=self.fs,
             files=queue,
-            config=self.config,
             start_callbacks=start_callbacks,
         )
-        files: list[
-            File
-        ] = []  # TODO: rename ? installed/downloaded/completed/...
+        # TODO: rename ? installed/downloaded/completed/...
+        files: list[File] = []
         errors: list[Err] = []
-        remaining = queue[:]  # copy list
+        remaining_dict = {file.id: file for file in queue}
         try:
             with Live(progress):
                 async for result in self.iter_results(
@@ -277,19 +276,14 @@ class Esgpull:
                             result.file.status = FileStatus.Error
                             errors.append(result)
                     self.db.add(result.file)
-                    remaining_idx = [
-                        i
-                        for i, file in enumerate(remaining)
-                        if file.id == result.file.id
-                    ][0]
-                    remaining.pop(remaining_idx)
+                    remaining_dict.pop(result.file.id)
         finally:
-            if remaining:
+            if remaining_dict:
                 main_progress.log(
-                    f"Putting {len(remaining)} back to the queue."
+                    f"Cancelling {len(remaining_dict)} downloads."
                 )
                 cancelled: list[File] = []
-                for file in remaining:
+                for file in remaining_dict.values():
                     file.status = FileStatus.Cancelled
                     cancelled.append(file)
                     errors.append(Err(file, 0, DownloadCancelled()))

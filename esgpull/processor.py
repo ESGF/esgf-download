@@ -22,17 +22,17 @@ Callback: TypeAlias = partial[None]
 class Task:
     def __init__(
         self,
+        config: Config,
         auth: Auth,
         fs: Filesystem,
-        config: Config,
         *,
         url: str | None = None,
         file: File | None = None,
         start_callbacks: list[Callback] | None = None,
     ) -> None:
+        self.config = config
         self.auth = auth
         self.fs = fs
-        self.config = config
         if file is None and url is not None:
             self.file = self.fetch_file(url)
         elif file is not None:
@@ -91,24 +91,24 @@ class Task:
 class Processor:
     def __init__(
         self,
+        config: Config,
         auth: Auth,
         fs: Filesystem,
         files: list[File],
-        config: Config,
         start_callbacks: dict[int, list[Callback]],
     ) -> None:
-        self.files = files
         self.config = config
-        self.tasks = [
-            Task(
+        self.files = files
+        self.tasks = []
+        for file in files:
+            task = Task(
+                config=config,
                 auth=auth,
                 fs=fs,
-                config=config,
                 file=file,
                 start_callbacks=start_callbacks[file.id],
             )
-            for file in files
-        ]
+            self.tasks.append(task)
 
     async def process(self) -> AsyncIterator[Result]:
         semaphore = asyncio.Semaphore(self.config.download.max_concurrent)

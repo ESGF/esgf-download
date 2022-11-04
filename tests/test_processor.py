@@ -44,13 +44,13 @@ def auth(config):
 
 
 @pytest.fixture
-def from_file(auth, fs, config, smallfile):
-    return Task(auth, fs, config, file=smallfile)
+def from_file(config, auth, fs, smallfile):
+    return Task(config, auth, fs, file=smallfile)
 
 
 @pytest.fixture
-def from_url(auth, fs, config, smallfile):
-    return Task(auth, fs, config, url=smallfile.url)
+def from_url(config, auth, fs, smallfile):
+    return Task(config, auth, fs, url=smallfile.url)
 
 
 @pytest.fixture(params=["from_file", "from_url"])

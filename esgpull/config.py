@@ -46,6 +46,7 @@ class Paths:
 class Search:
     index_node: str = "esgf-node.ipsl.upmc.fr"
     http_timeout: int = 20
+    max_concurrent: int = 5
 
 
 @define
