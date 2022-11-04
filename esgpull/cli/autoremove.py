@@ -3,11 +3,12 @@ import rich
 from click.exceptions import Exit
 
 from esgpull import Esgpull
+from esgpull.cli.decorators import opts
 from esgpull.cli.utils import totable
 
 
 @click.command()
-@click.option("--force", "-f", is_flag=True, default=False)
+@opts.force
 def autoremove(force: bool):
     esg = Esgpull()
     deprecated = esg.db.get_deprecated_files()

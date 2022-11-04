@@ -1,6 +1,7 @@
 import click
 
 from esgpull import Esgpull
+from esgpull.cli.decorators import args
 from esgpull.cli.utils import print_toml
 
 
@@ -17,9 +18,8 @@ def extract_command(info: dict, command: str | None) -> dict:
 
 
 @click.command()
-@click.argument("key", type=str, nargs=1, required=False, default=None)
-@click.argument("value", type=str, nargs=1, required=False, default=None)
-# @click.argument("value", type=str, nargs=1, required=False, default=None)
+@args.key
+@args.value
 def config(key: str | None, value: str | None):
     esg = Esgpull()
     info = extract_command(esg.config.dump(), key)
