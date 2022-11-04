@@ -17,6 +17,7 @@ from esgpull.cli.retry import retry
 from esgpull.cli.search import search
 from esgpull.cli.status import status
 from esgpull.cli.upgrade import upgrade
+from esgpull.tui import UI
 
 # [-]TODO: stats
 #   - speed per index/data node
@@ -42,9 +43,12 @@ SUBCOMMANDS: list[click.Command] = [
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
+_ui = UI("/tmp")
+version_msg = _ui.render(f"esgpull, version [green]{__version__}[/]")
+
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(__version__, "-V", "--version")
+@click.version_option(None, "-V", "--version", message=version_msg)
 def cli():
     """
     esgpull is a management utility for files and datasets from ESGF.
