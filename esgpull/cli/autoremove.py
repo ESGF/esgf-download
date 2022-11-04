@@ -1,30 +1,35 @@
 import click
-import rich
 from click.exceptions import Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import opts
 from esgpull.cli.utils import totable
+from esgpull.tui import Verbosity
 
 
 @click.command()
 @opts.force
-def autoremove(force: bool):
-    esg = Esgpull()
-    deprecated = esg.db.get_deprecated_files()
-    nb = len(deprecated)
-    if not nb:
-        rich.print("All files are up to date.")
-        raise Exit(0)
-    if not force:
-        rich.print(totable([file.raw for file in deprecated]))
-        s = "s" if nb > 1 else ""
-        rich.print(f"Removing {nb} file{s}")
-        click.confirm("Continue?", default=True, abort=True)
-    removed = esg.remove(*deprecated)
-    rich.print(f"Removed {len(removed)} files with newer version.")
-    nb_remain = len(removed) - nb
-    if nb_remain:
-        rich.print(f"{nb_remain} files could not be removed.")
-    if force:
-        rich.print(totable([file.raw for file in removed]))
+@opts.verbosity
+def autoremove(
+    force: bool,
+    verbosity: Verbosity,
+):
+    esg = Esgpull.with_verbosity(verbosity)
+    with esg.ui.logging("autoremove"):
+        deprecated = esg.db.get_deprecated_files()
+        nb = len(deprecated)
+        if not nb:
+            esg.ui.print("All files are up to date.")
+            raise Exit(0)
+        if not force:
+            esg.ui.print(totable([file.raw for file in deprecated]))
+            s = "s" if nb > 1 else ""
+            esg.ui.print(f"Removing {nb} file{s}")
+            click.confirm("Continue?", default=True, abort=True)
+        removed = esg.remove(*deprecated)
+        esg.ui.print(f"Removed {len(removed)} files with newer version.")
+        nb_remain = len(removed) - nb
+        if nb_remain:
+            esg.ui.print(f"{nb_remain} files could not be removed.")
+        if force:
+            esg.ui.print(totable([file.raw for file in removed]))
