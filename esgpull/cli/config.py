@@ -1,8 +1,9 @@
 import click
 
 from esgpull import Esgpull
-from esgpull.cli.decorators import args
+from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import print_toml
+from esgpull.tui import Verbosity
 
 
 def extract_command(info: dict, command: str | None) -> dict:
@@ -20,7 +21,13 @@ def extract_command(info: dict, command: str | None) -> dict:
 @click.command()
 @args.key
 @args.value
-def config(key: str | None, value: str | None):
-    esg = Esgpull()
-    info = extract_command(esg.config.dump(), key)
-    print_toml(info)
+@opts.verbosity
+def config(
+    key: str | None,
+    value: str | None,
+    verbosity: Verbosity,
+):
+    esg = Esgpull.with_verbosity(verbosity)
+    with esg.ui.logging("config"):
+        info = extract_command(esg.config.dump(), key)
+        print_toml(info)
