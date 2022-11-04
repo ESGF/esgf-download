@@ -2,7 +2,7 @@ import click
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import print_toml
+from esgpull.cli.utils import toml_syntax
 from esgpull.tui import Verbosity
 
 
@@ -30,4 +30,4 @@ def config(
     esg = Esgpull.with_verbosity(verbosity)
     with esg.ui.logging("config"):
         info = extract_command(esg.config.dump(), key)
-        print_toml(info)
+        esg.ui.print(toml_syntax(info))

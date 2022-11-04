@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Any
 
 import click
 import rich
@@ -14,16 +13,14 @@ from esgpull.query import Query
 from esgpull.utils import format_size
 
 
-def print_yaml(data: Any) -> None:
+def yaml_syntax(data: dict) -> Syntax:
     yml = yaml.dump(data)
-    syntax = Syntax(yml, "yaml", theme="ansi_dark")
-    rich.print(syntax)
+    return Syntax(yml, "yaml", theme="ansi_dark")
 
 
-def print_toml(data: Any) -> None:
+def toml_syntax(data: dict) -> Syntax:
     tml = tomlkit.dumps(data)
-    syntax = Syntax(tml, "toml", theme="ansi_dark")
-    rich.print(syntax)
+    return Syntax(tml, "toml", theme="ansi_dark")
 
 
 class EnumParam(click.Choice):

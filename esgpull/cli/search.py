@@ -5,7 +5,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import load_facets, print_yaml, totable
+from esgpull.cli.utils import load_facets, totable, yaml_syntax
 from esgpull.tui import Verbosity
 
 
@@ -81,7 +81,7 @@ def search(
             esg.ui.print(results)
             raise Exit(0)
         if dump:
-            print_yaml(ctx.query.dump())
+            esg.ui.print(yaml_syntax(ctx.query.dump()))
             raise Exit(0)
         results = ctx.search(
             file=file,
