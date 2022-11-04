@@ -12,6 +12,7 @@ from esgpull.db.models import File
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.facet import FacetDict
 from esgpull.query import Query
+from esgpull.tui import logger
 from esgpull.utils import format_date, index2url
 
 # workaround for notebooks with running event loop
@@ -41,7 +42,6 @@ class Context:
         replica: bool | None = None,
         search_batchsize: int = 50,
         since: str | datetime | None = None,
-        show_url: bool = False,
         new_style: bool = True,
         index_nodes: list[str] | None = None,
     ):
@@ -59,7 +59,6 @@ class Context:
             self.since = since
         else:
             self.since = format_date(since)
-        self.show_url = show_url
         self.new_style = new_style
         self.index_nodes = index_nodes
         self.query = Query()
@@ -226,7 +225,9 @@ class Context:
 
     async def _fetch_one(self, url, query, client, sem) -> Response:
         async with sem:
-            return await client.get(url, params=query)
+            request = client.build_request("GET", url=url, params=query)
+            logger.debug(f"GET {url} params={query}")
+            return await client.send(request)
 
     async def _fetch(self, queries) -> AsyncIterator[dict]:
         async with self._client() as client:
@@ -245,8 +246,7 @@ class Context:
                 try:
                     resp = await future
                     resp.raise_for_status()
-                    if self.show_url:
-                        print(resp.url)
+                    logger.info(f"✓ Fetched in {resp.elapsed}s {resp.url}")
                     yield resp.json()
                 except (asyncio.CancelledError, HTTPError) as exc:
                     excs.append(exc)

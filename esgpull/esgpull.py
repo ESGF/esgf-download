@@ -64,6 +64,7 @@ class Esgpull:
     def context(self) -> Iterator[Context]:
         ctx = Context(self.config)
         yield ctx
+        logger.debug(f"Discard {ctx}")
 
     def fetch_index_nodes(self) -> list[str]:
         """
@@ -72,6 +73,9 @@ class Esgpull:
         Fetch facet_counts from ESGF search API, using `distrib=True`.
         """
 
+        logger.debug(
+            f"Fetching index nodes from {self.config.search.index_node}"
+        )
         with self.context() as ctx:
             ctx.distrib = True
             ctx.query.facets = "index_node"
@@ -97,6 +101,7 @@ class Esgpull:
 
         with self.db.select(Param) as ctx:
             params = ctx.scalars
+        logger.debug(f"Found {len(params)} params in database")
         if params and not update:
             return False
         self.db.delete(*params)
@@ -106,6 +111,7 @@ class Esgpull:
             for index_node in index_nodes:
                 query = ctx.query.add()
                 query.index_node = index_node
+            logger.debug(f"Fetching facet counts using {ctx}")
             index_facet_counts = ctx.facet_counts
         all_facet_counts: dict[str, set[str]] = {}
         for facet_counts in index_facet_counts:

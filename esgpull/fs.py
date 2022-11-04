@@ -9,6 +9,7 @@ from attrs import define, field
 
 from esgpull.config import Config
 from esgpull.db.models import File
+from esgpull.tui import logger
 
 
 @define
@@ -74,8 +75,10 @@ class Filesystem:
         for file in files:
             path = self.path_of(file)
             path.unlink(missing_ok=True)
+            logger.info(f"Deleted file {path}")
             for subpath in self.iter_empty_parents(path.parent):
                 subpath.rmdir()
+                logger.info(f"Deleted empty folder {subpath}")
 
 
 @define
