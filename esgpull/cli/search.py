@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import click
 import rich
+from click.exceptions import Exit
 
-from esgpull import Context
+from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import load_facets, print_yaml, totable
 
@@ -47,33 +48,45 @@ def search(
     More info
     """
 
+    esg = Esgpull()
     # TODO: bug with slice_:
     # -> numeric ids are not consistent due to sort by instance_id
-    ctx = Context(distrib=distrib, latest=latest, since=since, replica=replica)
     if zero:
         slice_ = slice(0, 0)
     elif one:
         slice_ = slice(0, 1)
     offset = slice_.start
     size = slice_.stop - slice_.start
-    load_facets(ctx.query, facets, selection_file)
-    if file:
-        hits = ctx.file_hits
-    else:
-        hits = ctx.hits
-    if dry_run:
-        queries = ctx._build_queries_search(
-            hits, file=file, max_results=size, offset=offset
+    with esg.context() as ctx:
+        ctx.distrib = distrib
+        ctx.latest = latest
+        ctx.since = since
+        ctx.replica = replica
+        load_facets(ctx.query, facets, selection_file)
+        if file:
+            hits = ctx.file_hits
+        else:
+            hits = ctx.hits
+        if dry_run:
+            queries = ctx._build_queries_search(
+                hits, file=file, max_results=size, offset=offset
+            )
+            rich.print(queries)
+            raise Exit(0)
+        if options:
+            ctx.query.facets = options
+            results = ctx.options()
+            rich.print(results)
+            raise Exit(0)
+        if dump:
+            print_yaml(ctx.query.dump())
+            raise Exit(0)
+        results = ctx.search(
+            file=file,
+            max_results=size,
+            offset=offset,
+            hits=hits,
         )
-        rich.print(queries)
-    elif options:
-        ctx.query.facets = options
-        results = ctx.options()
-        rich.print(results)
-    elif dump:
-        print_yaml(ctx.query.dump())
-    else:
-        results = ctx.search(file=file, max_results=size, offset=offset)
         nb = sum(hits)
         item_type = "file" if file else "dataset"
         rich.print(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")

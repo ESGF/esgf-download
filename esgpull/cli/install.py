@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import click
 import rich
+from click.exceptions import Exit
 
-from esgpull import Context, Esgpull
+from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import load_facets
 from esgpull.db.models import File
@@ -34,27 +35,36 @@ def install(
     since: str | None,
 ) -> None:
     esg = Esgpull()
-    ctx = Context(distrib=distrib, latest=latest, since=since, replica=replica)
-    load_facets(ctx.query, facets, selection_file)
-    if not ctx.query.dump():
-        raise click.UsageError("No search terms provided.")
-    hits = ctx.file_hits
-    nb_files = sum(hits)
-    rich.print(f"Found {nb_files} files.")
-    if nb_files > 500 and distrib:
-        # Enable better distrib
-        ctx.index_nodes = esg.fetch_index_nodes()
-    if dry_run:
-        queries = ctx._build_queries_search(
-            hits, file=True, max_results=nb_files, offset=0
-        )
-        rich.print(queries)
-    else:
+    with esg.context() as ctx:
+        ctx.distrib = distrib
+        ctx.latest = latest
+        ctx.since = since
+        ctx.replica = replica
+        load_facets(ctx.query, facets, selection_file)
+        if not ctx.query.dump():
+            raise click.UsageError("No search terms provided.")
+        hits = ctx.file_hits
+        nb_files = sum(hits)
+        rich.print(f"Found {nb_files} files.")
+        if nb_files > 500 and distrib:
+            # Enable better distrib
+            ctx.index_nodes = esg.fetch_index_nodes()
+        if dry_run:
+            queries = ctx._build_queries_search(
+                hits, file=True, max_results=nb_files, offset=0
+            )
+            rich.print(queries)
+            raise Exit(0)
         if not force and nb_files > 5000:
             nb_req = nb_files // 50
             message = f"{nb_req} requests will be send to ESGF. Continue?"
             click.confirm(message, default=True, abort=True)
-        results = ctx.search(file=True, max_results=None, offset=0)
+        results = ctx.search(
+            file=True,
+            max_results=None,
+            offset=0,
+            hits=hits,
+        )
         files = [File.from_dict(result) for result in results]
         total_size = sum([file.size for file in files])
         rich.print(f"Total size: {format_size(total_size)}")

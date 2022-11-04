@@ -149,7 +149,9 @@ class Esgpull:
                 print("No new files.")
 
     def install(
-        self, *files: File, status: FileStatus = FileStatus.Queued
+        self,
+        *files: File,
+        status: FileStatus = FileStatus.Queued,
     ) -> list[File]:
         """
         Insert `files` with specified `status` into db if not already there.
