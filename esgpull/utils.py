@@ -1,9 +1,9 @@
 import datetime
+import logging
 import os
 from pathlib import Path
 from urllib.parse import urlparse
 
-import rich
 from rich.filesize import _to_str
 
 from esgpull.constants import ENV_VARNAME
@@ -69,12 +69,10 @@ class Root:
             root_env = os.environ.get(ENV_VARNAME)
             if root_env is None:
                 cls.root = Path.home() / ".esgpull"
-                rich.print(
-                    f":warning-emoji: Using default root directory: {cls.root}"
-                )
-                rich.print(
-                    f"Set [yellow]{ENV_VARNAME}[/] to the desired root directory to disable this warning."
-                )
+                msg = f"Using root directory: {cls.root}\n"
+                msg += f"Set {ENV_VARNAME} to the desired root directory to disable this warning."
+                logger = logging.getLogger("esgpull")
+                logger.warning(msg)
             else:
                 cls.root = Path(root_env)
         if mkdir:

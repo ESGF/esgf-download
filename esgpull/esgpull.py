@@ -46,8 +46,9 @@ class Esgpull:
         verbosity: Verbosity,
         root: Path | None = None,
     ) -> Esgpull:
-        if root is None:
-            root = Root.get()
+        with UI("/tmp", Verbosity.Detail).logging("root"):
+            if root is None:
+                root = Root.get()
         esg = Esgpull(root)
         esg.ui.verbosity = verbosity
         return esg

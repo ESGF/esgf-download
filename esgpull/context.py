@@ -318,7 +318,9 @@ class Context:
             nb_expected = min(sum(hits), max_results)
         nb_dropped = nb_expected - len(checksums)
         if nb_dropped:
-            print(f"Dropped {nb_dropped} duplicates.")
+            f_or_d = "file" if file else "dataset"
+            s = "s" if nb_dropped > 1 else ""
+            logger.info(f"Dropped {nb_dropped} duplicate {f_or_d}{s}.")
         return result
 
     @property
