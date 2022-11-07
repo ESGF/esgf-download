@@ -94,6 +94,8 @@ class UI:
         except click.exceptions.Exit:
             if temp_path is not None:
                 atexit.register(temp_path.unlink)
+        except click.exceptions.ClickException:
+            raise
         except BaseException:
             logging.root.exception("Error:")
             if self.verbosity < Verbosity.Detail:
