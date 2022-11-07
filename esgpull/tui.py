@@ -70,18 +70,15 @@ class UI:
     ):
         handler: logging.Handler
         temp_path: Path | None = None
-        is_printed = False
-        name_fmt = " ·· %(name)s ··"
-        fmt = f"{name_fmt}\n%(levelname)-7s\n%(message)s\n"
+        fmt = "  %(name)s:%(levelname)-7s\n%(message)s\n"
         if self.verbosity >= Verbosity.Detail:
-            is_printed = True
-            if _console.is_terminal or _console.is_jupyter:
+            if _err_console.is_terminal or _err_console.is_jupyter:
                 handler = RichHandler(
-                    console=_console,
+                    console=_err_console,
                     show_path=False,
                     markup=True,
                 )
-                fmt = f"[yellow]{name_fmt}[/]\n%(message)s"
+                fmt = "[yellow]· %(name)s ·[/]\n%(message)s"
             else:
                 handler = logging.StreamHandler()
             handler.setLevel(self.verbosity.get_level())
@@ -93,8 +90,6 @@ class UI:
         handler.setFormatter(logging.Formatter(fmt=fmt, datefmt="[%X]"))
         logging.root.addHandler(handler)
         try:
-            if is_printed:
-                _console.rule(modulename)
             yield
         except click.exceptions.Exit:
             if temp_path is not None:
