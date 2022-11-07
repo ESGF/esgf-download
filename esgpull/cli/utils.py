@@ -126,6 +126,7 @@ def load_facets(
             if value.endswith("/"):
                 final_exact_str = " ".join(exact_terms)
                 value = '"' + final_exact_str.strip("/") + '"'
+                exact_terms = None
             else:
                 continue
         facet_dict.setdefault(name, set())
