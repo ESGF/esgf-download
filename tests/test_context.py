@@ -1,6 +1,9 @@
+from time import time
+
 import pytest
 
 from esgpull.context import Context
+from esgpull.esgpull import Esgpull
 
 
 @pytest.fixture
@@ -81,6 +84,30 @@ def test_adjust_hits_produces_1_result_per_query(base):
     assert len(results) == len(variable_ids)
     for result, expected in zip(results, variable_ids):
         assert result["variable_id"][0] == expected
+
+
+@pytest.mark.slow
+def test_better_distrib(base):
+    base.config.search.http_timeout = 60
+    base.distrib = True
+    # configure terms to target ~1000 files across different index nodes
+    base.query.mip_era = "CMIP6"
+    base.query.table_id = "Amon"
+    base.query.variable_id = "tas"
+    base.query.member_id = "r20i1p1f1"
+    start = time()
+    regular_results = base.search(file=True, max_results=None)
+    regular_elapsed = time() - start
+    esg = Esgpull()
+    base.index_nodes = esg.fetch_index_nodes()
+    base.semaphores = {}  # semaphores were bound to the previous event loop
+    start = time()
+    better_results = base.search(file=True, max_results=None)
+    better_elapsed = time() - start
+    regular_checksums = set(doc["checksum"][0] for doc in regular_results)
+    better_checksums = set(doc["checksum"][0] for doc in better_results)
+    assert regular_checksums == better_checksums
+    assert regular_elapsed > better_elapsed
 
 
 def test_ipsl_hits_between_1_and_2_million(cmip6_ipsl):

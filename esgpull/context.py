@@ -27,10 +27,6 @@ FacetCounts: TypeAlias = dict[str, dict[str, int]]
 
 
 class Context:
-    """
-    [+]TODO: add storage query builder from this
-    """
-
     def __init__(
         self,
         config: Config = None,
@@ -248,7 +244,9 @@ class Context:
                     resp.raise_for_status()
                     logger.info(f"✓ Fetched in {resp.elapsed}s {resp.url}")
                     yield resp.json()
-                except (asyncio.CancelledError, HTTPError) as exc:
+                except HTTPError as exc:
+                    logger.error(exc)
+                except (Exception, asyncio.CancelledError) as exc:
                     excs.append(exc)
             if excs:
                 raise BaseExceptionGroup("fetch", excs)
@@ -343,11 +341,11 @@ class Context:
         for query, facet_counts in zip(queries, all_facet_counts):
             facet_options = {}
             for facet, counts in facet_counts.items():
+                # discard non-facets
                 if facet not in self.query._facets:
-                    continue  # discard non-facets
-                if not query[facet].isdefault():
-                    continue  # discard facets with value
-                if len(counts) > 0:
+                    continue
+                # keep only when there are 2 or more options
+                if len(counts) > 1:
                     facet_options[facet] = counts
             result.append(facet_options)
         return result

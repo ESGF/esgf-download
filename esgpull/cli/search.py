@@ -89,7 +89,7 @@ def search(
             raise Exit(0)
         if options:
             ctx.query.facets = options
-            results = ctx.options()
+            results = ctx.options(file=file)
             esg.ui.print(results)
             raise Exit(0)
         if dump:
