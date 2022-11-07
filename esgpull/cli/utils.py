@@ -103,6 +103,7 @@ def load_facets(
     query: Query, facets: list[str], selection_file: str | None
 ) -> None:
     facet_dict: dict[str, set[str]] = {}
+    exact_terms: list[str] | None = None
     for facet in facets:
         match facet.split(":"):
             case [value]:
@@ -111,6 +112,22 @@ def load_facets(
                 ...
             case _:
                 raise BadArgumentUsage(f"'{facet}' is not valid syntax.")
+        if value.startswith("/"):
+            if exact_terms is not None:
+                raise BadArgumentUsage("Nested exact string is forbidden.")
+            exact_terms = []
+        if exact_terms is not None:
+            if name != "query":
+                raise BadArgumentUsage(
+                    "Using facet terms is forbidden "
+                    "inside an exact string term."
+                )
+            exact_terms.append(value)
+            if value.endswith("/"):
+                final_exact_str = " ".join(exact_terms)
+                value = '"' + final_exact_str.strip("/") + '"'
+            else:
+                continue
         facet_dict.setdefault(name, set())
         facet_dict[name].add(value)
     query.load(facet_dict)  # type: ignore
