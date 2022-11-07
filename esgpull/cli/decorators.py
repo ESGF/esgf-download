@@ -85,6 +85,11 @@ class opts:
         is_flag=True,
         default=False,
     )
+    json: Dec = click.option(
+        "--json",
+        is_flag=True,
+        default=False,
+    )
     latest: Dec = click.option(
         "--latest/--no-latest",
         "-l/-L",

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import click
 from click.exceptions import Abort, Exit
+from httpx import Client
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import load_facets, totable, yaml_syntax
+from esgpull.cli.utils import filter_docs, load_facets, totable, yaml_syntax
 from esgpull.tui import Verbosity
 
 
@@ -17,9 +18,11 @@ from esgpull.tui import Verbosity
 @opts.dry_run
 @opts.dump
 @opts.file
+@opts.json
 @opts.latest
 @opts.one
 @opts.options
+@opts.quiet
 @opts.replica
 @opts.selection_file
 @opts.since
@@ -34,9 +37,11 @@ def search(
     dry_run: bool,
     dump: bool,
     file: bool,
+    json: bool,
     latest: bool | None,
     one: bool,
     options: list[str],
+    quiet: bool,
     replica: bool | None,
     selection_file: str | None,
     since: str | None,
@@ -73,7 +78,14 @@ def search(
             queries = ctx._build_queries_search(
                 hits, file=file, max_results=size, offset=offset
             )
-            esg.ui.print(queries)
+            if json:
+                esg.ui.print(queries)
+            else:
+                client = Client()
+                for query in queries:
+                    url = query.pop("url")
+                    request = client.build_request("GET", url, params=query)
+                    esg.ui.print(request.url)
             raise Exit(0)
         if options:
             ctx.query.facets = options
@@ -91,6 +103,19 @@ def search(
         )
         nb = sum(hits)
         item_type = "file" if file else "dataset"
-        esg.ui.print(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
+        if not quiet and not json:
+            esg.ui.print(f"Found {nb} {item_type}{'s' if nb > 1 else ''}.")
         if results:
-            esg.ui.print(totable(results, data_node, date, slice_))
+            docs = filter_docs(
+                results,
+                node=data_node,
+                date=date,
+                offset=offset,
+            )
+            if quiet:
+                for doc in docs:
+                    esg.ui.print(doc["id"])
+            elif json:
+                esg.ui.print([dict(d) for d in docs])
+            else:
+                esg.ui.print(totable(docs))

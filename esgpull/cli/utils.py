@@ -1,4 +1,6 @@
+from collections import OrderedDict
 from enum import Enum
+from typing import Any
 
 import click
 import rich
@@ -56,39 +58,43 @@ class SliceParam(ListParamType):
         return slice(start, stop)
 
 
-def pretty_id(id: str) -> str:
-    return id.partition("|")[0]
+def filter_docs(
+    docs: list[dict],
+    indices: bool = True,
+    size: bool = True,
+    node: bool = False,
+    date: bool = False,
+    offset: int = 0,
+) -> list[OrderedDict[str, Any]]:
+    result: list[OrderedDict[str, Any]] = []
+    for i, doc in enumerate(docs):
+        od: OrderedDict[str, Any] = OrderedDict()
+        if indices:
+            od["#"] = i + offset
+        if size:
+            od["size"] = doc["size"]
+        od["id"] = doc["id"].partition("|")[0]
+        if node:
+            od["node"] = doc["data_node"]
+        if date:
+            od["date"] = doc.get("timestamp") or doc.get("_timestamp")
+        result.append(od)
+    return result
 
 
 def totable(
-    results: list[dict],
-    node: bool = False,
-    date: bool = False,
-    _slice: slice = None,
+    docs: list[OrderedDict[str, Any]],
 ) -> Table:
-    if _slice is None:
-        _slice = slice(0, len(results))
-    _slice_no_offset = slice(0, _slice.stop - _slice.start)
     rows: list[map | list]
-    # table = Table(box=rich.box.MINIMAL_DOUBLE_HEAD)
     table = Table(box=rich.box.MINIMAL)
-    table.add_column("#", justify="right")
-    table.add_column("size", justify="right")
-    table.add_column("id", justify="left")
-    indices = map(str, range(_slice.start, _slice.stop))
-    sizes = map(format_size, [r["size"] for r in results][_slice_no_offset])
-    ids = map(pretty_id, [r["id"] for r in results][_slice_no_offset])
-    rows = [indices, sizes, ids]
-    if node:
-        table.add_column("node", justify="right")
-        nodes = [r["data_node"] for r in results][_slice_no_offset]
-        rows.append(nodes)
-    if date:
-        table.add_column("date", justify="right")
-        timestamp = [r.get("timestamp", r.get("_timestamp")) for r in results]
-        dates = timestamp[_slice_no_offset]
-        rows.append(dates)
-    for row in zip(*rows):
+    for key in docs[0].keys():
+        table.add_column(key, justify="right")
+    for doc in docs:
+        row: list[str] = []
+        for key, value in doc.items():
+            if key == "size":
+                value = format_size(value)
+            row.append(str(value))
         table.add_row(*row)
     return table
 

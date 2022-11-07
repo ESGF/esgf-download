@@ -3,7 +3,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import opts
-from esgpull.cli.utils import totable
+from esgpull.cli.utils import filter_docs, totable
 from esgpull.tui import Verbosity
 
 
@@ -22,7 +22,8 @@ def autoremove(
             esg.ui.print("All files are up to date.")
             raise Exit(0)
         if not force:
-            esg.ui.print(totable([file.raw for file in deprecated]))
+            docs = filter_docs([file.raw for file in deprecated])
+            esg.ui.print(totable(docs))
             s = "s" if nb > 1 else ""
             esg.ui.print(f"Removing {nb} file{s}")
             click.confirm("Continue?", default=True, abort=True)
@@ -32,4 +33,5 @@ def autoremove(
         if nb_remain:
             esg.ui.print(f"{nb_remain} files could not be removed.")
         if force:
-            esg.ui.print(totable([file.raw for file in removed]))
+            docs = filter_docs([file.raw for file in removed])
+            esg.ui.print(totable(docs))
