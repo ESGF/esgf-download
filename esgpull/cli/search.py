@@ -87,9 +87,14 @@ def search(
                     request = client.build_request("GET", url, params=query)
                     esg.ui.print(request.url)
             raise Exit(0)
-        if options:
-            ctx.query.facets = options
-            results = ctx.options(file=file)
+        if options is not None:
+            if options[0] in "*/?.":
+                ctx.distrib = False
+                results = ctx.options(file=file)
+                facet_names = [list(r) for r in results]
+                esg.ui.print(facet_names)
+                raise Exit(0)
+            results = ctx.options(file=file, facets=options)
             esg.ui.print(results)
             raise Exit(0)
         if dump:
