@@ -72,11 +72,13 @@ class Config:
     @staticmethod
     def load(root: Path) -> Config:
         config_file = root / CONFIG_FILENAME
-        if not config_file.is_file():
-            config_file.touch()
-        with config_file.open() as fh:
-            raw = fh.read()
-        doc = tomlkit.loads(raw)
+        if config_file.is_file():
+            with config_file.open() as fh:
+                raw = fh.read()
+            doc = tomlkit.loads(raw)
+        else:
+            raw = None
+            doc = tomlkit.TOMLDocument()
         doc.add(tomlkit.key(["paths", "root"]), tomlkit.string(str(root)))
         config = _converter_defaults.structure(doc, Config)
         config._raw = raw
