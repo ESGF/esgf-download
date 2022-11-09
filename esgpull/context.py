@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import AsyncIterator, Coroutine, TypeAlias, TypeVar
+from typing import AsyncIterator, Collection, Coroutine, TypeAlias, TypeVar
 
 import rich
 from exceptiongroup import BaseExceptionGroup
@@ -89,7 +89,11 @@ class Context:
         else:
             query["url"] = index2url(self.config.search.index_node)
         if "facets" in facets:
-            query["facets"] = facets.pop("facets")
+            facets_opt = facets.pop("facets")
+            if isinstance(facets_opt, Collection):
+                query["facets"] = ",".join(facets_opt)
+            else:
+                query["facets"] = facets_opt
         if "start" in facets:
             facets["start"] = format_date(str(facets["start"]))
         if "end" in facets:
