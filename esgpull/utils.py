@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from rich.filesize import _to_str
 
-from esgpull.constants import ENV_VARNAME
+from esgpull.constants import CONFIG_FILENAME, ENV_VARNAME
 
 
 def format_size(size: int) -> str:
@@ -64,7 +64,7 @@ class Root:
     root: Path | None = None
 
     @classmethod
-    def get(cls, mkdir=False) -> Path:
+    def get(cls, mkdir: bool = False, noraise: bool = False) -> Path:
         if cls.root is None:
             root_env = os.environ.get(ENV_VARNAME)
             if root_env is None:
@@ -77,6 +77,9 @@ class Root:
                 cls.root = Path(root_env)
         if mkdir:
             cls.root.mkdir(parents=True, exist_ok=True)
-        elif not cls.root.is_dir():
+            config_file = cls.root / CONFIG_FILENAME
+            if not config_file.is_file():
+                config_file.touch()
+        elif not cls.root.is_dir() and not noraise:
             raise NotADirectoryError(cls.root)
         return cls.root
