@@ -102,24 +102,18 @@ class Config:
         return doc
 
 
-_converter_defaults = Converter(omit_if_default=False, forbid_extra_keys=True)
-_converter_defaults.register_unstructure_hook(Path, str)
-_converter_defaults.register_unstructure_hook(
-    Config,
-    make_dict_unstructure_fn(
-        Config, _converter_defaults, _raw=override(omit=True)
-    ),
-)
-_converter_no_defaults = Converter(
-    omit_if_default=True, forbid_extra_keys=True
-)
-_converter_no_defaults.register_unstructure_hook(Path, str)
-_converter_no_defaults.register_unstructure_hook(
-    Config,
-    make_dict_unstructure_fn(
-        Config, _converter_no_defaults, _raw=override(omit=True)
-    ),
-)
+def _make_converter(omit_default: bool) -> Converter:
+    conv = Converter(omit_if_default=omit_default, forbid_extra_keys=True)
+    conv.register_unstructure_hook(Path, str)
+    conv.register_unstructure_hook(
+        Config,
+        make_dict_unstructure_fn(Config, conv, _raw=override(omit=True)),
+    )
+    return conv
+
+
+_converter_defaults = _make_converter(omit_default=False)
+_converter_no_defaults = _make_converter(omit_default=True)
 
 
 def pop_empty(d: dict[str, Any]) -> None:
