@@ -363,18 +363,28 @@ class Context:
     def file_hits(self) -> list[int]:
         return self.sync_run(self._hits(file=True))
 
-    @property
-    def facet_counts(self) -> list[FacetCounts]:
-        hits, facets = self.sync_run(self._facet_counts())
+    def facet_counts(self, file: bool = False) -> list[FacetCounts]:
+        hits, facets = self.sync_run(self._facet_counts(file=file))
         return facets
 
-    def options(self, file=False) -> list[FacetCounts]:
+    def options(
+        self,
+        file=False,
+        facets: list[str] | None = None,
+    ) -> list[FacetCounts]:
+        if facets is not None:
+            original_facets = self.query.facets.values
+            self.query.facets = facets
         queries = self.query.flatten()
-        _, all_facet_counts = asyncio.run(self._facet_counts(file))
         result = []
-        for query, facet_counts in zip(queries, all_facet_counts):
+        for query, facet_counts in zip(queries, self.facet_counts(file=file)):
             facet_options = {}
             for facet, counts in facet_counts.items():
+                # force all facets if specified, no more no less
+                if facets is not None:
+                    if facet in facets:
+                        facet_options[facet] = counts
+                    continue
                 # discard non-facets
                 if facet not in self.query._facets:
                     continue
@@ -382,6 +392,8 @@ class Context:
                 if len(counts) > 1:
                     facet_options[facet] = counts
             result.append(facet_options)
+        if facets is not None:
+            self.query.facets = original_facets
         return result
 
     def search(

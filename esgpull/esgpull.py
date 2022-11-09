@@ -80,7 +80,7 @@ class Esgpull:
         with self.context() as ctx:
             ctx.distrib = True
             ctx.query.facets = "index_node"
-            return list(ctx.facet_counts[0]["index_node"])
+            return list(ctx.facet_counts()[0]["index_node"])
 
     def fetch_params(self, update=False) -> bool:
         """
@@ -113,7 +113,7 @@ class Esgpull:
                 query = ctx.query.add()
                 query.index_node = index_node
             logger.debug(f"Fetching facet counts using {ctx}")
-            index_facet_counts = ctx.facet_counts
+            index_facet_counts = ctx.facet_counts()
         all_facet_counts: dict[str, set[str]] = {}
         for facet_counts in index_facet_counts:
             for name, values in facet_counts.items():
