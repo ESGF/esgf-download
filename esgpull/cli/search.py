@@ -38,7 +38,7 @@ def search(
     dump: bool,
     file: bool,
     json: bool,
-    latest: bool | None,
+    latest: bool,
     one: bool,
     options: list[str],
     quiet: bool,

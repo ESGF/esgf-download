@@ -17,7 +17,6 @@ from esgpull.utils import format_size
 @opts.date
 @opts.force
 @opts.since
-@opts.latest
 @opts.data_node
 @opts.replica
 @opts.selection_file
@@ -30,7 +29,6 @@ def install(
     distrib: bool,
     dry_run: bool,
     force: bool,
-    latest: bool | None,
     replica: bool | None,
     selection_file: str | None,
     since: str | None,
@@ -39,7 +37,7 @@ def install(
     esg = Esgpull.with_verbosity(verbosity)
     with esg.context() as ctx, esg.ui.logging("install", onraise=Abort):
         ctx.distrib = distrib
-        ctx.latest = latest
+        ctx.latest = True
         ctx.since = since
         ctx.replica = replica
         load_facets(ctx.query, facets, selection_file)

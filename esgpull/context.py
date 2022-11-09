@@ -34,7 +34,7 @@ class Context:
         fields: str = "*",
         distrib: bool = False,
         retracted: bool = False,
-        latest: bool | None = None,
+        latest: bool | None = True,
         replica: bool | None = None,
         search_batchsize: int = 50,
         since: str | datetime | None = None,

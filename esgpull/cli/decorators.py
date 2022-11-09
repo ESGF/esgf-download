@@ -92,9 +92,10 @@ class opts:
     )
     latest: Dec = click.option(
         "--latest/--no-latest",
-        "-l/-L",
+        " /-L",
         is_flag=True,
-        default=None,
+        default=True,
+        show_default=True,
     )
     one: Dec = click.option(
         "--one",
