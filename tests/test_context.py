@@ -1,5 +1,3 @@
-from time import time
-
 import pytest
 
 from esgpull.context import Context
@@ -95,18 +93,13 @@ def test_better_distrib(base):
     base.query.table_id = "Amon"
     base.query.variable_id = "tas"
     base.query.member_id = "r20i1p1f1"
-    start = time()
     regular_results = base.search(file=True, max_results=None)
-    regular_elapsed = time() - start
     esg = Esgpull()
     base.index_nodes = esg.fetch_index_nodes()
-    start = time()
     better_results = base.search(file=True, max_results=None)
-    better_elapsed = time() - start
     regular_checksums = set(doc["checksum"][0] for doc in regular_results)
     better_checksums = set(doc["checksum"][0] for doc in better_results)
     assert regular_checksums == better_checksums
-    assert regular_elapsed > better_elapsed
 
 
 def test_ipsl_hits_between_1_and_2_million(cmip6_ipsl):
