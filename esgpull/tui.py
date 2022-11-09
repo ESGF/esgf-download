@@ -32,11 +32,14 @@ _err_console = Console(stderr=True)
 
 class Verbosity(IntEnum):
     Normal = 0
-    Detail = 1
-    Debug = 2
+    Errors = 1
+    Detail = 2
+    Debug = 3
 
     def get_level(self) -> int:
-        return [logging.WARNING, logging.INFO, logging.DEBUG][self]
+        return [logging.WARNING, logging.WARNING, logging.INFO, logging.DEBUG][
+            self
+        ]
 
     def render(self) -> Text:
         return Text(self.name.upper(), style=f"logging.level.{self.name}")
@@ -71,7 +74,7 @@ class UI:
         handler: logging.Handler
         temp_path: Path | None = None
         fmt = "  %(name)s:%(levelname)-7s\n%(message)s\n"
-        if self.verbosity >= Verbosity.Detail:
+        if self.verbosity >= Verbosity.Errors:
             if _err_console.is_terminal or _err_console.is_jupyter:
                 handler = RichHandler(
                     console=_err_console,
@@ -96,9 +99,22 @@ class UI:
                 atexit.register(temp_path.unlink)
         except click.exceptions.ClickException:
             raise
-        except BaseException:
+        except BaseException as exc:
+            tb = exc.__traceback__
+            while True:
+                if tb is None:
+                    break
+                elif tb.tb_next is None:
+                    break
+                tb = tb.tb_next
+            if tb is None:
+                f_locals = {}
+            else:
+                f_locals = tb.tb_frame.f_locals
+            locals_text = self.render(f_locals, highlight=False)
+            logging.root.debug(f"Locals:\n{locals_text}")
             logging.root.exception("Error:")
-            if self.verbosity < Verbosity.Detail:
+            if self.verbosity < Verbosity.Errors:
                 self.print(
                     f"See [yellow]{temp_path}[/] for error log.",
                     err=True,
