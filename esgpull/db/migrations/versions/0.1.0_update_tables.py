@@ -1,15 +1,15 @@
 """update tables
 
-Revision ID: 4.0.0
+Revision ID: 0.1.0
 Revises:
-Create Date: 2022-10-20 14:14:23.851116
+Create Date: 2022-11-09 10:26:20.959050
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "4.0.0"
+revision = "0.1.0"
 down_revision = None
 branch_labels = None
 depends_on = None
