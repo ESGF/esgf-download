@@ -29,7 +29,7 @@ FacetCounts: TypeAlias = dict[str, dict[str, int]]
 class Context:
     def __init__(
         self,
-        config: Config = None,
+        config: Config | None = None,
         *,
         fields: str = "*",
         distrib: bool = False,
@@ -64,7 +64,7 @@ class Context:
         facets: FacetDict,
         file: bool = False,
         limit: int = 50,
-        offset: int = None,
+        offset: int | None = None,
         **extra,
     ) -> dict:
         query = {
@@ -115,7 +115,11 @@ class Context:
         # [?]TODO: add nominal temporal constraints `to`
         return {k: v for k, v in query.items() if v is not None}
 
-    def _build_queries(self, offsets: list[int] = None, **extra) -> list[dict]:
+    def _build_queries(
+        self,
+        offsets: list[int] | None = None,
+        **extra,
+    ) -> list[dict]:
         result = []
         offset: int | None = None
         for i, flat in enumerate(self.query.flatten()):
@@ -166,7 +170,7 @@ class Context:
         file: bool,
         max_results: int | None = 200,
         offset: int = 0,
-        batchsize: int = None,
+        batchsize: int | None = None,
     ) -> list[dict]:
         better_distrib: bool
         index_nodes: list[str]

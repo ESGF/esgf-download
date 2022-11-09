@@ -40,7 +40,7 @@ def search(
     json: bool,
     latest: bool,
     one: bool,
-    options: list[str],
+    options: list[str] | None,
     quiet: bool,
     replica: bool | None,
     selection_file: str | None,

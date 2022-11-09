@@ -258,7 +258,11 @@ class Query(QueryBase):
         return instance
 
     @classmethod
-    def from_file(cls, path: str | Path, instance: Query = None) -> Query:
+    def from_file(
+        cls,
+        path: str | Path,
+        instance: Query | None = None,
+    ) -> Query:
         with open(path) as f:
             source = yaml.load(f.read(), Loader=yaml.loader.BaseLoader)
         if instance is None:
