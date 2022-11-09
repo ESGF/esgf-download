@@ -72,7 +72,7 @@ lint_isort = "isort esgpull tests examples"
 echo_flake8 = "echo [flake8]"
 lint_flake8 = "flake8 esgpull tests examples"
 echo_mypy = "echo [mypy]"
-lint_mypy = "mypy esgpull tests examples"
+lint_mypy = "mypy --disable-recursive-aliases esgpull tests examples"
 lint = {composite = [
     "echo_black",
     "lint_black",
@@ -96,10 +96,6 @@ extend-exclude = "setup.py"
 
 [tool.mypy]
 ignore_missing_imports = true
-disable_recursive_aliases = true
-# plugins = [
-#     "sqlalchemy.ext.mypy.plugin"
-# ]
 
 [tool.pytest.ini_options]
 minversion = "6.2.4"
