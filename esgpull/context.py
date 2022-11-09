@@ -305,10 +305,18 @@ class Context:
         )
         checksums = set()
         result = []
+        nb_bad = 0
         async for json in self._fetch(queries):
             for doc in json["response"]["docs"]:
                 if file:
-                    f = File.from_dict(doc)
+                    try:
+                        f = File.from_dict(doc)
+                    except KeyError:
+                        if nb_bad == 0:
+                            msg = "File with invalid metadata (1st occurence):"
+                            logger.warning(f"{msg}\n{doc}")
+                        nb_bad += 1
+                        continue
                     checksum = f.checksum
                 else:
                     checksum = doc["instance_id"]
@@ -319,11 +327,16 @@ class Context:
             nb_expected = sum(hits)
         else:
             nb_expected = min(sum(hits), max_results)
-        nb_dropped = nb_expected - len(checksums)
-        if nb_dropped:
-            f_or_d = "file" if file else "dataset"
-            s = "s" if nb_dropped > 1 else ""
-            logger.info(f"Dropped {nb_dropped} duplicate {f_or_d}{s}.")
+        f_or_d = "file" if file else "dataset"
+        if nb_bad:
+            s = "s" if nb_bad > 1 else ""
+            logger.warning(
+                f"Dropped {nb_bad} {f_or_d}{s} with invalid metadata."
+            )
+        nb_dup = nb_expected - len(checksums) - nb_bad
+        if nb_dup:
+            s = "s" if nb_dup > 1 else ""
+            logger.info(f"Dropped {nb_dup} duplicate {f_or_d}{s}.")
         return result
 
     def free_semaphores(self) -> None:
