@@ -89,11 +89,13 @@ class Context:
         else:
             query["url"] = index2url(self.config.search.index_node)
         if "facets" in facets:
-            facets_opt = facets.pop("facets")
-            if isinstance(facets_opt, Collection):
-                query["facets"] = ",".join(facets_opt)
+            facets_option = facets.pop("facets")
+            if isinstance(facets_option, str):
+                query["facets"] = facets_option
+            elif isinstance(facets_option, Collection):
+                query["facets"] = ",".join(facets_option)
             else:
-                query["facets"] = facets_opt
+                raise TypeError(facets_option)
         if "start" in facets:
             facets["start"] = format_date(str(facets["start"]))
         if "end" in facets:
@@ -102,10 +104,10 @@ class Context:
             facets_: list[str] = []
             if "query" in facets:
                 freetext = facets.pop("query")
-                if isinstance(freetext, (list, tuple, set)):
-                    facets_.append(" ".join(freetext))
-                elif isinstance(freetext, str):
+                if isinstance(freetext, str):
                     facets_.append(freetext)
+                elif isinstance(freetext, Collection):
+                    facets_.append(" ".join(freetext))
                 else:
                     raise TypeError(freetext)
             for name, values in facets.items():
