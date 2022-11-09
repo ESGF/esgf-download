@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import AsyncIterator, TypeAlias
+from typing import AsyncIterator, Coroutine, TypeAlias, TypeVar
 
 import rich
 from exceptiongroup import BaseExceptionGroup
@@ -24,6 +24,7 @@ if asyncio.get_event_loop().is_running():
 console = rich.console.Console()
 
 FacetCounts: TypeAlias = dict[str, dict[str, int]]
+T = TypeVar("T")
 
 
 class Context:
@@ -325,17 +326,27 @@ class Context:
             logger.info(f"Dropped {nb_dropped} duplicate {f_or_d}{s}.")
         return result
 
+    def free_semaphores(self) -> None:
+        """
+        Ensure no semaphore is bound to an expired event loop.
+        """
+        self.semaphores = {}
+
+    def sync_run(self, coro: Coroutine[None, None, T]) -> T:
+        self.free_semaphores()
+        return asyncio.run(coro)
+
     @property
     def hits(self) -> list[int]:
-        return asyncio.run(self._hits())
+        return self.sync_run(self._hits())
 
     @property
     def file_hits(self) -> list[int]:
-        return asyncio.run(self._hits(file=True))
+        return self.sync_run(self._hits(file=True))
 
     @property
     def facet_counts(self) -> list[FacetCounts]:
-        hits, facets = asyncio.run(self._facet_counts())
+        hits, facets = self.sync_run(self._facet_counts())
         return facets
 
     def options(self, file=False) -> list[FacetCounts]:
@@ -368,7 +379,7 @@ class Context:
             offset=offset,
             hits=hits,
         )
-        return asyncio.run(coro)
+        return self.sync_run(coro)
 
     def __repr__(self) -> str:
         return f"Context(query={self.query})"

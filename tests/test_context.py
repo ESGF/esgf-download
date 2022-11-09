@@ -100,7 +100,6 @@ def test_better_distrib(base):
     regular_elapsed = time() - start
     esg = Esgpull()
     base.index_nodes = esg.fetch_index_nodes()
-    base.semaphores = {}  # semaphores were bound to the previous event loop
     start = time()
     better_results = base.search(file=True, max_results=None)
     better_elapsed = time() - start
