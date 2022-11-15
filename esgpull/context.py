@@ -13,7 +13,7 @@ from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.facet import FacetDict
 from esgpull.query import Query
 from esgpull.tui import logger
-from esgpull.utils import format_date, index2url
+from esgpull.utils import Root, format_date, index2url
 
 # workaround for notebooks with running event loop
 if asyncio.get_event_loop().is_running():
@@ -43,7 +43,7 @@ class Context:
         index_nodes: list[str] | None = None,
     ):
         if config is None:
-            config = Config()
+            config = Config.load(Root.get(noraise=True))
         self.config = config
         self.fields = fields
         self.latest = latest
