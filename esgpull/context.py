@@ -97,9 +97,9 @@ class Context:
             else:
                 raise TypeError(facets_option)
         if "start" in facets:
-            facets["start"] = format_date(str(facets["start"]))
+            query["start"] = format_date(str(facets.pop("start")))
         if "end" in facets:
-            facets["end"] = format_date(str(facets["end"]))
+            query["end"] = format_date(str(facets.pop("end")))
         if self.new_style:
             facets_: list[str] = []
             if "query" in facets:
