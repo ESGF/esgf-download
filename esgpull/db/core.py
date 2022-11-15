@@ -17,6 +17,7 @@ from esgpull import __file__
 from esgpull.config import Config
 from esgpull.db.models import File, FileStatus, Table
 from esgpull.db.utils import SelectContext
+from esgpull.exceptions import NoClauseError
 from esgpull.query import Query
 from esgpull.version import __version__
 
@@ -127,25 +128,26 @@ class Database:
         if statuses is not None:
             clauses.append(File.status.in_(statuses))
         if query is not None:
-            for q in query.flatten():
-                query_clauses = []
-                for facet in q:
+            query_clauses = []
+            for flat in query.flatten():
+                flat_clauses = []
+                for facet in flat:
                     # values are in a list, to keep support for CMIP5
                     # search by first value only is supported for now
                     facet_clause = sa.func.json_extract(
                         File.raw, f"$.{facet.name}[0]"
                     ).in_(list(facet.values))
-                    query_clauses.append(facet_clause)
-                if query_clauses:
-                    clauses.append(sa.and_(*query_clauses))
+                    flat_clauses.append(facet_clause)
+                if flat_clauses:
+                    query_clauses.append(sa.and_(*flat_clauses))
+            if query_clauses:
+                clauses.append(sa.or_(*query_clauses))
         if file_ids is not None:
             clauses.append(File.id.in_(file_ids))
-        if clauses:
-            with self.select(File) as sel:
-                result = sel.where(sa.or_(*clauses)).scalars
-        else:
-            result = []
-        return result
+        if not clauses:
+            raise NoClauseError()
+        with self.select(File) as sel:
+            return sel.where(sa.and_(*clauses)).scalars
 
     def get_deprecated_files(self) -> list[File]:
         with (self.select(File) as query, self.select(File) as subquery):

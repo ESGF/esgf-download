@@ -175,11 +175,16 @@ class Esgpull:
         distrib: bool = True,
         replica: bool | None = None,
         since: str | None = None,
-    ) -> list[File]:
+    ) -> list[File] | None:
         max_master_id = 100
         max_instance_id = 50
-        with self.db.select(File.dataset_id) as stmt:
-            local_dataset_ids = set(stmt.scalars)
+        matching_files = self.db.search(
+            query=query,
+            statuses=[FileStatus.Done],
+        )
+        if not matching_files:
+            return None
+        local_dataset_ids = set([f.dataset_id for f in matching_files])
         master_ids = [dsid.rsplit(".", 1)[0] for dsid in local_dataset_ids]
         with self.context(
             distrib=distrib,
@@ -187,7 +192,7 @@ class Esgpull:
             replica=replica,
             since=since,
         ) as ctx:
-            if query is not None:
+            if query:
                 ctx.query = query.clone()
             for start in range(0, len(master_ids), max_master_id):
                 stop = start + max_master_id
@@ -199,13 +204,15 @@ class Esgpull:
             new_dataset_ids |= set(suboptions["instance_id"])
         new_dataset_ids -= local_dataset_ids
         instance_ids = [dsid + "*" for dsid in new_dataset_ids]
+        if not instance_ids:
+            return []
         with self.context(
             distrib=distrib,
             latest=True,
             replica=replica,
             since=since,
         ) as ctx:
-            if query is not None:
+            if query:
                 ctx.query = query.clone()
             for start in range(0, len(instance_ids), max_instance_id):
                 stop = start + max_instance_id

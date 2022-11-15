@@ -43,6 +43,12 @@ def update(
                 replica=replica,
                 since=since,
             )
+        if files is None:
+            esg.ui.print("No files found.")
+            raise Exit(0)
+        elif len(files) == 0:
+            esg.ui.print("All files are up to update.")
+            raise Exit(0)
         esg.ui.print(f"Found {len(files)} files to update.")
         if dry_run:
             esg.ui.print(files)

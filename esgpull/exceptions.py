@@ -53,3 +53,7 @@ class DownloadSizeError(EsgpullException):
 
 class DownloadCancelled(EsgpullException):
     msg = """Download cancelled by user."""
+
+
+class NoClauseError(EsgpullException):
+    msg = """Tried querying the database without clause (query might be empty)."""
