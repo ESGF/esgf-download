@@ -32,7 +32,7 @@ ENTRY_POINTS = {
 
 setup_kwargs = {
     'name': 'esgpull',
-    'version': '0.1.0',
+    'version': '0.2.0',
     'description': 'ESGF data discovery, download, replication tool',
     'long_description': long_description,
     'license': 'Public',

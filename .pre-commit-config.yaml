@@ -4,7 +4,11 @@ repos:
     hooks:
       - id: pdm-export
         args: ['-f', 'setuppy', '-o', 'setup.py']
-        files: ^pdm.lock$
+        files: |
+          (?x)^(
+            pdm.lock|
+            esgpull/version.py
+          )$
   - repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:
