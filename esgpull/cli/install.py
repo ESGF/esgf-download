@@ -35,11 +35,15 @@ def install(
     verbosity: Verbosity,
 ) -> None:
     esg = Esgpull.with_verbosity(verbosity)
-    with esg.context() as ctx, esg.ui.logging("install", onraise=Abort):
-        ctx.distrib = distrib
-        ctx.latest = True
-        ctx.since = since
-        ctx.replica = replica
+    with (
+        esg.context(
+            distrib=distrib,
+            latest=True,
+            since=since,
+            replica=replica,
+        ) as ctx,
+        esg.ui.logging("install", onraise=Abort),
+    ):
         load_facets(ctx.query, facets, selection_file)
         if not ctx.query.dump():
             raise click.UsageError("No search terms provided.")

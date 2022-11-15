@@ -64,11 +64,15 @@ def search(
         slice_ = slice(0, 1)
     offset = slice_.start
     size = slice_.stop - slice_.start
-    with esg.context() as ctx, esg.ui.logging("search", onraise=Abort):
-        ctx.distrib = distrib
-        ctx.latest = latest
-        ctx.since = since
-        ctx.replica = replica
+    with (
+        esg.context(
+            distrib=distrib,
+            latest=latest,
+            since=since,
+            replica=replica,
+        ) as ctx,
+        esg.ui.logging("search", onraise=Abort),
+    ):
         load_facets(ctx.query, facets, selection_file)
         if file:
             hits = ctx.file_hits

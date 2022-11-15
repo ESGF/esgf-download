@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import AsyncIterator, Iterator
+from typing import Any, AsyncIterator, Iterator
 
 from attrs import define, field
 from rich.progress import (
@@ -62,8 +62,8 @@ class Esgpull:
         self.auth = Auth.from_config(self.config, credentials)
 
     @contextmanager
-    def context(self) -> Iterator[Context]:
-        ctx = Context(self.config)
+    def context(self, **kwargs: Any) -> Iterator[Context]:
+        ctx = Context(self.config, **kwargs)
         yield ctx
         logger.debug(f"Discard {ctx}")
 
@@ -77,10 +77,8 @@ class Esgpull:
         logger.debug(
             f"Fetching index nodes from {self.config.search.index_node}"
         )
-        with self.context() as ctx:
-            ctx.distrib = True
-            ctx.query.facets = "index_node"
-            return list(ctx.facet_counts()[0]["index_node"])
+        with self.context(distrib=True) as ctx:
+            return list(ctx.options(facets=["index_node"])[0]["index_node"])
 
     def fetch_params(self, update=False) -> bool:
         """
@@ -107,8 +105,7 @@ class Esgpull:
             return False
         self.db.delete(*params)
         index_nodes = self.fetch_index_nodes()
-        with self.context() as ctx:
-            ctx.distrib = False
+        with self.context(distrib=False) as ctx:
             for index_node in index_nodes:
                 query = ctx.query.add()
                 query.index_node = index_node
@@ -143,6 +140,7 @@ class Esgpull:
         with self.context() as ctx:
             if index_node is not None:
                 ctx.query.index_node = index_node
+                ctx.distrib = False
             else:
                 ctx.distrib = True
             filename_version_dict: dict[str, str] = {}
