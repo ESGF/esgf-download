@@ -47,6 +47,7 @@ EXTRA_FACETS = [
     "url",
     "data_node",
     "index_node",
+    "master_id",
     "instance_id",  # search does not work with instance_id
     "title",
     "variable_long_name",

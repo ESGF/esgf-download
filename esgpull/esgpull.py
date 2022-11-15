@@ -26,6 +26,7 @@ from esgpull.db.models import File, FileStatus, Param
 from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.processor import Processor
+from esgpull.query import Query
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, Verbosity, logger
 from esgpull.utils import Root, format_size
@@ -167,6 +168,52 @@ class Esgpull:
                 )
             else:
                 print("No new files.")
+
+    def fetch_updated_files(
+        self,
+        query: Query | None = None,
+        distrib: bool = True,
+        replica: bool | None = None,
+        since: str | None = None,
+    ) -> list[File]:
+        max_master_id = 100
+        max_instance_id = 50
+        with self.db.select(File.dataset_id) as stmt:
+            local_dataset_ids = set(stmt.scalars)
+        master_ids = [dsid.rsplit(".", 1)[0] for dsid in local_dataset_ids]
+        with self.context(
+            distrib=distrib,
+            latest=True,
+            replica=replica,
+            since=since,
+        ) as ctx:
+            if query is not None:
+                ctx.query = query.clone()
+            for start in range(0, len(master_ids), max_master_id):
+                stop = start + max_master_id
+                subquery = ctx.query.add()
+                subquery.master_id = master_ids[start:stop]
+            options = ctx.options(facets=["instance_id"])
+        new_dataset_ids: set[str] = set()
+        for suboptions in options:
+            new_dataset_ids |= set(suboptions["instance_id"])
+        new_dataset_ids -= local_dataset_ids
+        instance_ids = [dsid + "*" for dsid in new_dataset_ids]
+        with self.context(
+            distrib=distrib,
+            latest=True,
+            replica=replica,
+            since=since,
+        ) as ctx:
+            if query is not None:
+                ctx.query = query.clone()
+            for start in range(0, len(instance_ids), max_instance_id):
+                stop = start + max_instance_id
+                subquery = ctx.query.add()
+                subquery.instance_id = instance_ids[start:stop]
+            docs = ctx.search(file=True, max_results=None)
+        files = [File.from_dict(doc) for doc in docs]
+        return files
 
     def install(
         self,
