@@ -329,11 +329,11 @@ A selection file is written using either [Yaml/1.0] or [Json], Yaml is recommend
         ╵          ╵
     ```
 
-!!! tip "Synda users"
+<!-- !!! tip "Synda users" -->
 
-    Since the syntax is completely different from `synda` selection files, the `translate` tool is provided.
+<!--     Since the syntax is completely different from `synda` selection files, an undocumented tool called `translate` is in the repository. -->
 
-    It will handle most common cases, and for the others , a few manual adjustments should fix it.
+<!--     It will handle most common cases, and for the others , a few manual adjustments should fix it. -->
 
 
 [Yaml/1.0]: https://yaml.org/spec/1.0

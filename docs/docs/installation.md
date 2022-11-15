@@ -1,13 +1,23 @@
 This document covers a few ways to install `esgpull`, a necessary first step into being able search and download ESGF datasets.
 
-## pip + github
+## conda
+
+The recommended way to install using `conda` is to create a fresh environment using `python >= 3.10`, then install the package with both `conda-forge` and `ipsl` channels:
+
+```shell title="Install esgpull on a fresh conda environment"
+conda create -n esgpull python=3.10
+conda activate esgpull
+conda install esgpull -c conda-forge -c ipsl
+```
+
+
+## pip
 
 Run this command:
 
 ```shell title="Install esgpull from pip"
-pip install git+ssh://git@github.com/svenrdz/esg-pull
+pip install https://github.com/svenrdz/esg-pull.git
 ```
-
 
 !!! warning "Initialize the database and working directories"
 
@@ -26,7 +36,7 @@ pip install git+ssh://git@github.com/svenrdz/esg-pull
 Esgpull is developed and maintained on GitHub, you can clone the public repository:
 
 ```shell
-git clone git@github.com:svenrdz/esg-pull
+git clone https://github.com/svenrdz/esg-pull.git
 ```
 
 The source can now be installed using `pip`:
@@ -35,10 +45,3 @@ The source can now be installed using `pip`:
 cd esg-pull
 python -m pip install .
 ```
-
-### Makefile
-
-You can otherwise install the source using the targets defined in the `Makefile`:
-
-- `make install` for a regular installation,
-- `make develop` to install additional dependencies required for contribution
