@@ -16,7 +16,7 @@ from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search
 from esgpull.cli.status import status
-from esgpull.cli.upgrade import upgrade
+from esgpull.cli.update import update
 from esgpull.tui import UI
 
 # [-]TODO: stats
@@ -38,7 +38,7 @@ SUBCOMMANDS: list[click.Command] = [
     search,
     status,
     # stats,
-    upgrade,
+    update,
 ]
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
