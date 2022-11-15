@@ -14,18 +14,14 @@ from esgpull.utils import format_size
 @click.command()
 @opts.distrib
 @opts.dry_run
-@opts.date
 @opts.force
-@opts.since
-@opts.data_node
 @opts.replica
+@opts.since
 @opts.selection_file
 @opts.verbosity
 @args.facets
 def install(
     facets: list[str],
-    date: bool,
-    data_node: bool,
     distrib: bool,
     dry_run: bool,
     force: bool,
