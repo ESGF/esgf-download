@@ -300,6 +300,7 @@ class Context:
         max_results: int | None = 200,
         offset: int = 0,
         hits: list[int] | None = None,
+        keep_duplicates: bool = False,
     ) -> list[dict]:
         if hits is None:
             hits = await self._hits(file)
@@ -314,6 +315,9 @@ class Context:
         nb_bad = 0
         async for json in self._fetch(queries):
             for doc in json["response"]["docs"]:
+                if keep_duplicates:
+                    result.append(doc)
+                    continue
                 if file:
                     try:
                         f = File.from_dict(doc)
@@ -339,10 +343,11 @@ class Context:
             logger.warning(
                 f"Dropped {nb_bad} {f_or_d}{s} with invalid metadata."
             )
-        nb_dup = nb_expected - len(checksums) - nb_bad
-        if nb_dup:
-            s = "s" if nb_dup > 1 else ""
-            logger.info(f"Dropped {nb_dup} duplicate {f_or_d}{s}.")
+        if not keep_duplicates:
+            nb_dup = nb_expected - len(checksums) - nb_bad
+            if nb_dup:
+                s = "s" if nb_dup > 1 else ""
+                logger.info(f"Dropped {nb_dup} duplicate {f_or_d}{s}.")
         return result
 
     def free_semaphores(self) -> None:
@@ -403,12 +408,14 @@ class Context:
         max_results: int | None = 200,
         offset: int = 0,
         hits: list[int] | None = None,
+        keep_duplicates: bool = False,
     ) -> list[dict]:
         coro = self._search(
             file,
             max_results=max_results,
             offset=offset,
             hits=hits,
+            keep_duplicates=keep_duplicates,
         )
         return self.sync_run(coro)
 
