@@ -120,14 +120,14 @@ class Database:
         self,
         query: Query | None = None,
         statuses: Sequence[FileStatus] | None = None,
-        file_ids: Sequence[int] | None = None,
+        ids: Sequence[int] | None = None,
     ) -> list[File]:
         clauses: list[sa.ColumnElement] = []
-        if query is None and statuses is None and file_ids is None:
+        if not statuses and not query and not ids:
             raise ValueError("TODO: custom error")
-        if statuses is not None:
+        if statuses:
             clauses.append(File.status.in_(statuses))
-        if query is not None:
+        if query:
             query_clauses = []
             for flat in query.flatten():
                 flat_clauses = []
@@ -142,8 +142,8 @@ class Database:
                     query_clauses.append(sa.and_(*flat_clauses))
             if query_clauses:
                 clauses.append(sa.or_(*query_clauses))
-        if file_ids is not None:
-            clauses.append(File.id.in_(file_ids))
+        if ids:
+            clauses.append(File.id.in_(ids))
         if not clauses:
             raise NoClauseError()
         with self.select(File) as sel:

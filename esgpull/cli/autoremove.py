@@ -25,7 +25,7 @@ def autoremove(
             docs = filter_docs([file.raw for file in deprecated])
             esg.ui.print(totable(docs))
             s = "s" if nb > 1 else ""
-            esg.ui.print(f"Removing {nb} file{s}")
+            esg.ui.print(f"Found {nb} file{s} to remove.")
             click.confirm("Continue?", default=True, abort=True)
         removed = esg.remove(*deprecated)
         esg.ui.print(f"Removed {len(removed)} files with newer version.")

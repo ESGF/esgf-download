@@ -168,6 +168,9 @@ class QueryBase:
     def __len__(self) -> int:
         return len(list(iter(self)))
 
+    def __bool__(self) -> bool:
+        return bool(self.dump())
+
     def update(self: QueryBase, other: QueryBase, force_append=False) -> None:
         raise NotImplementedError
 
