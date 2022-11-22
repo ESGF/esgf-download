@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Callable, TypeAlias
 
 import click
+from click_option_group import MutuallyExclusiveOptionGroup, optgroup
 from click_params import StringListParamType
 
 from esgpull.cli.utils import EnumParam, SliceParam
@@ -9,6 +10,15 @@ from esgpull.db.models import FileStatus
 from esgpull.tui import Verbosity
 
 Dec: TypeAlias = Callable[[Callable], Callable]
+
+
+def compose(*decs: Dec) -> Dec:
+    def deco(fn: Callable):
+        for dec in reversed(decs):
+            fn = dec(fn)
+        return fn
+
+    return deco
 
 
 class args:
@@ -97,12 +107,6 @@ class opts:
         default=True,
         show_default=True,
     )
-    one: Dec = click.option(
-        "--one",
-        "-1",
-        is_flag=True,
-        default=False,
-    )
     options: Dec = click.option(
         "--options",
         "-o",
@@ -132,13 +136,6 @@ class opts:
         type=str,
         default=None,
     )
-    slice: Dec = click.option(
-        "slice_",
-        "--slice",
-        "-S",
-        type=SliceParam(),
-        default="0:20",
-    )
     status: Dec = click.option(
         "--status",
         type=EnumParam(FileStatus),
@@ -151,9 +148,37 @@ class opts:
         count=True,
         type=EnumParam(Verbosity),
     )
-    zero: Dec = click.option(
+
+
+class groups:
+    __display: Dec = optgroup.group(
+        "Display options",
+        cls=MutuallyExclusiveOptionGroup,
+    )
+    __slice: Dec = optgroup.option(
+        "slice_",
+        "--slice",
+        "-S",
+        type=SliceParam(),
+        default="0:20",
+    )
+    __zero: Dec = optgroup.option(
         "--zero",
         "-0",
         is_flag=True,
         default=False,
     )
+    __one: Dec = optgroup.option(
+        "--one",
+        "-1",
+        is_flag=True,
+        default=False,
+    )
+    __all: Dec = optgroup.option(
+        "all_",
+        "--all",
+        "-a",
+        is_flag=True,
+        default=False,
+    )
+    display: Dec = compose(__display, __slice, __zero, __one, __all)

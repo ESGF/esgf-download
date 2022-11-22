@@ -5,7 +5,7 @@ from click.exceptions import Abort, Exit
 from httpx import Client
 
 from esgpull import Esgpull
-from esgpull.cli.decorators import args, opts
+from esgpull.cli.decorators import args, groups, opts
 from esgpull.cli.utils import filter_docs, load_facets, totable, yaml_syntax
 from esgpull.tui import Verbosity
 
@@ -20,17 +20,16 @@ from esgpull.tui import Verbosity
 @opts.file
 @opts.json
 @opts.latest
-@opts.one
 @opts.options
 @opts.quiet
 @opts.replica
 @opts.selection_file
 @opts.since
-@opts.slice
 @opts.verbosity
-@opts.zero
+@groups.display
 def search(
     facets: list[str],
+    all_: bool,
     date: bool,
     data_node: bool,
     distrib: bool,
@@ -78,6 +77,10 @@ def search(
             hits = ctx.file_hits
         else:
             hits = ctx.hits
+        if all_:
+            size = sum(hits)
+            slice_ = slice(0, size)
+            offset = 0
         if dry_run:
             queries = ctx._build_queries_search(
                 hits, file=file, max_results=size, offset=offset

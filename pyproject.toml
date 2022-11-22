@@ -23,6 +23,7 @@ dependencies = [
     "aiostream>=0.4.5",
     "attrs>=22.1.0",
     "cattrs>=22.2.0",
+    "click-option-group==0.5.3",
 ]
 [project.urls]
 Repository = "https://github.com/svenrdz/esg-pull"
