@@ -226,7 +226,7 @@ class Esgpull:
         self,
         *files: File,
         status: FileStatus = FileStatus.Queued,
-    ) -> list[File]:
+    ) -> tuple[list[File], list[File]]:
         """
         Insert `files` with specified `status` into db if not already there.
         """
@@ -234,11 +234,24 @@ class Esgpull:
         with self.db.select(File.file_id) as stmt:
             stmt.where(File.file_id.in_(file_ids))
             existing_file_ids = set(stmt.scalars)
-        installed = [f for f in files if f.file_id not in existing_file_ids]
-        for file in installed:
-            file.status = status
-        self.db.add(*installed)
-        return installed
+        to_install = [f for f in files if f.file_id not in existing_file_ids]
+        to_download: list[File] = []
+        already_on_disk: list[File] = []
+        for file in to_install:
+            if status == FileStatus.Done:
+                # skip check on status=done
+                file.status = status
+                to_download.append(file)
+                continue
+            path = self.fs.path_of(file)
+            if path.is_file():
+                file.status = FileStatus.Done
+                already_on_disk.append(file)
+            else:
+                file.status = status
+                to_download.append(file)
+        self.db.add(*to_install)
+        return to_download, already_on_disk
 
     def remove(self, *files: File) -> list[File]:
         """

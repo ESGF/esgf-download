@@ -70,5 +70,14 @@ def install(
         esg.ui.print(f"Total size: {format_size(total_size)}")
         if not force:
             click.confirm("Continue?", default=True, abort=True)
-        installed = esg.install(*files)
-        esg.ui.print(f"Installed {len(installed)} new files.")
+        to_download, already_on_disk = esg.install(*files)
+        if to_download:
+            nb = len(to_download)
+            s = "s" if nb > 1 else ""
+            esg.ui.print(f"Installed {nb} new file{s} ready for download.")
+        if already_on_disk:
+            nb = len(already_on_disk)
+            s = "s" if nb > 1 else ""
+            esg.ui.print(f"Tracking {nb} file{s} already downloaded.")
+        if not to_download and not already_on_disk:
+            esg.ui.print("All files are already in the database.")
