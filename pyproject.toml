@@ -52,6 +52,10 @@ lint = [
     "types-cryptography>=3.3.23.1",
     "types-setuptools>=65.5.0.1",
 ]
+profile = [
+    "snakeviz>=2.1.1",
+    "vprof>=0.38",
+]
 
 [project.scripts]
 esgpull = "esgpull.cli:main"

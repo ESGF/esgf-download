@@ -40,10 +40,13 @@ class EnumParam(click.Choice):
 class SliceParam(ListParamType):
     name = "slice"
 
-    def __init__(self, separator: str = ":") -> None:
-        super().__init__(click.INT, separator=separator, name="integers")
+    def __init__(self) -> None:
+        super().__init__(click.INT, separator=":", name="integers")
 
     def convert(self, value: str, param, ctx) -> slice:
+        # https://github.com/click-contrib/click_params/blob/master/click_params/base.py#L115
+        if isinstance(value, str):
+            self._convert_called = False
         converted_list = super().convert(value, param, ctx)
         start: int
         stop: int
@@ -53,7 +56,9 @@ class SliceParam(ListParamType):
             case [stop]:
                 start = 0
             case _:
-                error_message = self._error_message.format(errors="Bad value")
+                error_message = self._error_message.format(
+                    errors=converted_list
+                )
                 self.fail(error_message, param, ctx)
         return slice(start, stop)
 

@@ -23,6 +23,7 @@ INSTALL_REQUIRES = [
     'aiostream>=0.4.5',
     'attrs>=22.1.0',
     'cattrs>=22.2.0',
+    'click-option-group==0.5.3',
 ]
 ENTRY_POINTS = {
     'console_scripts': [
