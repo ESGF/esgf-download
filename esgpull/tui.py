@@ -3,9 +3,9 @@ from __future__ import annotations
 import atexit
 import logging
 from contextlib import contextmanager
+from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
-from tempfile import mktemp
 from typing import Any
 
 import click.exceptions
@@ -73,7 +73,9 @@ class UI:
     ):
         handler: logging.Handler
         temp_path: Path | None = None
-        fmt = "  %(name)s:%(levelname)-7s\n%(message)s\n"
+        fmt = "[%(asctime)s]  %(levelname)-10s%(name)s\n%(message)s\n"
+        datefmt = "%Y-%m-%d %H:%M:%S"
+        file_datefmt = "%Y-%m-%d_%H-%M-%S"
         if self.verbosity >= Verbosity.Errors:
             if _err_console.is_terminal or _err_console.is_jupyter:
                 handler = RichHandler(
@@ -82,19 +84,21 @@ class UI:
                     markup=True,
                 )
                 fmt = "[yellow]· %(name)s ·[/]\n%(message)s"
+                datefmt = "[%X]"
             else:
                 handler = logging.StreamHandler()
             handler.setLevel(self.verbosity.get_level())
         else:
-            prefix = f"esgpull-{modulename}-"
-            temp_path = Path(mktemp(".log", prefix, self.path))
+            date = datetime.utcnow().strftime(file_datefmt)
+            filename = "-".join(["esgpull", modulename, date]) + ".log"
+            temp_path = self.path / filename
             handler = logging.FileHandler(temp_path)
             handler.setLevel(logging.DEBUG)
-        handler.setFormatter(logging.Formatter(fmt=fmt, datefmt="[%X]"))
+        handler.setFormatter(logging.Formatter(fmt=fmt, datefmt=datefmt))
         logging.root.addHandler(handler)
         try:
             yield
-        except click.exceptions.Exit:
+        except (click.exceptions.Exit, click.exceptions.Abort):
             if temp_path is not None:
                 atexit.register(temp_path.unlink)
         except click.exceptions.ClickException:
