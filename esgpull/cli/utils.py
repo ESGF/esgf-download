@@ -44,7 +44,7 @@ class SliceParam(ListParamType):
         super().__init__(click.INT, separator=":", name="integers")
 
     def convert(self, value: str, param, ctx) -> slice:
-        # https://github.com/click-contrib/click_params/blob/master/click_params/base.py#L115
+        # https://github.com/click-contrib/click_params/blob/master/click_params/base.py#L115-L117
         if isinstance(value, str):
             self._convert_called = False
         converted_list = super().convert(value, param, ctx)
@@ -74,11 +74,16 @@ def filter_docs(
     result: list[OrderedDict[str, Any]] = []
     for i, doc in enumerate(docs):
         od: OrderedDict[str, Any] = OrderedDict()
+        is_file = doc["type"].lower() == "file"
         if indices:
             od["#"] = i + offset
         if size:
             od["size"] = doc["size"]
-        od["id"] = doc["id"].partition("|")[0]
+        if is_file:
+            id_key = "file_id"
+        else:
+            id_key = "dataset_id"
+        od[id_key] = doc["id"].partition("|")[0]
         if node:
             od["node"] = doc["data_node"]
         if date:

@@ -39,9 +39,9 @@ DEFAULT_FACETS = [
     "cmor_table",
 ]
 EXTRA_FACETS = [
+    "query",
     "start",
     "end",
-    "query",
     # "fields",
     "facets",
     "url",
