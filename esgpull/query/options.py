@@ -1,65 +1,109 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Iterator
+from typing import Iterator, TypeAlias
 
 from attrs import define, field, setters
 
+OptionValueT: TypeAlias = str | bool | None
+
 
 class Option(Enum):
-    notset = auto()
-    none = auto()
-    true = auto()
-    false = auto()
+    notset = -1
+    none = None
+    true = True
+    false = False
+    # notset = auto()
+    # none = auto()
+    # true = auto()
+    # false = auto()
+
+    @staticmethod
+    def new(value: Option | OptionValueT) -> Option:
+        if isinstance(value, Option):
+            return value
+        elif isinstance(value, str):
+            return Option[value]
+        elif isinstance(value, bool) or value is None:
+            return Option(value)
+        # elif value is None:
+        #     return Option.none
+        # elif value is False:
+        #     return Option.false
+        # elif value is True:
+        #     return Option.true
+        else:
+            raise ValueError(value)
 
     def __repr__(self) -> str:
-        return self.name.upper()
+        return self.name
 
-    def isset(self) -> bool:
+    def is_set(self) -> bool:
         return self in [
             Option.true,
             Option.false,
             Option.none,
         ]
 
-    def isbool(self) -> bool:
+    def is_bool(self) -> bool:
         return self in [Option.true, Option.false]
 
     def __bool__(self) -> bool:
-        if not self.isbool():
+        if not self.is_bool():
             raise ValueError(self)
         return self == Option.true
 
-    @staticmethod
-    def parse(value: Option | bool | None) -> Option:
-        if isinstance(value, Option):
+
+# OptionsField = field(
+#     default=Option.notset,
+#     on_setattr=setters.convert,
+#     converter=Option.new,
+# )
+
+
+class OptionsBase:
+    __slots__: tuple[str, ...]
+
+
+@define(slots=True)
+class Options(OptionsBase):
+    # TODO: figure out how to define default value on notset
+    distrib: Option | OptionValueT = Option.notset
+    latest: Option | OptionValueT = Option.notset
+    replica: Option | OptionValueT = Option.notset
+    retracted: Option | OptionValueT = Option.notset
+
+    @classmethod
+    def new(
+        cls,
+        value: dict[str, Option | OptionValueT] | Options | None = None,
+        **options: Option | OptionValueT,
+    ) -> Options:
+        if isinstance(value, Options):
             return value
-        elif value is None:
-            return Option.none
-        elif value is False:
-            return Option.false
-        elif value is True:
-            return Option.true
-        else:
-            raise ValueError(value)
+        elif isinstance(value, dict):
+            options = dict(value.items() | options.items())
+        result = cls()
+        for name, option in options.items():
+            setattr(result, name, Option.new(option))
+        return result
 
+    def items(self) -> Iterator[tuple[str, Option]]:
+        for name in self.__slots__:
+            option = getattr(self, name)
+            if option.is_set():
+                yield name, option
 
-OptionsField = field(
-    default=Option.notset,
-    on_setattr=setters.convert,
-    converter=Option.parse,
-)
+    def __bool__(self) -> bool:
+        return next(self.items(), None) is not None
 
+    def __rich_repr__(self) -> Iterator:
+        yield from self.items()
 
-@define
-class Options:
-    distrib: Option = OptionsField
-    latest: Option = OptionsField
-    replica: Option = OptionsField
-    retracted: Option = OptionsField
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        items = [f"{k}={v.value}" for k, v in self.__rich_repr__()]
+        return f"{cls_name}(" + ", ".join(items) + ")"
 
-    def __rich_repr__(self) -> Iterator[tuple[str, str]]:
-        for attr in self.__attrs_attrs__:
-            value = getattr(self, attr.name)
-            if value.isset():
-                yield attr.name, value
+    def __setattr__(self, name: str, value: Option | OptionValueT) -> None:
+        super().__setattr__(name, Option.new(value))

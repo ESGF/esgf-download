@@ -21,6 +21,14 @@ class FacetNameError(EsgpullException, AttributeError):
     msg = "'{}' is not a valid facet."
 
 
+class AlreadySetFacet(EsgpullException):
+    msg = "'{}' is already set: [{}]"
+
+
+class QueryNameCollision(EsgpullException):
+    msg = "{}"
+
+
 # # errors meant for use when validation is implemented
 # class UnknownFacetValue(EsgpullException):
 #     msg = "'{}' is not valid for {}."
@@ -31,12 +39,12 @@ class FacetNameError(EsgpullException, AttributeError):
 
 class SolrUnstableQueryError(EsgpullException):
     msg = """Solr can not handle this query:
-    {}"""
+{}"""
 
 
 class QuerySourceError(EsgpullException):
     msg = """This source cannot be parsed as a query:
-    {}"""
+{}"""
 
 
 class DownloadKindError(EsgpullException):

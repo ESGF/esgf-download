@@ -1,12 +1,30 @@
+import asyncio
 import datetime
 import logging
 import os
 from pathlib import Path
+from typing import Callable, Coroutine, TypeVar
 from urllib.parse import urlparse
 
 from rich.filesize import _to_str
 
 from esgpull.constants import CONFIG_FILENAME, ENV_VARNAME
+
+T = TypeVar("T")
+
+
+def sync(
+    self,
+    coro: Coroutine[None, None, T],
+    prerun_cb: Callable | None = None,
+    postrun_cb: Callable | None = None,
+) -> T:
+    if prerun_cb is not None:
+        prerun_cb()
+    result: T = asyncio.run(coro)
+    if postrun_cb is not None:
+        postrun_cb()
+    return result
 
 
 def format_size(size: int) -> str:

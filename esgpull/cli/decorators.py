@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, TypeAlias
+from typing import Any, Callable, TypeAlias, TypeVar
 
 import click
 from click_option_group import MutuallyExclusiveOptionGroup, optgroup
@@ -9,7 +9,8 @@ from esgpull.cli.utils import EnumParam, SliceParam
 from esgpull.db.models import FileStatus
 from esgpull.tui import Verbosity
 
-Dec: TypeAlias = Callable[[Callable], Callable]
+F = TypeVar("F", bound=Callable[..., Any])
+Dec: TypeAlias = Callable[[F], F]
 
 
 def compose(*decs: Dec) -> Dec:
