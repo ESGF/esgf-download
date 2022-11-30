@@ -17,7 +17,7 @@ from esgpull.query.facets import Select
 from esgpull.query.options import Option, Options
 
 
-@define
+@define(slots=False)
 class Query:
     name: str
     transient: bool = field(default=False)  # when True, query not installed
@@ -52,8 +52,7 @@ class Query:
         result.name += f"+{other.name}"
         for name, facet in other.select.items():
             result.select[name] = facet
-        if self.transient and not other.transient:
-            result.transient = result.require is not None
+        result.transient = other.transient
         return result
 
     def __rich_repr__(self) -> Iterator:
@@ -96,11 +95,11 @@ class Query:
             yield guide(text)
         for name, facet in self.select.items():
             item = guide(Text(f"  {name}", style="blue"))
-            if len(facet.values) == 1:
-                item.append(f": {facet.values[0]}", style="default")
+            if len(facet) == 1:
+                item.append(f": {facet[0]}", style="default")
             else:
                 item.append(":")
-                for value in facet.values:
+                for value in facet:
                     item.append(f"\n    - {value}", style="default")
                     item = guide(item, 4)
             yield item
@@ -114,7 +113,7 @@ class Query:
         return measure_renderables(console, options, renderables)
 
 
-@define(init=False)
+@define(init=False, slots=False)
 class Selection:
     queries: tuple[Query, ...]
     query_map: dict[str, int] = field(repr=False)
@@ -151,6 +150,12 @@ class Selection:
 
     def __getitem__(self, key: str) -> Query:
         return self.queries[self.query_map[key]]
+
+    def expand(self, name: str) -> Query:
+        query = self[name]
+        while query.require is not None:
+            query = self[query.require] << query
+        return query
 
     def dump(self) -> list[dict[str, Any]]:
         return [q.asdict() for q in self.queries]

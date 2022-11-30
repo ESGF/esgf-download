@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from enum import Enum, auto
+from enum import Enum  # , auto
 from typing import Iterator, TypeAlias
 
-from attrs import define, field, setters
+from attrs import Attribute, define
 
 OptionValueT: TypeAlias = str | bool | None
 
@@ -18,6 +18,17 @@ class Option(Enum):
     # true = auto()
     # false = auto()
 
+    # @classmethod
+    # def __new__(cls, value: Option | OptionValueT) -> Option:
+    #     if isinstance(value, Option):
+    #         return value
+    #     elif isinstance(value, str):
+    #         return Option[value]
+    #     elif isinstance(value, bool) or value is None:
+    #         return super().__new__(cls, value)
+    #     else:
+    #         raise ValueError(value)
+
     @staticmethod
     def new(value: Option | OptionValueT) -> Option:
         if isinstance(value, Option):
@@ -26,12 +37,6 @@ class Option(Enum):
             return Option[value]
         elif isinstance(value, bool) or value is None:
             return Option(value)
-        # elif value is None:
-        #     return Option.none
-        # elif value is False:
-        #     return Option.false
-        # elif value is True:
-        #     return Option.true
         else:
             raise ValueError(value)
 
@@ -54,18 +59,11 @@ class Option(Enum):
         return self == Option.true
 
 
-# OptionsField = field(
-#     default=Option.notset,
-#     on_setattr=setters.convert,
-#     converter=Option.new,
-# )
-
-
 class OptionsBase:
-    __slots__: tuple[str, ...]
+    __attrs_attrs__: tuple[Attribute, ...]
 
 
-@define(slots=True)
+@define(slots=False)
 class Options(OptionsBase):
     # TODO: figure out how to define default value on notset
     distrib: Option | OptionValueT = Option.notset
@@ -89,10 +87,10 @@ class Options(OptionsBase):
         return result
 
     def items(self) -> Iterator[tuple[str, Option]]:
-        for name in self.__slots__:
-            option = getattr(self, name)
+        for attr in self.__attrs_attrs__:
+            option = getattr(self, attr.name)
             if option.is_set():
-                yield name, option
+                yield attr.name, option
 
     def __bool__(self) -> bool:
         return next(self.items(), None) is not None

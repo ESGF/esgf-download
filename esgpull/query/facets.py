@@ -1,44 +1,54 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, ClassVar, Iterator, TypeAlias, cast
 
-from attrs import define, field, make_class
+from attrs import Attribute, define, field, make_class
 
 from esgpull.exceptions import AlreadySetFacet
-from esgpull.query.utils import FacetValuesT, hashitems, tuplify
 
 
-@define
-class Facet:
-    values: tuple[str, ...] = ()
-
-    @staticmethod
-    def new(value: Facet | FacetValuesT) -> Facet:
-        if isinstance(value, Facet):
-            return value
+class Facet(tuple[str, ...]):
+    def __new__(cls, values: FacetValues | None = None) -> Facet:
+        # Known mypy issue on tuple subclass
+        # https://github.com/python/mypy/issues/8957
+        if values is None:
+            return super().__new__(cls)
+        elif isinstance(values, str):
+            return super().__new__(cls, (values,))  # type: ignore
         else:
-            return Facet(tuplify(value))
+            return super().__new__(cls, values)  # type: ignore
 
-    def __bool__(self) -> bool:
-        return len(self.values) > 0
+
+FacetValues: TypeAlias = str | list[str] | Facet
 
 
 class SelectBase:
-    __slots__: tuple[str, ...]
+    __attrs_attrs__: tuple[Attribute, ...]
+
+    @classmethod
+    def configure(cls, *names: str) -> type[SelectBase]:
+        return make_class(
+            "Select",
+            attrs={name: field(factory=Facet) for name in names},
+            bases=(cls,),
+            repr=False,
+            slots=False,
+        )
 
     @classmethod
     def new(
         cls,
-        value: dict[str, Facet | FacetValuesT] | SelectBase | None = None,
-        **facets: Facet | FacetValuesT,
+        value: dict[str, FacetValues] | SelectBase | None = None,
+        **facets: FacetValues,
     ) -> SelectBase:
         for k, v in facets.items():
-            if isinstance(v, list):
-                facets[k] = tuple(v)
+            facets[k] = Facet(v)
         if isinstance(value, SelectBase):
             return value
         elif isinstance(value, dict):
-            facets = dict(hashitems(value) | hashitems(facets))
+            for k, v in value.items():
+                value[k] = Facet(v)
+            facets = dict(value.items() | facets.items())
         result = cls()
         for name, values in facets.items():
             result[name] = values
@@ -46,7 +56,7 @@ class SelectBase:
 
     @property
     def names(self) -> tuple[str, ...]:
-        return self.__slots__
+        return tuple(attr.name for attr in self.__attrs_attrs__)
 
     def __getattr__(self, name: str) -> Facet:
         if name in self.names:
@@ -60,16 +70,16 @@ class SelectBase:
         else:
             raise KeyError(name)
 
-    def __setattr__(self, name: str, value: Facet | FacetValuesT):
+    def __setattr__(self, name: str, value: FacetValues):
         if name in self.names:
-            facet: Facet | None = getattr(self, name, None)
-            if facet:
-                raise AlreadySetFacet(name, ", ".join(facet.values))
-            super().__setattr__(name, Facet.new(value))
+            facet: Facet = getattr(self, name, Facet())
+            if len(facet) > 0:
+                raise AlreadySetFacet(name, ", ".join(facet))
+            super().__setattr__(name, Facet(value))
         else:
             raise AttributeError(name)
 
-    def __setitem__(self, name: str, value: Facet | FacetValuesT):
+    def __setitem__(self, name: str, value: FacetValues):
         if name in self.names:
             setattr(self, name, value)
         else:
@@ -78,30 +88,32 @@ class SelectBase:
     def items(self, keep_default: bool = False) -> Iterator[tuple[str, Facet]]:
         for name in self.names:
             facet = getattr(self, name)
-            if not keep_default and not facet.values:
+            if not keep_default and len(facet) == 0:
                 continue
             yield name, facet
 
     def __bool__(self) -> bool:
         return next(self.items(), None) is not None
 
-    def asdict(self) -> dict[str, FacetValuesT]:
-        result: dict[str, FacetValuesT] = {}
+    # def sha1(self) -> str:
+    #     return sha1(str())
+
+    def asdict(self) -> dict[str, FacetValues]:
+        result: dict[str, FacetValues] = {}
         for name, facet in self.items():
-            values: FacetValuesT = facet.values
-            if len(values) == 1:
-                values = values[0]
+            values: FacetValues
+            if len(facet) == 1:
+                result[name] = facet[0]
             else:
-                values = list(values)
-            result[name] = values
+                result[name] = list(facet)
         return result
 
-    def __rich_repr__(self) -> Iterator[tuple[str, FacetValuesT]]:
+    def __rich_repr__(self) -> Iterator[tuple[str, FacetValues]]:
         for name, facet in self.items():
-            values: FacetValuesT = facet.values
-            if len(values) == 1:
-                values = values[0]
-            yield name, values
+            if len(facet) == 1:
+                yield name, facet[0]
+            else:
+                yield name, facet
 
     def __repr__(self) -> str:
         cls_name = self.__class__.__name__
@@ -153,11 +165,4 @@ BaseFacets = [
 if TYPE_CHECKING:
     Select = SelectBase
 else:
-    SelectField = field(factory=Facet)
-    Select = make_class(
-        "Select",
-        attrs={name: SelectField for name in DefaultFacets + BaseFacets},
-        bases=(SelectBase,),
-        repr=False,
-        slots=True,
-    )
+    Select = SelectBase.configure(*DefaultFacets, *BaseFacets)
