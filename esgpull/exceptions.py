@@ -22,10 +22,10 @@ class FacetNameError(EsgpullException, AttributeError):
 
 
 class AlreadySetFacet(EsgpullException):
-    msg = "'{}' is already set: [{}]"
+    msg = "'{}' is already set to [{}]"
 
 
-class QueryNameCollision(EsgpullException):
+class QueryDuplicate(EsgpullException):
     msg = "{}"
 
 

@@ -52,17 +52,13 @@ class Query(Base):
         sa.ForeignKey("options.sha"),
         init=False,
     )
-    options: Mapped[Options] = relationship(
-        default_factory=Options,
-    )
+    options: Mapped[Options] = relationship(default_factory=Options)
     select_sha: Mapped[int] = mapped_column(
         Sha,
         sa.ForeignKey("select.sha"),
         init=False,
     )
-    select: Mapped[Select] = relationship(
-        default_factory=Select,
-    )
+    select: Mapped[Select] = relationship(default_factory=Select)
     files: Mapped[list[File]] = relationship(
         secondary=query_file_proxy,
         default_factory=list,
@@ -146,7 +142,7 @@ class Query(Base):
         return instance
 
     def no_require(self) -> Query:
-        cl = self.clone(compute_sha=False)
+        cl = self.clone(compute_sha=True)
         cl._rich_no_require = True
         return cl
 
