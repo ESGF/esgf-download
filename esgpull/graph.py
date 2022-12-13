@@ -4,6 +4,7 @@ from typing import Iterator
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
+from rich.measure import Measurement, measure_renderables
 from rich.pretty import pretty_repr
 from rich.tree import Tree
 from sqlalchemy.orm import Session
@@ -14,21 +15,28 @@ from esgpull.models import Query, QueryDict, Options, Select, Tag, Facet
 
 @dataclass(init=False)
 class Graph:
-    session: Session
+    session: Session | None
     queries: list[Query]
     _query_map_: dict[str, int] = field(repr=False)
     _rendered: set[int] = field(repr=False)
 
-    def __init__(self, session: Session, *queries: Query) -> None:
+    def __init__(
+        self,
+        session: Session | None,
+        *queries: Query,
+        force: bool = False,
+        noraise: bool = False,
+    ) -> None:
         self.session = session
         self._query_map_ = {}
         self.queries = []
         self.load_db()
-        self.add(*queries)
+        self.add(*queries, force=force, noraise=noraise)
 
     def load_db(self) -> None:
-        queries = self.session.scalars(sa.select(Query)).all()
-        self.add(*queries, clone=False, noraise=True)
+        if self.session is not None:
+            queries = self.session.scalars(sa.select(Query)).all()
+            self.add(*queries, clone=False, noraise=True)
 
     def validate(self, *queries: Query, noraise: bool = False) -> set[str]:
         names = Counter(q.name for q in list(queries) + self.queries)
@@ -64,20 +72,16 @@ class Graph:
         - populate graph._query_map_ to enable `graph[query.name]` indexing
         - replace query.require with sha if using known name (or raise)
         """
-        queue: list[Query] = []
-        for query in queries:
-            if clone:
-                new_query = query.clone(compute_sha=True)
-            else:
-                new_query = query
-            queue.append(new_query)
+        new_queries: list[Query] = list(self.queries)
+        new_query_map: dict[str, int] = dict(self._query_map_.items())
+        queue: list[Query] = [
+            query.clone(compute_sha=True) if clone else query
+            for query in queries
+        ]
         duplicate_names = self.validate(*queue, noraise=noraise or force)
         duplicate_name_sha_map: dict[str, str] = {}
-        offset = len(self.queries)
         replaced: dict[str, Query] = {}
         queries_with_require: list[Query] = []
-        new_query_map = dict(self._query_map_.items())
-        skip_idx: set[int] = set()
         for i, query in enumerate(queue):
             query_idx = new_query_map.get(query.name)
             if query.name in duplicate_names:
@@ -93,18 +97,17 @@ class Graph:
                 query_idx = new_query_map.get(query.sha)
             if query_idx is not None:
                 if force:
-                    og = self.queries[query_idx]
-                    self.queries[query_idx] = query
+                    og = new_queries[query_idx]
+                    new_queries[query_idx] = query
                     new_query_map[query.sha] = new_query_map.pop(og.sha)
                     new_query_map[query.name] = new_query_map.pop(og.name)
-                    skip_idx.add(i)
-                    offset -= 1  # one less query to add
                     replaced[query.name] = og.clone(compute_sha=False)  # True?
                 else:
                     raise QueryDuplicate(pretty_repr(query))
             else:
-                new_query_map[query.name] = offset + i
-                new_query_map[query.sha] = offset + i
+                new_query_map[query.name] = len(new_queries)
+                new_query_map[query.sha] = len(new_queries)
+                new_queries.append(query)
             if query.require is not None:
                 queries_with_require.append(query)
         for query in queries_with_require:
@@ -112,9 +115,7 @@ class Graph:
                 query.require = duplicate_name_sha_map[query.require]
             elif query.require not in new_query_map:
                 raise ValueError
-        self.queries += [
-            query for i, query in enumerate(queue) if i not in skip_idx
-        ]
+        self.queries = new_queries
         self._query_map_ = new_query_map
         return replaced
 
@@ -130,6 +131,8 @@ class Graph:
         Only load options/select/facets if query is not in session,
         and updated options/select/facets should change sha value.
         """
+        if self.session is None:
+            raise
         new_queries: list[str] = []
         for i, query in enumerate(self.queries):
             is_new = False
@@ -187,6 +190,8 @@ class Graph:
         """
         Merge with existing db instances, otherwise insert into new rows.
         """
+        if self.session is None:
+            raise
         new_queries = self.merge()
         self.session.add_all(self.queries)
         self.session.commit()
@@ -251,3 +256,11 @@ class Graph:
         options: ConsoleOptions,
     ) -> Iterator[Tree]:
         yield self.get_tree_from(None)
+
+    def __rich_measure__(
+        self,
+        console: Console,
+        options: ConsoleOptions,
+    ) -> Measurement:
+        renderables = list(self.__rich_console__(console, options))
+        return measure_renderables(console, options, renderables)

@@ -1,8 +1,8 @@
 import sqlalchemy as sa
 
+from esgpull.models._select import select_facet_proxy
 from esgpull.models.facet import Facet
 from esgpull.models.query import query_tag_proxy
-from esgpull.models._select import select_facet_proxy
 from esgpull.models.tag import Tag
 
 # from esgpull.models.base import Base

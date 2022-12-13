@@ -1,9 +1,10 @@
 from typing import ClassVar, Iterator, TypeAlias
 
 import sqlalchemy as sa
+from rich.pretty import pretty_repr
 from sqlalchemy.orm import Mapped, relationship
 
-from esgpull.exceptions import AlreadySetFacet
+from esgpull.exceptions import AlreadySetFacet, DuplicateFacet
 from esgpull.models.base import Base, Sha
 from esgpull.models.facet import Facet
 
@@ -21,7 +22,7 @@ select_facet_proxy = sa.Table(
 
 class Select(Base):
     __tablename__ = "select"
-    __facet_names: ClassVar[set[str]] = set()
+    _facet_names: ClassVar[set[str]] = set()
 
     facets: Mapped[list[Facet]] = relationship(
         secondary=select_facet_proxy,
@@ -31,9 +32,9 @@ class Select(Base):
     @classmethod
     def configure(cls, *names: str, replace: bool = True) -> None:
         if replace:
-            cls.__facet_names = set(names)
+            cls._facet_names = set(names)
         else:
-            cls.__facet_names |= set(names)
+            cls._facet_names |= set(names)
 
     def __init__(
         self,
@@ -56,14 +57,14 @@ class Select(Base):
 
     def __getattr__(self, name: str) -> list[str]:
         # `__sql_attrs__` and `facets` already covered in __getattribute__
-        if name in self.__facet_names:
+        if name in self._facet_names:
             indices = self._facet_map_.get(name, set())
             return sorted([self.facets[idx].value for idx in indices])
         else:
             raise AttributeError(name)
 
     def __getitem__(self, name: str) -> list[str]:
-        if name in self.__facet_names:
+        if name in self._facet_names:
             return getattr(self, name)
         else:
             raise KeyError(name)
@@ -71,7 +72,7 @@ class Select(Base):
     def __setattr__(self, name: str, values: FacetValues):
         if name in self.__sql_attrs__ + ("facets", "_facet_map_"):
             super().__setattr__(name, values)
-        elif name in self.__facet_names:
+        elif name in self._facet_names:
             if name in self._facet_map_:
                 raise AlreadySetFacet(name, ", ".join(self[name]))
             self._facet_map_[name] = set()
@@ -81,14 +82,18 @@ class Select(Base):
             for i, value in enumerate(values):
                 facet = Facet(name=name, value=value)
                 if facet in self.facets:
-                    raise ValueError(facet)
+                    raise DuplicateFacet(
+                        pretty_repr(self),
+                        facet.name,
+                        facet.value,
+                    )
                 self.facets.append(facet)
                 self._facet_map_[name].add(offset + i)
         else:
             raise AttributeError(name)
 
     def __setitem__(self, name: str, value: FacetValues):
-        if name in self.__facet_names:
+        if name in self._facet_names:
             setattr(self, name, value)
         else:
             raise KeyError(name)

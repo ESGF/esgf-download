@@ -10,7 +10,7 @@ from rich.text import Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing_extensions import NotRequired, TypedDict
 
-from esgpull.models._select import Select
+from esgpull.models._select import Select, FacetValues
 from esgpull.models.base import Base, Sha
 from esgpull.models.file import File
 from esgpull.models.options import Options
@@ -35,7 +35,7 @@ class QueryDict(TypedDict):
     transient: NotRequired[Literal[True]]
     require: NotRequired[str]
     options: NotRequired[dict[str, bool | None]]
-    select: NotRequired[dict[str, str | list[str]]]
+    select: NotRequired[dict[str, FacetValues]]
 
 
 class Query(Base):

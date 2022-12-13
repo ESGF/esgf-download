@@ -25,6 +25,10 @@ class AlreadySetFacet(EsgpullException):
     msg = "'{}' is already set to [{}]"
 
 
+class DuplicateFacet(EsgpullException):
+    msg = "{}\nDuplicate facet '{}: {}'"
+
+
 class QueryDuplicate(EsgpullException):
     msg = "{}"
 
