@@ -68,4 +68,4 @@ class DownloadCancelled(EsgpullException):
 
 
 class NoClauseError(EsgpullException):
-    msg = """Tried querying the database without clause (query might be empty)."""
+    msg = """No clause provided (query might be empty)."""

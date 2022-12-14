@@ -10,7 +10,7 @@ from rich.tree import Tree
 from sqlalchemy.orm import Session
 
 from esgpull.exceptions import QueryDuplicate
-from esgpull.models import Query, QueryDict, Options, Select, Tag, Facet
+from esgpull.models import Facet, Options, Query, QueryDict, Selection, Tag
 
 
 @dataclass(init=False)
@@ -128,8 +128,8 @@ class Graph:
         Those new tags need to be merged before adding them to an
         existing query instance from database (autoflush mess).
 
-        Only load options/select/facets if query is not in session,
-        and updated options/select/facets should change sha value.
+        Only load options/selection/facets if query is not in session,
+        and updated options/selection/facets should change sha value.
         """
         if self.session is None:
             raise
@@ -145,7 +145,7 @@ class Graph:
                     is_new = True
                     query.tags[j] = self.session.merge(tag)
             if query.state.persistent and not is_new:
-                # can skip options/select/facets since tags are updated
+                # can skip options/selection/facets since tags are updated
                 # self.session.flush()  # needed? dont think (autoflush=True)
                 continue
             elif query_session := self.session.get(Query, query.sha):
@@ -166,20 +166,22 @@ class Graph:
             else:
                 is_new = True
                 query.options = self.session.merge(query.options)
-            if query.select.state.persistent:
+            if query.selection.state.persistent:
                 ...
-            elif select_session := self.session.get(Select, query.select.sha):
-                query.select = select_session
+            elif selection_session := self.session.get(
+                Selection, query.selection.sha
+            ):
+                query.selection = selection_session
             else:
-                for j, facet in enumerate(query.select.facets):
+                for j, facet in enumerate(query.selection._facets):
                     if facet.state.persistent:
                         ...
                     elif facet_session := self.session.get(Facet, facet.sha):
-                        query.select.facets[j] = facet_session
+                        query.selection._facets[j] = facet_session
                     else:
                         raise ValueError(f"unknown facet: {facet}")
                 is_new = True
-                query.select = self.session.merge(query.select)
+                query.selection = self.session.merge(query.selection)
             self.queries[i] = self.session.merge(query)
             # self.session.flush()
             if is_new:

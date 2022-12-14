@@ -10,10 +10,10 @@ from rich.text import Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing_extensions import NotRequired, TypedDict
 
-from esgpull.models._select import Select, FacetValues
 from esgpull.models.base import Base, Sha
 from esgpull.models.file import File
 from esgpull.models.options import Options
+from esgpull.models.selection import FacetValues, Selection
 from esgpull.models.tag import Tag
 
 query_file_proxy = sa.Table(
@@ -35,7 +35,7 @@ class QueryDict(TypedDict):
     transient: NotRequired[Literal[True]]
     require: NotRequired[str]
     options: NotRequired[dict[str, bool | None]]
-    select: NotRequired[dict[str, FacetValues]]
+    selection: NotRequired[dict[str, FacetValues]]
 
 
 class Query(Base):
@@ -53,12 +53,12 @@ class Query(Base):
         init=False,
     )
     options: Mapped[Options] = relationship(default_factory=Options)
-    select_sha: Mapped[int] = mapped_column(
+    selection_sha: Mapped[int] = mapped_column(
         Sha,
-        sa.ForeignKey("select.sha"),
+        sa.ForeignKey("selection.sha"),
         init=False,
     )
-    select: Mapped[Select] = relationship(default_factory=Select)
+    selection: Mapped[Selection] = relationship(default_factory=Selection)
     files: Mapped[list[File]] = relationship(
         secondary=query_file_proxy,
         default_factory=list,
@@ -82,21 +82,21 @@ class Query(Base):
                 value = tags
             case "options", dict():
                 value = Options(**value)
-            case "select", dict():
-                value = Select(**value)
+            case "selection", dict():
+                value = Selection(**value)
             case _, _:
                 ...
         super().__setattr__(name, value)
 
     def _as_bytes(self) -> bytes:
-        self_tuple = (self.require, self.options.sha, self.select.sha)
+        self_tuple = (self.require, self.options.sha, self.selection.sha)
         return str(self_tuple).encode()
 
     def compute_sha(self) -> None:
         for tag in self.tags:
             tag.compute_sha()
         self.options.compute_sha()
-        self.select.compute_sha()
+        self.selection.compute_sha()
         super().compute_sha()
 
     def items(
@@ -116,8 +116,8 @@ class Query(Base):
             yield "require", self.require
         if self.options:
             yield "options", self.options
-        if self.select:
-            yield "select", self.select
+        if self.selection:
+            yield "selection", self.selection
 
     def asdict(self) -> QueryDict:
         result: QueryDict = {}
@@ -131,8 +131,8 @@ class Query(Base):
             result["require"] = self.require
         if self.options:
             result["options"] = self.options.asdict()
-        if self.select:
-            result["select"] = self.select.asdict()
+        if self.selection:
+            result["selection"] = self.selection.asdict()
         return result
 
     def clone(self, compute_sha: bool = True) -> Query:
@@ -176,8 +176,8 @@ class Query(Base):
                 result.tags.append(tag)
         for name, option in other.options.items():
             setattr(self.options, name, option)
-        for name, facet in other.select.items():
-            result.select[name] = facet
+        for name, facet in other.selection.items():
+            result.selection[name] = facet
         result.transient = other.transient
         result.compute_sha()
         return result
@@ -215,7 +215,7 @@ class Query(Base):
             text.append(name, style="yellow")
             text.append(f": {option.value}")
             yield guide(text)
-        for name, facet in self.select.items():
+        for name, facet in self.selection.items():
             item = guide(Text(f"  {name}", style="blue"))
             if len(facet) == 1:
                 item.append(f": {facet[0]}", style="default")

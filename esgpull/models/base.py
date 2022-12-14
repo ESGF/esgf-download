@@ -1,6 +1,6 @@
 from dataclasses import Field
 from hashlib import sha1
-from typing import Annotated, ClassVar, cast
+from typing import ClassVar, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (

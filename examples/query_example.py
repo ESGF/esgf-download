@@ -10,7 +10,7 @@ from esgpull.models import Query
 
 main = Query(
     tags="main",
-    select=dict(
+    selection=dict(
         project="CMIP5",
         # experiment="historical",
         ensemble="r1i1p1",
@@ -26,31 +26,31 @@ main = Query(
 day = Query(
     tags="day",
     require="main",
-    select=dict(time_frequency="day"),
+    selection=dict(time_frequency="day"),
     transient=True,
 )
 
 rcp26 = Query(tags="rcp26", require="main")
-rcp26.select.experiment = "rcp26"
-rcp26.select.time_frequency = "mon"
-rcp26.select.variable = "tasmin"
+rcp26.selection.experiment = "rcp26"
+rcp26.selection.time_frequency = "mon"
+rcp26.selection.variable = "tasmin"
 
 tasmax_day = Query(tags="tasmax", require="day")
-tasmax_day.select.experiment = "historical"
-tasmax_day.select.variable = "tasmax"
+tasmax_day.selection.experiment = "historical"
+tasmax_day.selection.variable = "tasmax"
 
 tasmax_monfx = Query(
     tags="tasmax_monfx",
     # tags=["tasmax", "monfx"],
     require="main",
-    select={"time_frequency": ["mon", "fx"], "variable": "tasmax"},
+    selection={"time_frequency": ["mon", "fx"], "variable": "tasmax"},
 )
 
 rcp85 = Query(require="day")
-rcp85.select.experiment = "rcp85"
-rcp85.select.variable = ["tas", "ua"]
+rcp85.selection.experiment = "rcp85"
+rcp85.selection.variable = ["tas", "ua"]
 
-other = Query(tags="other", select=dict(project="CMIP6"))
+other = Query(tags="other", selection=dict(project="CMIP6"))
 
 queries = [main, day, rcp26, tasmax_day, tasmax_monfx, rcp85, other]
 

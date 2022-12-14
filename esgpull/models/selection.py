@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import ClassVar, Iterator, TypeAlias
 
 import sqlalchemy as sa
@@ -10,31 +12,66 @@ from esgpull.models.facet import Facet
 
 FacetValues: TypeAlias = str | list[str]
 
-select_facet_proxy = sa.Table(
-    "select_facet",
+selection_facet_proxy = sa.Table(
+    "selection_facet",
     Base.metadata,
     sa.Column(
-        "select_sha", Sha, sa.ForeignKey("select.sha"), primary_key=True
+        "selection_sha", Sha, sa.ForeignKey("selection.sha"), primary_key=True
     ),
     sa.Column("facet_sha", Sha, sa.ForeignKey("facet.sha"), primary_key=True),
 )
 
 
-class Select(Base):
-    __tablename__ = "select"
+class Selection(Base):
+    __tablename__ = "selection"
     _facet_names: ClassVar[set[str]] = set()
 
-    facets: Mapped[list[Facet]] = relationship(
-        secondary=select_facet_proxy,
+    _facets: Mapped[list[Facet]] = relationship(
+        secondary=selection_facet_proxy,
         default_factory=list,
     )
 
     @classmethod
+    def _add_property(cls, name: str) -> None:
+        def getter(self: Selection) -> list[str]:
+            indices = self._facet_map_.get(name, set())
+            return sorted([self._facets[idx].value for idx in indices])
+
+        def setter(self: Selection, values: FacetValues):
+            if name in self._facet_map_:
+                raise AlreadySetFacet(name, ", ".join(self[name]))
+            facet_map_name = set()
+            if isinstance(values, str):
+                iter_values = enumerate([values])
+            else:
+                iter_values = enumerate(values)
+            offset = len(self._facets)
+            for i, value in iter_values:
+                facet = Facet(name=name, value=value)
+                if facet in self._facets:
+                    raise DuplicateFacet(
+                        pretty_repr(self),
+                        facet.name,
+                        facet.value,
+                    )
+                self._facets.append(facet)
+                facet_map_name.add(offset + i)
+            self._facet_map_[name] = facet_map_name
+
+        setattr(cls, name, property(getter, setter))
+
+    @classmethod
     def configure(cls, *names: str, replace: bool = True) -> None:
         if replace:
+            for name in cls._facet_names:
+                delattr(cls, name)
+            new_names = set(names)
             cls._facet_names = set(names)
         else:
-            cls._facet_names |= set(names)
+            new_names = set(names) - cls._facet_names
+            cls._facet_names |= new_names
+        for name in new_names:
+            cls._add_property(name)
 
     def __init__(
         self,
@@ -42,55 +79,24 @@ class Select(Base):
         **kwargs: FacetValues,
     ):
         if facets is None:
-            self.facets = []
+            self._facets = []
         else:
-            self.facets = facets
+            self._facets = facets
         self._init_facet_map()
         for name, values in kwargs.items():
             self[name] = values
 
     def _init_facet_map(self) -> None:
         self._facet_map_: dict[str, set[int]] = {}
-        for i, facet in enumerate(self.facets):
+        for i, facet in enumerate(self._facets):
             self._facet_map_.setdefault(facet.name, set())
             self._facet_map_[facet.name].add(i)
-
-    def __getattr__(self, name: str) -> list[str]:
-        # `__sql_attrs__` and `facets` already covered in __getattribute__
-        if name in self._facet_names:
-            indices = self._facet_map_.get(name, set())
-            return sorted([self.facets[idx].value for idx in indices])
-        else:
-            raise AttributeError(name)
 
     def __getitem__(self, name: str) -> list[str]:
         if name in self._facet_names:
             return getattr(self, name)
         else:
             raise KeyError(name)
-
-    def __setattr__(self, name: str, values: FacetValues):
-        if name in self.__sql_attrs__ + ("facets", "_facet_map_"):
-            super().__setattr__(name, values)
-        elif name in self._facet_names:
-            if name in self._facet_map_:
-                raise AlreadySetFacet(name, ", ".join(self[name]))
-            self._facet_map_[name] = set()
-            if isinstance(values, str):
-                values = [values]
-            offset = len(self.facets)
-            for i, value in enumerate(values):
-                facet = Facet(name=name, value=value)
-                if facet in self.facets:
-                    raise DuplicateFacet(
-                        pretty_repr(self),
-                        facet.name,
-                        facet.value,
-                    )
-                self.facets.append(facet)
-                self._facet_map_[name].add(offset + i)
-        else:
-            raise AttributeError(name)
 
     def __setitem__(self, name: str, value: FacetValues):
         if name in self._facet_names:
@@ -105,13 +111,13 @@ class Select(Base):
             yield name, self[name]
 
     def __bool__(self) -> bool:
-        return bool(self.facets)
+        return bool(self._facets)
 
     def _as_bytes(self) -> bytes:
         return str(tuple(self.items())).encode()
 
     def compute_sha(self) -> None:
-        for facet in self.facets:
+        for facet in self._facets:
             if facet.sha is None:
                 facet.compute_sha()
         super().compute_sha()
@@ -179,4 +185,4 @@ BaseFacets = [
 ]
 
 
-Select.configure(*DefaultFacets, *BaseFacets, replace=True)
+Selection.configure(*DefaultFacets, *BaseFacets, replace=True)

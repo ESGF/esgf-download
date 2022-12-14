@@ -1,13 +1,13 @@
 import sqlalchemy as sa
 
-from esgpull.models._select import select_facet_proxy
 from esgpull.models.facet import Facet
 from esgpull.models.query import query_tag_proxy
+from esgpull.models.selection import selection_facet_proxy
 from esgpull.models.tag import Tag
 
 # from esgpull.models.base import Base
 # from esgpull.models.query import query_file_proxy, Query
-# from esgpull.models._select import Select, select_facet_proxy
+# from esgpull.models.selection import Selection
 # from esgpull.models.options import Options
 # from esgpull.models.file import File
 
@@ -31,6 +31,6 @@ facet_count = sa.select(Facet.name, sa.func.count("*")).group_by(Facet.name)
 #     facet_usage[facet.name][facet.value] = count
 facet_usage = (
     sa.select(Facet, sa.func.count("*"))
-    .join(select_facet_proxy)
+    .join(selection_facet_proxy)
     .group_by(Facet.sha)
 )
