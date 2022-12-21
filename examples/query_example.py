@@ -1,8 +1,9 @@
 import rich
 import sqlalchemy as sa
-import yaml
-from rich.panel import Panel
-from rich.syntax import Syntax
+
+# import yaml
+# from rich.panel import Panel
+# from rich.syntax import Syntax
 from sqlalchemy.orm import Session
 
 from esgpull.graph import Graph
@@ -30,25 +31,26 @@ day = Query(
     transient=True,
 )
 
-rcp26 = Query(tags="rcp26", require="main")
-rcp26.selection.experiment = "rcp26"
-rcp26.selection.time_frequency = "mon"
-rcp26.selection.variable = "tasmin"
-
-tasmax_day = Query(tags="tasmax", require="day")
-tasmax_day.selection.experiment = "historical"
-tasmax_day.selection.variable = "tasmax"
-
 tasmax_monfx = Query(
-    tags="tasmax_monfx",
-    # tags=["tasmax", "monfx"],
+    # tags="tasmax_monfx",
+    tags=["tasmax", "monfx"],
     require="main",
     selection={"time_frequency": ["mon", "fx"], "variable": "tasmax"},
 )
 
+tasmax_day = Query(tags="tasmax", require="day")
+tasmax_day.selection.experiment = "historical"  # type: ignore [attr-defined]
+tasmax_day.selection.variable = "tasmax"  # type: ignore [attr-defined]
+
+rcp26 = Query(tags="rcp26", require="main")
+rcp26.selection.experiment = "rcp26"  # type: ignore [attr-defined]
+rcp26.selection.time_frequency = "mon"  # type: ignore [attr-defined]
+rcp26.selection.variable = "tasmin"  # type: ignore [attr-defined]
+
+
 rcp85 = Query(require="day")
-rcp85.selection.experiment = "rcp85"
-rcp85.selection.variable = ["tas", "ua"]
+rcp85.selection.experiment = "rcp85"  # type: ignore [attr-defined]
+rcp85.selection.variable = ["tas", "ua"]  # type: ignore [attr-defined]
 
 other = Query(tags="other", selection=dict(project="CMIP6"))
 
@@ -79,6 +81,7 @@ eqs = " " + "=" * 10 + " "
 
 graph = Graph(session)
 rich.print(graph)
+
 # replaced = graph.add(
 #     *queries,
 #     force=True,
@@ -114,42 +117,3 @@ rich.print(graph)
 # print(eqs + f"graph.expand({name})" + eqs)
 # rich.print(graph.expand(name))
 # print()
-
-# # fmt: off
-# multitree_graph = """
-#               ┌────┬───────────┐                   ┌────┐              ┌─────┬────────┐
-#               │main│ transient │                   │sven│              │other│        │
-#               ├────┘           │                   └────┤              ├─────┘        │
-#               │distrib=false   │                        │              │project: CMIP6│
-#               │latest=true     │                        │              └──────────────┘
-#               ├──              │                        │
-#               │ensemble: r1i1p1│                        │
-#               │project: CMIP5  │                        │
-#               │realm: atmos    │                        │
-#               ├────────────────┘                        │
-#               │                                         │
-#         ┌─────┴──────────────┬─────────────────┐ ┌──────┴───────────┐
-#         │                    │                 │ │                  │
-#         ▼                    ▼                 ▼ ▼                  │
-#     ┌───┬───────────────┐ ┌────────────┬───┐  ┌─────┬─────────────┐ │
-#     │day│     transient │ │tasmax_monfx│   │  │rcp26│             │ │
-#     ├───┘               │ ├────────────┘   │  ├─────┘             │ │
-#     │time_frequency: day│ │time_frequency: │  │experiment: rcp26  │ │
-#     ├───────────────────┘ │- mon           │  │time_frequency: mon│ │
-#     │                     │- fx            │  │variable: tasmin   │ │
-#     ▼                     │variable: tasmax│  └───────────────────┘ │
-# ┌──────┬───────────────┐  └────────────────┘                        │
-# │tasmax│               │                                            │
-# ├──────┘               │                                            ▼
-# │experiment: historical│                                         ┌─────┬─────────────┐
-# │variable: tasmax      │                                         │rcp85│             │
-# └──────────────────────┘                                         ├─────┘             │
-#                                                                  │experiment: rcp85  │
-#                                                                  │variable: [tas, ua]│
-#                                                                  │- tas              │
-#                                                                  │- ua               │
-#                                                                  └───────────────────┘
-# """
-# # fmt: on
-
-# # --> no multitree, instead add tags with tag+query_tag table

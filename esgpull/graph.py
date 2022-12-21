@@ -2,7 +2,6 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Iterator
 
-import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
 from rich.measure import Measurement, measure_renderables
 from rich.pretty import pretty_repr
@@ -10,13 +9,23 @@ from rich.tree import Tree
 from sqlalchemy.orm import Session
 
 from esgpull.exceptions import QueryDuplicate
-from esgpull.models import Facet, Options, Query, QueryDict, Selection, Tag
+from esgpull.models import (
+    Facet,
+    Options,
+    Query,
+    QueryDict,
+    Selection,
+    Tag,
+    sql,
+)
 
 
 @dataclass(init=False)
 class Graph:
     session: Session | None
     queries: list[Query]
+    _sha_map_: dict[str, str] = field(repr=False)
+    _name_map_: dict[str, str] = field(repr=False)
     _query_map_: dict[str, int] = field(repr=False)
     _rendered: set[int] = field(repr=False)
 
@@ -28,34 +37,53 @@ class Graph:
         noraise: bool = False,
     ) -> None:
         self.session = session
-        self._query_map_ = {}
         self.queries = []
+        self._sha_map_ = {}
+        self._query_map_ = {}
         self.load_db()
         self.add(*queries, force=force, noraise=noraise)
 
-    def load_db(self) -> None:
+    def load_db(self, full: bool = False) -> None:
         if self.session is not None:
-            queries = self.session.scalars(sa.select(Query)).all()
-            self.add(*queries, clone=False, noraise=True)
+            sha_map: dict[str, str] = {}
+            shas: set[str] = set(self.session.scalars(sql.shas).all())
+            for name, sha in self.session.execute(sql.name_sha).all():
+                sha_map[name] = sha
+                shas.remove(sha)
+            for sha in shas:
+                name = Query.format_name(sha)
+                sha_map[name] = sha
+            self._sha_map_ = sha_map
+            self._name_map_ = {sha: name for name, sha in sha_map.items()}
+            if full:
+                queries = self.session.scalars(sql.queries).all()
+                self.add(*queries, clone=False, noraise=True)
 
     def validate(self, *queries: Query, noraise: bool = False) -> set[str]:
-        names = Counter(q.name for q in list(queries) + self.queries)
-        counter = sum(c > 1 for c in names.values())
-        if counter == 0:
-            return set()
-        duplicates = dict(names.most_common(counter))
-        if noraise:
+        names = set(self._sha_map_.keys())
+        duplicates = {q.name: q for q in queries if q.name in names}
+        if duplicates and not noraise:
+            raise QueryDuplicate(pretty_repr(duplicates))
+        else:
             return set(duplicates.keys())
-        duplicate_dict: dict[str, list[Query]] = {
-            name: [] for name in duplicates
-        }
-        for query in queries:
-            if sum(duplicates.values()) == 0:
-                break
-            if query.name in duplicates:
-                duplicate_dict[query.name].append(query)
-                duplicates[query.name] -= 1
-        raise QueryDuplicate(pretty_repr(duplicate_dict))
+
+        # names = Counter(q.name for q in list(queries) + self.queries)
+        # counter = sum(c > 1 for c in names.values())
+        # if counter == 0:
+        #     return set()
+        # duplicates = dict(names.most_common(counter))
+        # if noraise:
+        #     return set(duplicates.keys())
+        # duplicate_dict: dict[str, list[Query]] = {
+        #     name: [] for name in duplicates
+        # }
+        # for query in queries:
+        #     if sum(duplicates.values()) == 0:
+        #         break
+        #     if query.name in duplicates:
+        #         duplicate_dict[query.name].append(query)
+        #         duplicates[query.name] -= 1
+        # raise QueryDuplicate(pretty_repr(duplicate_dict))
 
     def add(
         self,
@@ -79,7 +107,7 @@ class Graph:
             for query in queries
         ]
         duplicate_names = self.validate(*queue, noraise=noraise or force)
-        duplicate_name_sha_map: dict[str, str] = {}
+        name_old_new_map: dict[str, str] = {}
         replaced: dict[str, Query] = {}
         queries_with_require: list[Query] = []
         for i, query in enumerate(queue):
@@ -90,7 +118,7 @@ class Graph:
                 # with another existing query.
                 old_name = query.name
                 query._sha_name = True
-                duplicate_name_sha_map[old_name] = query.name
+                name_old_new_map[old_name] = query.name
                 if query_idx is None:
                     query_idx = new_query_map.get(query.name)
             if query_idx is None:
@@ -112,7 +140,7 @@ class Graph:
                 queries_with_require.append(query)
         for query in queries_with_require:
             if query.require in duplicate_names:
-                query.require = duplicate_name_sha_map[query.require]
+                query.require = name_old_new_map[query.require]
             elif query.require not in new_query_map:
                 raise ValueError
         self.queries = new_queries

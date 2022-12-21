@@ -99,6 +99,31 @@ class Query(Base):
         self.selection.compute_sha()
         super().compute_sha()
 
+    @staticmethod
+    def format_name(sha: str) -> str:
+        return f"#{sha[:6]}"
+
+    @property
+    def name(self) -> str:
+        # TODO: make these 2 lines useless
+        if self.sha is None:
+            self.compute_sha()
+        return self.format_name(self.sha)
+        # if not hasattr(self, "_sha_name"):
+        #     self._sha_name = False
+        # if len(self.tags) == 1 and not self._sha_name:
+        #     return self.tags[0].name
+        # else:
+        #     return self.format_name(self.sha)
+
+    @property
+    def full_name(self) -> str:
+        if self.tags:
+            tags = ", ".join(tag.name for tag in self.tags)
+            return f"{self.name} [{tags}]"
+        else:
+            return self.name
+
     def items(
         self,
         include_name: bool = False,
@@ -146,27 +171,6 @@ class Query(Base):
         cl._rich_no_require = True
         return cl
 
-    @property
-    def name(self) -> str:
-        # TODO: make these 2 lines useless
-        if self.sha is None:
-            self.compute_sha()
-        if not hasattr(self, "_sha_name"):
-            self._sha_name = False
-        if len(self.tags) == 1 and not self._sha_name:
-            return self.tags[0].name
-        else:
-            return f"#{self.sha[:6]}"
-
-    @property
-    def full_name(self) -> str:
-        sha = f"#{self.sha[:6]}"
-        if self.tags:
-            tags = ", ".join(tag.name for tag in self.tags)
-            return f"{sha} [{tags}]"
-        else:
-            return sha
-
     def __lshift__(self, other: Query) -> Query:
         result = self.clone(compute_sha=False)
         # if self.name != other.require:
@@ -176,8 +180,8 @@ class Query(Base):
                 result.tags.append(tag)
         for name, option in other.options.items():
             setattr(self.options, name, option)
-        for name, facet in other.selection.items():
-            result.selection[name] = facet
+        for name, values in other.selection.items():
+            result.selection[name] = values
         result.transient = other.transient
         result.compute_sha()
         return result
@@ -215,15 +219,34 @@ class Query(Base):
             text.append(name, style="yellow")
             text.append(f": {option.value}")
             yield guide(text)
-        for name, facet in self.selection.items():
-            item = guide(Text(f"  {name}", style="blue"))
-            if len(facet) == 1:
-                item.append(f": {facet[0]}", style="default")
+        for name, values in self.selection.items():
+            item = Text()
+            item.append(f"  {name}", style="blue")
+            item = guide(item)
+            if len(values) == 1:
+                item.append(f": {values[0]}")
             else:
-                item.append(":")
-                for value in facet:
-                    item.append(f"\n    - {value}", style="default")
-                    item = guide(item, 4)
+                item.append(": [")  # ]
+                itemlen = len(item)
+                maxlen = 40 - itemlen
+                padding = " " * itemlen
+                lines: list[str] = []
+                curline: list[str] = []
+                for value in values:
+                    newline = curline + [value]
+                    strline = ", ".join(newline)
+                    if len(strline) < maxlen:
+                        curline = newline
+                    else:
+                        curline = []
+                        lines.append(strline)
+                if not lines:
+                    lines = [", ".join(curline)]
+                item.append(lines[0])
+                for line in lines[1:]:
+                    item.append(f",\n{padding}{line}")
+                    item = guide(item, itemlen)
+                item.append("]")
             yield item
 
     def __rich_measure__(

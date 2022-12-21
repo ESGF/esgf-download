@@ -74,10 +74,18 @@ class Options(Base):
         self_tuple = (self.distrib, self.latest, self.replica, self.retracted)
         return str(self_tuple).encode()
 
-    def items(self) -> Iterator[tuple[str, Option]]:
+    def items(
+        self,
+        use_default: bool = False,
+        keep_notset: bool = False,
+    ) -> Iterator[tuple[str, Option]]:
         for name in self._names:
             option = getattr(self, name, Option.notset)
             if option.is_set():
+                yield name, option
+            elif use_default:
+                yield name, getattr(DefaultOptions, name)
+            elif keep_notset:
                 yield name, option
 
     def asdict(self) -> dict[str, bool | None]:
@@ -94,3 +102,11 @@ class Options(Base):
         cls_name = self.__class__.__name__
         items = [f"{k}={v}" for k, v in self.__rich_repr__()]
         return f"{cls_name}(" + ", ".join(items) + ")"
+
+
+DefaultOptions = Options(
+    distrib=False,
+    latest=True,
+    replica=None,
+    retracted=False,
+)
