@@ -8,7 +8,7 @@ from aiofiles.threadpool.binary import AsyncBufferedIOBase
 from attrs import define, field
 
 from esgpull.config import Config
-from esgpull.db.models import File
+from esgpull.models import File
 from esgpull.tui import logger
 
 
@@ -43,7 +43,7 @@ class Filesystem:
         return self.data / file.local_path / file.filename
 
     def tmp_path_of(self, file: File) -> Path:
-        return self.tmp / f"{file.id}.part"
+        return self.tmp / f"{file.sha}.part"
 
     def glob_netcdf(self) -> Iterator[Path]:
         for path in self.data.glob("**/*.nc"):

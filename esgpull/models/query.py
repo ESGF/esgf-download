@@ -64,9 +64,6 @@ class Query(Base):
         default_factory=list,
     )
 
-    def __post_init__(self) -> None:
-        self._sha_name: bool = False
-
     # TODO: improve typing
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "tags" and isinstance(value, (str, Tag)):
@@ -104,41 +101,46 @@ class Query(Base):
         return f"#{sha[:6]}"
 
     @property
+    def tag_name(self) -> str | None:
+        if len(self.tags) == 1:
+            return self.tags[0].name
+        else:
+            return None
+
+    @property
+    def short_require(self) -> str:
+        if self.require is not None:
+            if len(self.require) == 40:
+                return self.format_name(self.require)
+            else:
+                return self.require
+        else:
+            raise ValueError
+
+    @property
     def name(self) -> str:
         # TODO: make these 2 lines useless
         if self.sha is None:
             self.compute_sha()
         return self.format_name(self.sha)
-        # if not hasattr(self, "_sha_name"):
-        #     self._sha_name = False
-        # if len(self.tags) == 1 and not self._sha_name:
-        #     return self.tags[0].name
-        # else:
-        #     return self.format_name(self.sha)
-
-    @property
-    def full_name(self) -> str:
-        if self.tags:
-            tags = ", ".join(tag.name for tag in self.tags)
-            return f"{self.name} [{tags}]"
-        else:
-            return self.name
 
     def items(
         self,
         include_name: bool = False,
-        keep_single_tag: bool = False,
+        short_require: bool = False,
     ) -> Iterator[tuple[str, Any]]:
         if include_name:
             yield "name", self.name
-        if len(self.tags) > 1:
+        if self.tags:
             yield "tags", [tag.name for tag in self.tags]
-        elif len(self.tags) == 1 and keep_single_tag:
-            yield "tags", self.tags[0].name
         if self.transient:
             yield "transient", self.transient
         if self.require is not None:
-            yield "require", self.require
+            if short_require:
+                require = self.short_require
+            else:
+                require = self.require
+            yield "require", require
         if self.options:
             yield "options", self.options
         if self.selection:
@@ -187,67 +189,93 @@ class Query(Base):
         return result
 
     def __rich_repr__(self) -> Iterator:
-        yield from self.items(include_name=True, keep_single_tag=False)
+        yield from self.items(include_name=True, short_require=True)
 
     def __repr__(self) -> str:
         cls_name = self.__class__.__name__
         items = [
             f"{k}={v}"
-            for k, v in self.items(include_name=True, keep_single_tag=False)
+            for k, v in self.items(include_name=True, short_require=True)
         ]
         return f"{cls_name}(" + ", ".join(items) + ")"
+
+    def __guide(self, text: Text, size: int = 2) -> Text:
+        return text.with_indent_guides(size, style="dim default")
+
+    def __wrap_values(
+        self,
+        text: Text,
+        values: list[str],
+        maxlen: int = 40,
+    ) -> Text:
+        text.append("[")  # ]
+        textlen = len(text)
+        maxlen = 40 - textlen
+        padding = " " * textlen
+        lines: list[str] = []
+        curline: list[str] = []
+        for value in values:
+            newline = curline + [value]
+            strline = ", ".join(newline)
+            if len(strline) < maxlen:
+                curline = newline
+            else:
+                curline = []
+                lines.append(strline)
+        if not lines:
+            lines = [", ".join(curline)]
+        text.append(lines[0])
+        for line in lines[1:]:
+            text.append(f",\n{padding}{line}")
+            text = self.__guide(text, textlen)
+        text.append("]")
+        return text
 
     def __rich_console__(
         self,
         console: Console,
         options: ConsoleOptions,
     ) -> Iterator[Text | Padding]:
-        def guide(t: Text, size: int = 2) -> Text:
-            return t.with_indent_guides(size, style="dim default")
-
         text = Text()
-        text.append(self.full_name, style="b green")
+        text.append(self.name, style="b green")
         if self.transient:
             text.append(" <transient>", style="i red")
         if not hasattr(self, "_rich_no_require") and self.require is not None:
             text.append(" [require: ")
-            text.append(self.require, style="green")
+            text.append(self.short_require, style="green")
             text.append("]")
         yield text
+        if self.tags:
+            text = Text("  ")
+            text.append("tags", style="magenta")
+            text.append(": ")
+            text = self.__wrap_values(text, [tag.name for tag in self.tags])
+            yield self.__guide(text)
         for name, option in self.options.items():
             text = Text("  ")
             text.append(name, style="yellow")
             text.append(f": {option.value}")
-            yield guide(text)
+            yield self.__guide(text)
+        query_term: list[str] | None = None
         for name, values in self.selection.items():
-            item = Text()
-            item.append(f"  {name}", style="blue")
-            item = guide(item)
+            if name == "query":
+                query_term = values
+                continue
+            item = Text("  ")
+            item.append(name, style="blue")
             if len(values) == 1:
                 item.append(f": {values[0]}")
             else:
-                item.append(": [")  # ]
-                itemlen = len(item)
-                maxlen = 40 - itemlen
-                padding = " " * itemlen
-                lines: list[str] = []
-                curline: list[str] = []
-                for value in values:
-                    newline = curline + [value]
-                    strline = ", ".join(newline)
-                    if len(strline) < maxlen:
-                        curline = newline
-                    else:
-                        curline = []
-                        lines.append(strline)
-                if not lines:
-                    lines = [", ".join(curline)]
-                item.append(lines[0])
-                for line in lines[1:]:
-                    item.append(f",\n{padding}{line}")
-                    item = guide(item, itemlen)
-                item.append("]")
-            yield item
+                item.append(": ")
+                item = self.__wrap_values(item, values)
+            yield self.__guide(item)
+        if query_term is not None:
+            item = Text("  ", style="blue")
+            if len(query_term) == 1:
+                item.append(query_term[0])
+            else:
+                item = self.__wrap_values(item, query_term)
+            yield self.__guide(item)
 
     def __rich_measure__(
         self,

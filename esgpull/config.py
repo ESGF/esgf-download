@@ -47,6 +47,7 @@ class Search:
     index_node: str = "esgf-node.ipsl.upmc.fr"
     http_timeout: int = 20
     max_concurrent: int = 5
+    page_limit: int = 50
 
 
 @define
@@ -69,8 +70,8 @@ class Config:
     download: Download = Factory(Download)
     _raw: str | None = field(init=False, default=None)
 
-    @staticmethod
-    def load(root: Path) -> Config:
+    @classmethod
+    def load(cls, root: Path) -> Config:
         config_file = root / CONFIG_FILENAME
         if config_file.is_file():
             with config_file.open() as fh:
@@ -80,9 +81,13 @@ class Config:
             raw = None
             doc = tomlkit.TOMLDocument()
         doc.add(tomlkit.key(["paths", "root"]), tomlkit.string(str(root)))
-        config = _converter_defaults.structure(doc, Config)
+        config = _converter_defaults.structure(doc, cls)
         config._raw = raw
         return config
+
+    @classmethod
+    def default(cls) -> Config:
+        return cls.load(Root.get(noraise=True))
 
     def dumps(self, defaults: bool = True, comments: bool = False) -> str:
         return self.dump(defaults, comments).as_string()

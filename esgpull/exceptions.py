@@ -13,6 +13,10 @@ class NoRootError(EsgpullException):
     msg = f"Environment variable `{ENV_VARNAME}` must be set."
 
 
+class UnknownFacet(EsgpullException):
+    msg = "{}"
+
+
 class FacetNameError(EsgpullException, AttributeError):
     """
     AttributeError is required for autocomplete engines (e.g. jupyter).
@@ -26,7 +30,7 @@ class AlreadySetFacet(EsgpullException):
 
 
 class DuplicateFacet(EsgpullException):
-    msg = "{}\nDuplicate facet '{}: {}'"
+    msg = "'{}:{}'\n{}"
 
 
 class QueryDuplicate(EsgpullException):
@@ -49,6 +53,10 @@ class SolrUnstableQueryError(EsgpullException):
 class QuerySourceError(EsgpullException):
     msg = """This source cannot be parsed as a query:
 {}"""
+
+
+class TooShortKeyError(EsgpullException, KeyError):
+    msg = "{}"
 
 
 class DownloadKindError(EsgpullException):

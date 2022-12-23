@@ -3,7 +3,7 @@ from typing import AsyncIterator
 
 from httpx import AsyncClient
 
-from esgpull.db.models import File
+from esgpull.models import File
 
 # import asyncio
 # from urllib.parse import urlsplit

@@ -10,19 +10,18 @@ from click.exceptions import BadArgumentUsage
 from click_params import ListParamType
 from rich.syntax import Syntax
 from rich.table import Table
+from rich.text import Text
 
-from esgpull.query import Query
+from esgpull.models import QueryDict, Selection
 from esgpull.utils import format_size
 
 
-def yaml_syntax(data: dict) -> Syntax:
-    yml = yaml.dump(data)
-    return Syntax(yml, "yaml", theme="ansi_dark")
+def yaml_syntax(data: dict | QueryDict) -> Syntax:
+    return Syntax(yaml.dump(data), "yaml", theme="ansi_dark")
 
 
-def toml_syntax(data: dict) -> Syntax:
-    tml = tomlkit.dumps(data)
-    return Syntax(tml, "toml", theme="ansi_dark")
+def toml_syntax(data: dict | QueryDict) -> Syntax:
+    return Syntax(tomlkit.dumps(data), "toml", theme="ansi_dark")
 
 
 class EnumParam(click.Choice):
@@ -95,10 +94,9 @@ def filter_docs(
 def totable(
     docs: list[OrderedDict[str, Any]],
 ) -> Table:
-    rows: list[map | list]
     table = Table(box=rich.box.MINIMAL)
     for key in docs[0].keys():
-        table.add_column(key, justify="right")
+        table.add_column(Text(key, justify="center"), justify="right")
     for doc in docs:
         row: list[str] = []
         for key, value in doc.items():
@@ -109,10 +107,8 @@ def totable(
     return table
 
 
-def load_facets(
-    query: Query, facets: list[str], selection_file: str | None
-) -> None:
-    facet_dict: dict[str, set[str]] = {}
+def parse_facets(facets: list[str]) -> Selection:
+    facet_dict: dict[str, list[str]] = {}
     exact_terms: list[str] | None = None
     for facet in facets:
         match facet.split(":"):
@@ -129,8 +125,7 @@ def load_facets(
         if exact_terms is not None:
             if name != "query":
                 raise BadArgumentUsage(
-                    "Using facet terms is forbidden "
-                    "inside an exact string term."
+                    "Cannot use facet term inside an exact string."
                 )
             exact_terms.append(value)
             if value.endswith("/"):
@@ -139,8 +134,13 @@ def load_facets(
                 exact_terms = None
             else:
                 continue
-        facet_dict.setdefault(name, set())
-        facet_dict[name].add(value)
-    query.load(facet_dict)  # type: ignore
-    if selection_file is not None:
-        query.load_file(selection_file)
+            facet_dict.setdefault(name, [])
+            facet_dict[name].append(value)
+        else:
+            values = value.split(",")
+            facet_dict.setdefault(name, [])
+            facet_dict[name].extend(values)
+    selection = Selection()
+    for name, values in facet_dict.items():
+        selection[name] = values
+    return selection

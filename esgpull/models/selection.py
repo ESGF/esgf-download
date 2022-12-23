@@ -50,9 +50,9 @@ class Selection(Base):
                 facet = Facet(name=name, value=value)
                 if facet in self._facets:
                     raise DuplicateFacet(
-                        pretty_repr(self),
                         facet.name,
                         facet.value,
+                        pretty_repr(self),
                     )
                 self._facets.append(facet)
                 facet_map_name.add(offset + i)

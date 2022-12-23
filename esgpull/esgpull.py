@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, AsyncIterator, Iterator
+from typing import AsyncIterator
 
 from attrs import define, field
 from rich.progress import (
@@ -21,12 +20,12 @@ from rich.progress import (
 from esgpull.auth import Auth, Credentials
 from esgpull.config import Config
 from esgpull.context import Context
-from esgpull.db.core import Database
-from esgpull.db.models import File, FileStatus, Param
+from esgpull.database import Database
 from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
+from esgpull.graph import Graph
+from esgpull.models import Facet, File, FileStatus, Options, Query, sql
 from esgpull.processor import Processor
-from esgpull.query import Query
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, Verbosity, logger
 from esgpull.utils import Root, format_size
@@ -37,9 +36,11 @@ class Esgpull:
     root: Path = field(converter=Path, factory=Root.get)
     config: Config = field(init=False)
     ui: UI = field(init=False)
-    fs: Filesystem = field(init=False)
-    db: Database = field(init=False)
     auth: Auth = field(init=False)
+    db: Database = field(init=False)
+    context: Context = field(init=False)
+    fs: Filesystem = field(init=False)
+    graph: Graph = field(init=False)
 
     @classmethod
     def with_verbosity(
@@ -57,31 +58,34 @@ class Esgpull:
     def __attrs_post_init__(self) -> None:
         self.config = Config.load(root=self.root)
         self.ui = UI.from_config(self.config)
-        self.fs = Filesystem.from_config(self.config)
-        self.db = Database.from_config(self.config)
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
-
-    @contextmanager
-    def context(self, **kwargs: Any) -> Iterator[Context]:
-        ctx = Context(self.config, **kwargs)
-        yield ctx
-        logger.debug(f"Discard {ctx}")
+        self.db = Database.from_config(self.config)
+        self.context = Context(self.config)
+        self.fs = Filesystem.from_config(self.config)
+        self.graph = Graph(self.db)
 
     def fetch_index_nodes(self) -> list[str]:
         """
         Returns a list of ESGF index nodes.
 
-        Fetch facet_counts from ESGF search API, using `distrib=True`.
+        Fetch hints from ESGF search API with a distributed query.
         """
 
-        logger.debug(
-            f"Fetching index nodes from {self.config.search.index_node}"
+        default_index = self.config.search.index_node
+        logger.info(f"Fetching index nodes from '{default_index}'")
+        options = Options(distrib=True)
+        query = Query(options=options)
+        facets = ["index_node"]
+        hints = self.context.hints(
+            query,
+            file=False,
+            facets=facets,
+            index_node=default_index,
         )
-        with self.context(distrib=True) as ctx:
-            return list(ctx.options(facets=["index_node"])[0]["index_node"])
+        return list(hints[0]["index_node"])
 
-    def fetch_params(self, update=False) -> bool:
+    def fetch_facets(self, update=False) -> bool:
         """
         Fill db with all existing params found in ESGF index nodes.
 
@@ -92,82 +96,66 @@ class Esgpull:
         `distrib=True` seems to crash the index node.
         """
 
+        # those facets have (almost) unique values
         IGNORE_NAMES = [
-            "cf_standard_name",
-            "variable_long_name",
+            "version",
+            # "cf_standard_name",
+            # "variable_long_name",
             "creation_date",
-            "datetime_end",
+            # "datetime_end",
         ]
-
-        with self.db.select(Param) as ctx:
-            params = ctx.scalars
-        logger.debug(f"Found {len(params)} params in database")
-        if params and not update:
+        facets_db = self.db.scalars(sql.facet.all)
+        logger.debug(f"Found {len(facets_db)} facets in database")
+        if facets_db and not update:
             return False
-        self.db.delete(*params)
+        # self.db.delete(*params)
         index_nodes = self.fetch_index_nodes()
-        with self.context(distrib=False) as ctx:
-            for index_node in index_nodes:
-                query = ctx.query.add()
-                query.index_node = index_node
-            logger.debug(f"Fetching facet counts using {ctx}")
-            index_facet_counts = ctx.facet_counts()
-        all_facet_counts: dict[str, set[str]] = {}
-        for facet_counts in index_facet_counts:
-            for name, values in facet_counts.items():
-                if name in IGNORE_NAMES or len(values) == 0:
+        options = Options(distrib=False)
+        query = Query(options=options)
+        hints_coros = []
+        for index_node in index_nodes:
+            hints_coro = self.context._hints(
+                query,
+                file=False,
+                facets=["*"],
+                index_node=index_node,
+            )
+            hints_coros.append(hints_coro)
+        hints = self.context.sync_gather(hints_coros)
+        facets: set[Facet] = set()
+        for index_hints in hints:
+            for name, values in index_hints[0].items():
+                if name in IGNORE_NAMES:
                     continue
-                facet_values = set()
-                for value, count in values.items():
-                    if count and len(value) <= 255:
-                        facet_values.add(value)
-                if facet_values:
-                    all_facet_counts.setdefault(name, set())
-                    all_facet_counts[name] |= facet_values
-        new_params = []
-        for name, values_set in all_facet_counts.items():
-            for value in values_set:
-                new_params.append(Param(name=name, value=value))
-        self.db.add(*new_params)
-        return True
+                for value in values.keys():
+                    facets.add(Facet(name=name, value=value))
+                    # facets.setdefault(name, set())
+                    # facets[name] |= set(values_counts.keys())
 
-    def scan_local_files(self, index_node=None) -> None:
-        """
-        Insert into db netcdf files, globbed from `fs.data` directory.
-        Only files whose metadata exists on `index_node` is added.
-
-        FileStatus is `Done` regardless of the file's size (no checks).
-        """
-        with self.context() as ctx:
-            if index_node is not None:
-                ctx.query.index_node = index_node
-                ctx.distrib = False
-            else:
-                ctx.distrib = True
-            filename_version_dict: dict[str, str] = {}
-            for path in self.fs.glob_netcdf():
-                if self.db.has(filepath=path):
-                    continue
-                filename = path.name
-                version = path.parent.name
-                filename_version_dict[filename] = version
-                query = ctx.query.add()
-                query.title = filename
-            if filename_version_dict:
-                search_results = ctx.search(file=True)
-                new_files = []
-                for metadata in search_results:
-                    file = File.from_dict(metadata)
-                    if file.version == filename_version_dict[file.filename]:
-                        new_files.append(file)
-                self.install(*new_files, status=FileStatus.Done)
-                nb_remaining = len(filename_version_dict) - len(new_files)
-                print(f"Installed {len(new_files)} new files.")
-                print(
-                    f"{nb_remaining} files remain installed (another index?)."
-                )
-            else:
-                print("No new files.")
+        # with self.context(distrib=False) as ctx:
+        #     for index_node in index_nodes:
+        #         query = ctx.query.add()
+        #         query.index_node = index_node
+        #     logger.debug(f"Fetching facet counts using {ctx}")
+        #     index_facet_counts = ctx.facet_counts()
+        # all_facet_counts: dict[str, set[str]] = {}
+        # for facet_counts in index_facet_counts:
+        #     for name, values in facet_counts.items():
+        #         if name in IGNORE_NAMES or len(values) == 0:
+        #             continue
+        #         facet_values = set()
+        #         for value, count in values.items():
+        #             if count and len(value) <= 255:
+        #                 facet_values.add(value)
+        #         if facet_values:
+        #             all_facet_counts.setdefault(name, set())
+        #             all_facet_counts[name] |= facet_values
+        # new_params = []
+        # for name, values_set in all_facet_counts.items():
+        #     for value in values_set:
+        #         new_params.append(Param(name=name, value=value))
+        # self.db.add(*new_params)
+        # return True
 
     def fetch_updated_files(
         self,

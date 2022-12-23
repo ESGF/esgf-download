@@ -56,7 +56,7 @@ def install(
             esg.ui.print(queries)
             raise Exit(0)
         if not force and nb_files > 5000:
-            nb_req = nb_files // 50
+            nb_req = nb_files // esg.context.search.page_limit
             message = f"{nb_req} requests will be send to ESGF. Continue?"
             click.confirm(message, default=True, abort=True)
         results = ctx.search(

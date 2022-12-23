@@ -6,7 +6,7 @@ from click_option_group import MutuallyExclusiveOptionGroup, optgroup
 from click_params import StringListParamType
 
 from esgpull.cli.utils import EnumParam, SliceParam
-from esgpull.db.models import FileStatus
+from esgpull.models import FileStatus, Option
 from esgpull.tui import Verbosity
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -67,12 +67,6 @@ class opts:
         is_flag=True,
         default=False,
     )
-    distrib: Dec = click.option(
-        "--distrib",
-        "-d",
-        is_flag=True,
-        default=False,
-    )
     dry_run: Dec = click.option(
         "--dry-run",
         "-z",
@@ -96,23 +90,16 @@ class opts:
         is_flag=True,
         default=False,
     )
+    hints: Dec = click.option(
+        "--hints",
+        "-H",
+        type=StringListParamType(","),
+        default=None,
+    )
     json: Dec = click.option(
         "--json",
         is_flag=True,
         default=False,
-    )
-    latest: Dec = click.option(
-        "--latest/--no-latest",
-        " /-L",
-        is_flag=True,
-        default=True,
-        show_default=True,
-    )
-    options: Dec = click.option(
-        "--options",
-        "-o",
-        type=StringListParamType(","),
-        default=None,
     )
     quiet: Dec = click.option(
         "--quiet",
@@ -120,17 +107,16 @@ class opts:
         is_flag=True,
         default=False,
     )
-    replica: Dec = click.option(
-        "--replica/--no-replica",
-        "-r/-R",
-        is_flag=True,
-        default=None,
-    )
     selection_file: Dec = click.option(
         "--selection-file",
         "-s",
         type=click.Path(exists=True, dir_okay=False, path_type=Path),
         default=None,
+    )
+    show: Dec = click.option(
+        "--show",
+        is_flag=True,
+        default=False,
     )
     since: Dec = click.option(
         "--since",
@@ -151,35 +137,84 @@ class opts:
     )
 
 
+# Display group
+
+_display: Dec = optgroup.group(
+    "Display options",
+    cls=MutuallyExclusiveOptionGroup,
+)
+_slice: Dec = optgroup.option(
+    "slice_",
+    "--slice",
+    "-S",
+    type=SliceParam(),
+    default="0:20",
+)
+_zero: Dec = optgroup.option(
+    "--zero",
+    "-0",
+    is_flag=True,
+    default=False,
+)
+_one: Dec = optgroup.option(
+    "--one",
+    "-1",
+    is_flag=True,
+    default=False,
+)
+_all: Dec = optgroup.option(
+    "all_",
+    "--all",
+    "-a",
+    is_flag=True,
+    default=False,
+)
+
+# Query options group
+
+OptionChoice = click.Choice([opt.name for opt in list(Option)[:-1]])
+_query: Dec = optgroup.group("Query options")
+_tag: Dec = optgroup.option("tags", "--tag", "-t", multiple=True)
+_require: Dec = optgroup.option("--require", "-r")
+_distrib: Dec = optgroup.option(
+    "--distrib",
+    "-d",
+    type=OptionChoice,
+    # default="notset",
+)
+_latest: Dec = optgroup.option(
+    "--latest",
+    # "-l",
+    type=OptionChoice,
+    # default="notset",
+)
+_replica: Dec = optgroup.option(
+    "--replica",
+    type=OptionChoice,
+    # default="notset",
+)
+_retracted: Dec = optgroup.option(
+    "--retracted",
+    type=OptionChoice,
+    # default="notset",
+)
+# _since: Dec
+
+
 class groups:
-    __display: Dec = optgroup.group(
-        "Display options",
-        cls=MutuallyExclusiveOptionGroup,
+    display: Dec = compose(
+        _display,
+        _slice,
+        _zero,
+        _one,
+        _all,
     )
-    __slice: Dec = optgroup.option(
-        "slice_",
-        "--slice",
-        "-S",
-        type=SliceParam(),
-        default="0:20",
+    query: Dec = compose(
+        _query,
+        _tag,
+        _require,
+        _distrib,
+        _latest,
+        _replica,
+        _retracted,
     )
-    __zero: Dec = optgroup.option(
-        "--zero",
-        "-0",
-        is_flag=True,
-        default=False,
-    )
-    __one: Dec = optgroup.option(
-        "--one",
-        "-1",
-        is_flag=True,
-        default=False,
-    )
-    __all: Dec = optgroup.option(
-        "all_",
-        "--all",
-        "-a",
-        is_flag=True,
-        default=False,
-    )
-    display: Dec = compose(__display, __slice, __zero, __one, __all)

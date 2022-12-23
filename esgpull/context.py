@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Coroutine, TypeAlias, TypeVar
+from typing import Any, AsyncIterator, Awaitable, Coroutine, TypeAlias, TypeVar
 
 import rich
 from exceptiongroup import BaseExceptionGroup
@@ -203,7 +203,7 @@ class Context:
             results.append(result)
         return results
 
-    def _init_facet_counts(
+    def _init_hints(
         self,
         *queries: Query,
         file: bool,
@@ -366,7 +366,7 @@ class Context:
                 hits.append(0)
         return hits
 
-    async def _facet_counts(
+    async def _hints(
         self,
         *queries: Query,
         file: bool,
@@ -374,17 +374,17 @@ class Context:
         index_url: str | None = None,
         index_node: str | None = None,
     ) -> list[FacetCounts]:
-        results = self._init_facet_counts(
+        results = self._init_hints(
             *queries,
             file=file,
             facets=facets,
             index_url=index_url,
             index_node=index_node,
         )
-        facet_counts: list[FacetCounts] = []
+        hints: list[FacetCounts] = []
         async for result in self._fetch(results):
             if not result.success:
-                facet_counts.append({})
+                hints.append({})
                 continue
             query_counts: FacetCounts = {}
             facet_fields = result.json["facet_counts"]["facet_fields"]
@@ -394,8 +394,8 @@ class Context:
                 values: list[str] = value_count[::2]
                 counts: list[int] = value_count[1::2]
                 query_counts[name] = dict(zip(values, counts))
-            facet_counts.append(query_counts)
-        return facet_counts
+            hints.append(query_counts)
+        return hints
 
     async def _search_raw(
         self,
@@ -546,27 +546,33 @@ class Context:
     #             logger.info(f"Dropped {nb_dup} duplicate {f_or_d}{s}.")
     #     return result
 
-    T = TypeVar("T")
+    T_co = TypeVar("T_co", covariant=True)
 
-    async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
+    async def _with_client(self, aw: Awaitable[T_co]) -> T_co:
         """
         Async wrapper to create client before calling coro.
         This is required since asyncio does not provide a way
         to enter an async context in a sync function.
         """
         async with self:
-            return await coro
+            return await aw
 
     def free_semaphores(self) -> None:
         self.semaphores = {}
 
-    def sync_run(self, coro: Coroutine[None, None, T]) -> T:
+    def sync_run(self, coro: Awaitable[T_co]) -> T_co:
         """
         Reset semaphore to ensure none is bound to an expired event loop.
         Run through `_with_client` wrapper to use `async with` synchronously.
         """
         self.free_semaphores()
         return asyncio.run(self._with_client(coro))
+
+    def sync_gather(
+        self, coros: list[Coroutine[None, None, T_co]]
+    ) -> list[T_co]:
+        self.free_semaphores()
+        return asyncio.run(self._with_client(asyncio.gather(*coros)))
 
     def hits(
         self,
@@ -584,7 +590,7 @@ class Context:
             )
         )
 
-    def facet_counts(
+    def hints(
         self,
         *queries: Query,
         file: bool,
@@ -593,7 +599,7 @@ class Context:
         index_node: str | None = None,
     ) -> list[FacetCounts]:
         return self.sync_run(
-            self._facet_counts(
+            self._hints(
                 *queries,
                 file=file,
                 facets=facets,
@@ -612,9 +618,9 @@ class Context:
     #         self.query.facets = facets
     #     queries = self.query.flatten()
     #     result = []
-    #     for query, facet_counts in zip(queries, self.facet_counts(file=file)):
+    #     for query, hints in zip(queries, self.hints(file=file)):
     #         facet_options = {}
-    #         for facet, counts in facet_counts.items():
+    #         for facet, counts in hints.items():
     #             # force all facets if specified, no more no less
     #             if facets is not None:
     #                 if facet in facets:
