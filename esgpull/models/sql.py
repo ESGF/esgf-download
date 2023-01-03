@@ -13,6 +13,8 @@ from esgpull.models.tag import Tag
 
 
 class tag:
+    all: sa.Select[tuple[Tag]] = sa.select(Tag)
+    shas: sa.Select[tuple[str]] = sa.select(Tag.sha)
     orphans: sa.Select[tuple[Tag]] = (
         sa.select(Tag).outerjoin(query_tag_proxy).filter_by(tag_sha=None)
     )
@@ -20,7 +22,7 @@ class tag:
 
 class facet:
     all: sa.Select[tuple[Facet]] = sa.select(Facet)
-    shas: sa.Select[tuple[str]] = sa.select(Query.sha)
+    shas: sa.Select[tuple[str]] = sa.select(Facet.sha)
     count: sa.Select[tuple[str, int]] = sa.select(
         Facet.name, sa.func.count("*")
     ).group_by(Facet.name)

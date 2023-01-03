@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Awaitable, Coroutine, TypeAlias, TypeVar
+from typing import Any, AsyncIterator, Coroutine, TypeAlias, TypeVar
 
-import rich
 from exceptiongroup import BaseExceptionGroup
 from httpx import AsyncClient, HTTPError, Request
 from rich.pretty import pretty_repr
@@ -13,7 +12,7 @@ from esgpull.config import Config
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import File, Query
 from esgpull.tui import logger
-from esgpull.utils import index2url  # , format_date
+from esgpull.utils import index2url, sync  # , format_date
 
 # from datetime import datetime
 
@@ -23,7 +22,6 @@ if asyncio.get_event_loop().is_running():
 
     nest_asyncio.apply()
 
-console = rich.console.Console()
 FacetCounts: TypeAlias = dict[str, dict[str, int]]
 
 DangerousFacets = set(
@@ -108,7 +106,7 @@ def _distribute_hits_impl(hits: list[int], max_hits: int) -> list[int]:
     N = len(hits)
     accs = [0.0 for _ in range(N)]
     result = [0 for _ in range(N)]
-    steps = [h / sum(hits) for h in hits]
+    steps = [h / (sum(hits) or 1) for h in hits]
     max_hits = min(max_hits, sum(hits))
     while True:
         accs[i] += steps[i]
@@ -307,7 +305,6 @@ class Context:
                     offset=sl.start,
                     page_limit=sl.stop - sl.start,
                     fields_param=fields_param,
-                    # fields_param=FileRequires,
                     index_url=index_url,
                 )
                 results.append(result)
@@ -548,31 +545,31 @@ class Context:
 
     T_co = TypeVar("T_co", covariant=True)
 
-    async def _with_client(self, aw: Awaitable[T_co]) -> T_co:
+    async def _with_client(self, coro: Coroutine[None, None, T_co]) -> T_co:
         """
-        Async wrapper to create client before calling coro.
+        Async wrapper to create client before await future.
         This is required since asyncio does not provide a way
         to enter an async context in a sync function.
         """
         async with self:
-            return await aw
+            return await coro
 
     def free_semaphores(self) -> None:
         self.semaphores = {}
 
-    def sync_run(self, coro: Awaitable[T_co]) -> T_co:
+    def _sync(self, coro: Coroutine[None, None, T_co]) -> T_co:
         """
         Reset semaphore to ensure none is bound to an expired event loop.
         Run through `_with_client` wrapper to use `async with` synchronously.
         """
         self.free_semaphores()
-        return asyncio.run(self._with_client(coro))
+        return sync(self._with_client(coro))
 
-    def sync_gather(
-        self, coros: list[Coroutine[None, None, T_co]]
-    ) -> list[T_co]:
-        self.free_semaphores()
-        return asyncio.run(self._with_client(asyncio.gather(*coros)))
+    async def _gather(self, *coros: Coroutine[None, None, T_co]) -> list[T_co]:
+        return await asyncio.gather(*coros)
+
+    def sync_gather(self, *coros: Coroutine[None, None, T_co]) -> list[T_co]:
+        return self._sync(self._gather(*coros))
 
     def hits(
         self,
@@ -581,7 +578,7 @@ class Context:
         index_url: str | None = None,
         index_node: str | None = None,
     ) -> list[int]:
-        return self.sync_run(
+        return self._sync(
             self._hits(
                 *queries,
                 file=file,
@@ -598,7 +595,7 @@ class Context:
         index_url: str | None = None,
         index_node: str | None = None,
     ) -> list[FacetCounts]:
-        return self.sync_run(
+        return self._sync(
             self._hints(
                 *queries,
                 file=file,
@@ -647,7 +644,7 @@ class Context:
         page_limit: int | None = None,
         fields_param: list[str] | None = None,
     ) -> list[str]:
-        return self.sync_run(
+        return self._sync(
             self._search_raw(
                 *queries,
                 file=file,
@@ -668,7 +665,7 @@ class Context:
         page_limit: int | None = None,
         keep_duplicates: bool = False,
     ) -> list[File]:
-        return self.sync_run(
+        return self._sync(
             self._search_files(
                 *queries,
                 hits=hits,

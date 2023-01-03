@@ -10,20 +10,19 @@ from rich.filesize import _to_str
 
 from esgpull.constants import CONFIG_FILENAME, ENV_VARNAME
 
-T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 
 
 def sync(
-    self,
-    coro: Coroutine[None, None, T],
-    prerun_cb: Callable | None = None,
-    postrun_cb: Callable | None = None,
-) -> T:
-    if prerun_cb is not None:
-        prerun_cb()
-    result: T = asyncio.run(coro)
-    if postrun_cb is not None:
-        postrun_cb()
+    coro: Coroutine[None, None, T_co],
+    before_cb: Callable | None = None,
+    after_cb: Callable | None = None,
+) -> T_co:
+    if before_cb is not None:
+        before_cb()
+    result = asyncio.run(coro)
+    if after_cb is not None:
+        after_cb()
     return result
 
 

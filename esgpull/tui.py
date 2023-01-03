@@ -5,6 +5,7 @@ import logging
 from contextlib import contextmanager
 from datetime import datetime
 from enum import IntEnum
+from json import dumps as json_dumps
 from pathlib import Path
 from typing import Any
 
@@ -117,12 +118,12 @@ class UI:
                 f_locals = tb.tb_frame.f_locals
             locals_text = self.render(f_locals, highlight=False)
             logging.root.debug(f"Locals:\n{locals_text}")
-            logging.root.exception("Error:")
+            logging.root.exception("")
             if self.verbosity < Verbosity.Errors:
+                self.print(f"[red]{type(exc).__name__}[/]: {exc}", err=True)
                 self.print(
                     f"See [yellow]{temp_path}[/] for error log.",
                     err=True,
-                    style="red",
                 )
             if onraise is not None:
                 raise onraise
@@ -138,15 +139,19 @@ class UI:
         self,
         msg: Any,
         err: bool = False,
+        json: bool = False,
         verbosity: Verbosity = Verbosity.Normal,
         **kwargs: Any,
     ) -> None:
         if self.verbosity >= verbosity:
             console = _err_console if err else _console
-            if not console.is_interactive:
-                kwargs.setdefault("crop", False)
-                kwargs.setdefault("overflow", "ignore")
-            console.print(msg, **kwargs)
+            if json:
+                console.print_json(json_dumps(msg), **kwargs)
+            else:
+                if not console.is_interactive:
+                    kwargs.setdefault("crop", False)
+                    kwargs.setdefault("overflow", "ignore")
+                console.print(msg, **kwargs)
 
     def render(self, msg: Any, **kwargs: Any) -> str:
         with _console.capture() as capture:

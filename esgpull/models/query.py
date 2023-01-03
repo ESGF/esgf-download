@@ -178,10 +178,10 @@ class Query(Base):
         # if self.name != other.require:
         #     raise ValueError(f"{self.name} is not required by {other.name}")
         for tag in other.tags:
-            if tag not in self.tags:
+            if tag not in result.tags:
                 result.tags.append(tag)
         for name, option in other.options.items():
-            setattr(self.options, name, option)
+            setattr(result.options, name, option)
         for name, values in other.selection.items():
             result.selection[name] = values
         result.transient = other.transient

@@ -56,14 +56,13 @@ class opts:
         is_flag=True,
         default=False,
     )
-    date: Dec = click.option(
-        "--date",
-        is_flag=True,
-        default=False,
-    )
+    # date: Dec = click.option(
+    #     "--date",
+    #     is_flag=True,
+    #     default=False,
+    # )
     data_node: Dec = click.option(
         "--data-node",
-        "-n",
         is_flag=True,
         default=False,
     )
@@ -98,12 +97,6 @@ class opts:
     )
     json: Dec = click.option(
         "--json",
-        is_flag=True,
-        default=False,
-    )
-    quiet: Dec = click.option(
-        "--quiet",
-        "-q",
         is_flag=True,
         default=False,
     )

@@ -37,6 +37,10 @@ class QueryDuplicate(EsgpullException):
     msg = "{}"
 
 
+class SliceIndexError(EsgpullException, IndexError):
+    msg = "Cannot use {} with {} files."
+
+
 # # errors meant for use when validation is implemented
 # class UnknownFacetValue(EsgpullException):
 #     msg = "'{}' is not valid for {}."

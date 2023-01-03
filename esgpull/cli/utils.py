@@ -12,7 +12,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from esgpull.models import QueryDict, Selection
+from esgpull.models import File, QueryDict, Selection
 from esgpull.utils import format_size
 
 
@@ -62,31 +62,32 @@ class SliceParam(ListParamType):
         return slice(start, stop)
 
 
-def filter_docs(
-    docs: list[dict],
+def filter_keys(
+    files: list[File],
     indices: bool = True,
     size: bool = True,
-    node: bool = False,
-    date: bool = False,
+    data_node: bool = False,
+    # date: bool = False,
     offset: int = 0,
 ) -> list[OrderedDict[str, Any]]:
     result: list[OrderedDict[str, Any]] = []
-    for i, doc in enumerate(docs):
+    for i, file in enumerate(files):
         od: OrderedDict[str, Any] = OrderedDict()
-        is_file = doc["type"].lower() == "file"
+        # is_file = doc["type"].lower() == "file"
         if indices:
             od["#"] = i + offset
         if size:
-            od["size"] = doc["size"]
-        if is_file:
-            id_key = "file_id"
-        else:
-            id_key = "dataset_id"
-        od[id_key] = doc["id"].partition("|")[0]
-        if node:
-            od["node"] = doc["data_node"]
-        if date:
-            od["date"] = doc.get("timestamp") or doc.get("_timestamp")
+            od["size"] = file.size
+        # if is_file:
+        #     id_key = "file_id"
+        # else:
+        #     id_key = "dataset_id"
+        # od[id_key] = doc["id"].partition("|")[0]
+        od["dataset"] = file.dataset_id
+        if data_node:
+            od["data_node"] = file.data_node
+        # if date:
+        #     od["date"] = doc.get("timestamp") or doc.get("_timestamp")
         result.append(od)
     return result
 
@@ -96,7 +97,10 @@ def totable(
 ) -> Table:
     table = Table(box=rich.box.MINIMAL)
     for key in docs[0].keys():
-        table.add_column(Text(key, justify="center"), justify="right")
+        table.add_column(
+            Text(key, justify="center"),
+            justify="right" if key in ["#", "size"] else "left",
+        )
     for doc in docs:
         row: list[str] = []
         for key, value in doc.items():

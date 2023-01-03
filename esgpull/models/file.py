@@ -4,6 +4,7 @@ from enum import Enum
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
+from typing_extensions import TypedDict
 
 from esgpull.models.base import Base
 from esgpull.utils import find_int, find_str
@@ -40,6 +41,20 @@ def get_local_path(source: dict, version: str) -> str:
         rcm_model = institute + "-" + rcm_name
         flat_raw["rcm_model"] = rcm_model
     return template.format(version=version, **flat_raw)
+
+
+class FileDict(TypedDict):
+    file_id: str
+    dataset_id: str
+    master_id: str
+    url: str
+    version: str
+    filename: str
+    local_path: str
+    data_node: str
+    checksum: str
+    checksum_type: str
+    size: int
 
 
 class File(Base):
@@ -99,66 +114,17 @@ class File(Base):
         result.compute_sha()
         return result
 
-
-# FileRequires = [
-# File facets
-#     "instance_id",
-#     "dataset_id",
-#     "title",
-#     "url",
-#     "data_node",
-#     "checksum",
-#     "checksum_type",
-#     "size",
-#     "directory_format_template_",
-#     "version",
-#     "institute",
-#     "rcm_name",
-# directory_format_template_ facets
-#     "activity",
-#     "activity_drs",
-#     "activity_id",
-#     "atmos_grid_resolution",
-#     "bias_adjustment",
-#     "cmor_table",
-#     "data_structure",
-#     "data_type",
-#     "date",
-#     "domain",
-#     "driving_model",
-#     "ensemble",
-#     "ensemble_member",
-#     "experiment",
-#     "experiment_id",
-#     "frequency",
-#     "grid_label",
-#     "grid_resolution",
-#     "institute",
-#     "institution_id",
-#     "member_id",
-#     "mip_era",
-#     "model",
-#     "model_version",
-#     "ocean_grid_resolution",
-#     "product",
-#     "project",
-#     "rcm_model",
-#     "rcm_version",
-#     "realization",
-#     "realm",
-#     "regridding",
-#     "root",
-#     "run_category",
-#     "source",
-#     "source_data_id",
-#     "source_id",
-#     "source_type",
-#     "table_id",
-#     "target_mip",
-#     "time_frequency",
-#     "var",
-#     "variable",
-#     "variable_id",
-#     "version",
-#     "work_package",
-# ]
+    def asdict(self) -> FileDict:
+        return dict(
+            file_id=self.file_id,
+            dataset_id=self.dataset_id,
+            master_id=self.master_id,
+            url=self.url,
+            version=self.version,
+            filename=self.filename,
+            local_path=self.local_path,
+            data_node=self.data_node,
+            checksum=self.checksum,
+            checksum_type=self.checksum_type,
+            size=self.size,
+        )

@@ -16,7 +16,7 @@ def init(
     esg = Esgpull.with_verbosity(verbosity, root)
     with esg.ui.logging("init", onraise=Abort):
         with esg.ui.spinner("Fetching params"):
-            if esg.fetch_params(update=False):
+            if esg.fetch_facets(update=False):
                 esg.ui.print("Params are initialised.")
             else:
                 esg.ui.print("Params already initialised.")
