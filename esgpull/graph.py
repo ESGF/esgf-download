@@ -4,22 +4,19 @@ from dataclasses import dataclass
 from typing import Iterator
 
 from rich.console import Console, ConsoleOptions
-from rich.measure import Measurement, measure_renderables
 from rich.pretty import pretty_repr
 from rich.tree import Tree
 
 from esgpull.config import Config
 from esgpull.database import Database
 from esgpull.exceptions import QueryDuplicate, TooShortKeyError, UnknownFacet
-from esgpull.models import (
-    Facet,
-    Options,
-    Query,
-    QueryDict,
-    Selection,
-    Tag,
-    sql,
-)
+from esgpull.models import sql
+from esgpull.models.facet import Facet
+from esgpull.models.options import Options
+from esgpull.models.query import Query, QueryDict
+from esgpull.models.selection import Selection
+from esgpull.models.tag import Tag
+from esgpull.models.utils import rich_measure_impl
 
 
 @dataclass(init=False, repr=False)
@@ -37,7 +34,7 @@ class Graph:
         *queries: Query,
         force: bool = False,
         noraise: bool = False,
-        load_db_full: bool = False,
+        load_db: bool = False,
     ) -> Graph:
         db = Database.from_config(config)
         return Graph(
@@ -45,7 +42,7 @@ class Graph:
             *queries,
             force=force,
             noraise=noraise,
-            load_db_full=load_db_full,
+            load_db=load_db,
         )
 
     def __init__(
@@ -54,13 +51,15 @@ class Graph:
         *queries: Query,
         force: bool = False,
         noraise: bool = False,
-        load_db_full: bool = False,
+        load_db: bool = False,
     ) -> None:
         self.db = db
         self.queries = {}
         self._shas_ = set()
         self._name_sha_ = {}
-        self._load_db(full=load_db_full)
+        self._load_db_shas()
+        if load_db:
+            self.load_db()
         self.add(*queries, force=force, noraise=noraise)
 
     @staticmethod
@@ -81,10 +80,17 @@ class Graph:
             if len(short_shas) < len(shas):
                 raise TooShortKeyError(name)
             elif short_name not in short_shas:
-                raise KeyError(name)
+                return name
             else:
                 sha = short_shas[short_name]
         return sha
+
+    def has(self, *, name: str | None = None, sha: str | None = None) -> bool:
+        if name is not None and sha is None:
+            sha = self._expand_name(name, self._shas_, self._name_sha_)
+        if sha is None:
+            raise ValueError("Missing `name` or `sha`")
+        return sha in self._shas_
 
     def get(self, name: str) -> Query:
         sha = self._expand_name(name, self._shas_, self._name_sha_)
@@ -92,8 +98,10 @@ class Graph:
             ...
         elif self.db is None:
             raise KeyError(name)
-        elif query_db := self.db.get(Query, sha):
-            self.queries[sha] = query_db
+        elif (query := self.db.get(Query, sha)) and query is not None:
+            self.queries[sha] = query
+        else:
+            raise KeyError(name)
         return self.queries[sha]
 
     def get_kids(self, parent_sha: str | None, shas: set[str]) -> list[Query]:
@@ -114,33 +122,68 @@ class Graph:
             shas = shas - set([query_kid.sha for query_kid in query_kids])
         return kids
 
-    def subgraph(self, tag_name: str, kids: bool = True) -> Graph:
-        graph = Graph(None)
+    def get_parent(self, query: Query) -> Query | None:
+        if query.require is not None:
+            return self.get(query.require)
+        else:
+            return None
+
+    def get_parents(self, query: Query) -> list[Query]:
+        result: list[Query] = []
+        kid = self.get_parent(query)
+        while kid is not None:
+            result.append(kid)
+            kid = self.get_parent(kid)
+        return result
+
+    def with_tag(self, tag_name: str) -> list[Query]:
+        queries: list[Query] = []
+        shas: set[str] = set()
+        if self.db is not None:
+            db_queries = self.db.scalars(sql.query.with_tag(tag_name))
+            for query in db_queries:
+                queries.append(query)
+                shas.add(query.sha)
         for query in self.queries.values():
+            if query.sha in shas:
+                continue
             tag_names = [tag.name for tag in query.tags]
             if tag_name in tag_names:
-                graph.add(query)
-        if len(graph.queries) == 0:
-            raise KeyError(tag_name)
-        if not kids:
-            return graph
+                queries.append(query)
+        return queries
+
+    def subgraph(
+        self,
+        *queries: Query,
+        kids: bool = True,
+        parents: bool = False,
+    ) -> Graph:
+        if not queries:
+            raise ValueError("Cannot subgraph from nothing")
+        graph = Graph(None, *queries, force=True)
         shas = set(self._shas_)
-        for sha in graph.queries.keys():
-            shas = shas - graph._shas_
-            graph.add(*self.get_all_kids(sha, shas), force=True)
+        if kids:
+            for query in queries:
+                shas = shas - graph._shas_
+                graph.add(*self.get_all_kids(query.sha, shas), force=True)
+        if parents:
+            for query in queries:
+                shas = shas - graph._shas_
+                graph.add(*self.get_parents(query), force=True)
         return graph
 
-    def _load_db(self, full: bool = False) -> None:
+    def _load_db_shas(self, full: bool = False) -> None:
         if self.db is not None:
-            if full:
-                queries = self.db.scalars(sql.query.all)
-                self.add(*queries, clone=False, noraise=True)
-            else:
-                name_sha: dict[str, str] = {}
-                self._shas_ = set(self.db.scalars(sql.query.shas))
-                for name, sha in self.db.rows(sql.query.name_sha):
-                    name_sha[name] = sha
-                self._name_sha_ = name_sha
+            name_sha: dict[str, str] = {}
+            self._shas_ = set(self.db.scalars(sql.query.shas))
+            for name, sha in self.db.rows(sql.query.name_sha):
+                name_sha[name] = sha
+            self._name_sha_ = name_sha
+
+    def load_db(self) -> None:
+        if self.db is not None:
+            queries = self.db.scalars(sql.query.all)
+            self.add(*queries, clone=False, force=True)
 
     def validate(self, *queries: Query, noraise: bool = False) -> set[str]:
         names = set(self._name_sha_.keys())
@@ -149,6 +192,16 @@ class Graph:
             raise QueryDuplicate(pretty_repr(duplicates))
         else:
             return set(duplicates.keys())
+
+    def resolve_require(self, query: Query) -> None:
+        if query.require is None:
+            ...
+        elif self.has(sha=query.require):
+            ...
+        elif self.has(name=query.require):
+            parent = self.get(query.require)
+            query.require = parent.sha
+            query.compute_sha()
 
     def add(
         self,
@@ -179,7 +232,10 @@ class Graph:
         for query in queue:
             if query.sha in new_shas:
                 if force:
-                    old = new_queries[query.sha]
+                    if query.sha in new_queries:
+                        old = new_queries[query.sha]
+                    else:
+                        old = self.get(query.sha)
                     replaced[query.sha] = old.clone(compute_sha=False)  # True?
                 else:
                     raise QueryDuplicate(pretty_repr(query))
@@ -315,58 +371,44 @@ class Graph:
         """
         return [q.asdict() for q in self.queries.values()]
 
-    def fill_tree_children(self, root: Query | None, tree: Tree) -> None:
+    def fill_tree(self, root: Query | None, tree: Tree) -> None:
         """
-        Recursive method to add branches starting from `root`.
+        Recursive method to add branches starting from queries with either:
+            - require is None
+            - require is not in self.queries
         """
         for sha, query in self.queries.items():
             if sha in self._rendered:
-                continue
-            if root is None:
-                if query.require is None:
+                ...
+            elif root is None:
+                if query.require is None or not self.has(sha=query.require):
                     self._rendered.add(sha)
-                    self.fill_tree_children(
-                        query, tree.add(query.no_require())
-                    )  # TODO: rm no_require?
+                    self.fill_tree(query, tree.add(query))
             elif query.require == root.sha:
                 self._rendered.add(sha)
-                self.fill_tree_children(query, tree.add(query.no_require()))
+                self.fill_tree(query, tree.add(query.no_require()))
 
-    def fill_tree_parents(self, query: Query, tree: Tree) -> Tree:
-        if query.require is not None:
-            tree = self.fill_tree_parents(self.get(query.require), tree)
-        return tree.add(query.no_require())
-
-    def as_tree(self, name: str | None = None, parents: bool = False) -> Tree:
-        """
-        Returns a `rich.tree.Tree` representing queries and their `require`.
-        """
-        tree_root = Tree("", hide_root=True, guide_style="dim")
-        self._rendered = set()
-        if name is not None:
-            root = self.get(name)
-            self._rendered.add(root.sha)
-            if parents:
-                tree = self.fill_tree_parents(root, tree_root)
-            else:
-                tree = tree_root.add(root)
-            self.fill_tree_children(root, tree)
-        else:
-            self.fill_tree_children(None, tree_root)
-        del self._rendered
-        return tree_root
+    __rich_measure__ = rich_measure_impl
 
     def __rich_console__(
         self,
         console: Console,
         options: ConsoleOptions,
     ) -> Iterator[Tree]:
-        yield self.as_tree(None)
+        """
+        Returns a `rich.tree.Tree` representing queries and their `require`.
+        """
+        tree = Tree("", hide_root=True, guide_style="dim")
+        self._rendered = set()
+        self.fill_tree(None, tree)
+        del self._rendered
+        yield tree
 
-    def __rich_measure__(
-        self,
-        console: Console,
-        options: ConsoleOptions,
-    ) -> Measurement:
-        renderables = list(self.__rich_console__(console, options))
-        return measure_renderables(console, options, renderables)
+
+#     def __rich_measure__(
+#         self,
+#         console: Console,
+#         options: ConsoleOptions,
+#     ) -> Measurement:
+#         renderables = list(self.__rich_console__(console, options))
+#         return measure_renderables(console, options, renderables)

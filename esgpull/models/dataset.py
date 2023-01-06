@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+
+from esgpull.models.utils import find_int, find_str
+
+
+@dataclass
+class Dataset:
+    dataset_id: str
+    master_id: str
+    version: str
+    size: int
+
+    @classmethod
+    def serialize(cls, source: dict) -> Dataset:
+        dataset_id = find_str(source["instance_id"]).partition("|")[0]
+        size = find_int(source["size"])
+        master_id, version = dataset_id.rsplit(".", 1)  # remove version
+        return cls(
+            dataset_id=dataset_id,
+            master_id=master_id,
+            version=version,
+            size=size,
+        )
+
+    def asdict(self) -> dict:
+        return asdict(self)

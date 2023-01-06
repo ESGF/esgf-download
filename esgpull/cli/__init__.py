@@ -4,18 +4,20 @@
 import click
 
 from esgpull import __version__
+from esgpull.cli.add import add
+from esgpull.cli.config import config
+from esgpull.cli.facet import facet
 from esgpull.cli.init import init
+from esgpull.cli.remove import remove
 from esgpull.cli.search import search
+from esgpull.cli.show import show
 from esgpull.tui import UI
 
 # from esgpull.cli.autoremove import autoremove
-# from esgpull.cli.config import config
 # from esgpull.cli.download import download
-# from esgpull.cli.facet import facet
 # from esgpull.cli.get import get
 # from esgpull.cli.install import install
 # from esgpull.cli.login import login
-# from esgpull.cli.remove import remove
 # from esgpull.cli.retry import retry
 # from esgpull.cli.status import status
 # from esgpull.cli.update import update
@@ -26,17 +28,19 @@ from esgpull.tui import UI
 #   - log config for later optimisation ?
 
 SUBCOMMANDS: list[click.Command] = [
+    add,
     # autoremove,
-    # config,
+    config,
     # download,
-    # facet,
+    facet,
     # get,
     init,
     # install,
     # login,
-    # remove,
+    remove,
     # retry,
     search,
+    show,
     # status,
     # # stats,
     # update,

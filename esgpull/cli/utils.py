@@ -12,7 +12,16 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from esgpull.models import File, QueryDict, Selection
+from esgpull.graph import Graph
+from esgpull.models import (
+    Dataset,
+    File,
+    Option,
+    Options,
+    Query,
+    QueryDict,
+    Selection,
+)
 from esgpull.utils import format_size
 
 
@@ -63,38 +72,34 @@ class SliceParam(ListParamType):
 
 
 def filter_keys(
-    files: list[File],
+    docs: list[File] | list[Dataset],
     indices: bool = True,
     size: bool = True,
-    data_node: bool = False,
+    # data_node: bool = False,
     # date: bool = False,
     offset: int = 0,
 ) -> list[OrderedDict[str, Any]]:
     result: list[OrderedDict[str, Any]] = []
-    for i, file in enumerate(files):
+    for i, doc in enumerate(docs):
         od: OrderedDict[str, Any] = OrderedDict()
         # is_file = doc["type"].lower() == "file"
         if indices:
             od["#"] = i + offset
         if size:
-            od["size"] = file.size
-        # if is_file:
-        #     id_key = "file_id"
-        # else:
-        #     id_key = "dataset_id"
-        # od[id_key] = doc["id"].partition("|")[0]
-        od["dataset"] = file.dataset_id
-        if data_node:
-            od["data_node"] = file.data_node
+            od["size"] = doc.size
+        if isinstance(doc, File):
+            od["file"] = doc.file_id
+        else:
+            od["dataset"] = doc.dataset_id
+        # if data_node:
+        #     od["data_node"] = doc.data_node
         # if date:
         #     od["date"] = doc.get("timestamp") or doc.get("_timestamp")
         result.append(od)
     return result
 
 
-def totable(
-    docs: list[OrderedDict[str, Any]],
-) -> Table:
+def totable(docs: list[OrderedDict[str, Any]]) -> Table:
     table = Table(box=rich.box.MINIMAL)
     for key in docs[0].keys():
         table.add_column(
@@ -148,3 +153,44 @@ def parse_facets(facets: list[str]) -> Selection:
     for name, values in facet_dict.items():
         selection[name] = values
     return selection
+
+
+def parse_query(
+    facets: list[str],
+    # query options
+    tags: list[str],
+    require: str | None,
+    distrib: str | None,
+    latest: str | None,
+    replica: str | None,
+    retracted: str | None,
+) -> Query:
+    options = Options(
+        distrib=distrib or Option.notset,
+        latest=latest or Option.notset,
+        replica=replica or Option.notset,
+        retracted=retracted or Option.notset,
+    )
+    selection = parse_facets(facets)
+    return Query(
+        tags=tags,
+        require=require,
+        options=options,
+        selection=selection,
+    )
+
+
+def get_queries(
+    graph: Graph,
+    sha_or_name: str | None,
+    tag: str | None,
+) -> tuple[list[Query], str]:
+    if sha_or_name is not None:
+        if not graph.has(name=sha_or_name):
+            return [], f":stop_sign: No such query [green]{sha_or_name}[/]"
+        queries = [graph.get(name=sha_or_name)]
+    elif tag is not None:
+        queries = graph.with_tag(tag)
+        if not queries:
+            return [], f":stop_sign: No query tagged with [magenta]{tag}[/]"
+    return queries, ""

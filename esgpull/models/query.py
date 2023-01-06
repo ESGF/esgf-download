@@ -4,7 +4,6 @@ from typing import Any, Iterator, Literal
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
-from rich.measure import Measurement, measure_renderables
 from rich.padding import Padding
 from rich.text import Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,6 +14,7 @@ from esgpull.models.file import File
 from esgpull.models.options import Options
 from esgpull.models.selection import FacetValues, Selection
 from esgpull.models.tag import Tag
+from esgpull.models.utils import rich_measure_impl, short_sha
 
 query_file_proxy = sa.Table(
     "query_file",
@@ -64,6 +64,17 @@ class Query(Base):
         default_factory=list,
     )
 
+    def _as_bytes(self) -> bytes:
+        self_tuple = (self.require, self.options.sha, self.selection.sha)
+        return str(self_tuple).encode()
+
+    def compute_sha(self) -> None:
+        for tag in self.tags:
+            tag.compute_sha()
+        self.options.compute_sha()
+        self.selection.compute_sha()
+        super().compute_sha()
+
     # TODO: improve typing
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "tags" and isinstance(value, (str, Tag)):
@@ -85,21 +96,6 @@ class Query(Base):
                 ...
         super().__setattr__(name, value)
 
-    def _as_bytes(self) -> bytes:
-        self_tuple = (self.require, self.options.sha, self.selection.sha)
-        return str(self_tuple).encode()
-
-    def compute_sha(self) -> None:
-        for tag in self.tags:
-            tag.compute_sha()
-        self.options.compute_sha()
-        self.selection.compute_sha()
-        super().compute_sha()
-
-    @staticmethod
-    def format_name(sha: str) -> str:
-        return f"#{sha[:6]}"
-
     @property
     def tag_name(self) -> str | None:
         if len(self.tags) == 1:
@@ -108,26 +104,15 @@ class Query(Base):
             return None
 
     @property
-    def short_require(self) -> str:
-        if self.require is not None:
-            if len(self.require) == 40:
-                return self.format_name(self.require)
-            else:
-                return self.require
-        else:
-            raise ValueError
-
-    @property
     def name(self) -> str:
         # TODO: make these 2 lines useless
         if self.sha is None:
             self.compute_sha()
-        return self.format_name(self.sha)
+        return short_sha(self.sha)
 
     def items(
         self,
         include_name: bool = False,
-        short_require: bool = False,
     ) -> Iterator[tuple[str, Any]]:
         if include_name:
             yield "name", self.name
@@ -136,11 +121,7 @@ class Query(Base):
         if self.transient:
             yield "transient", self.transient
         if self.require is not None:
-            if short_require:
-                require = self.short_require
-            else:
-                require = self.require
-            yield "require", require
+            yield "require", short_sha(self.require)
         if self.options:
             yield "options", self.options
         if self.selection:
@@ -189,14 +170,11 @@ class Query(Base):
         return result
 
     def __rich_repr__(self) -> Iterator:
-        yield from self.items(include_name=True, short_require=True)
+        yield from self.items(include_name=True)
 
     def __repr__(self) -> str:
         cls_name = self.__class__.__name__
-        items = [
-            f"{k}={v}"
-            for k, v in self.items(include_name=True, short_require=True)
-        ]
+        items = [f"{k}={v}" for k, v in self.items(include_name=True)]
         return f"{cls_name}(" + ", ".join(items) + ")"
 
     def __guide(self, text: Text, size: int = 2) -> Text:
@@ -231,6 +209,8 @@ class Query(Base):
         text.append("]")
         return text
 
+    __rich_measure__ = rich_measure_impl
+
     def __rich_console__(
         self,
         console: Console,
@@ -242,7 +222,7 @@ class Query(Base):
             text.append(" <transient>", style="i red")
         if not hasattr(self, "_rich_no_require") and self.require is not None:
             text.append(" [require: ")
-            text.append(self.short_require, style="green")
+            text.append(short_sha(self.require), style="green")
             text.append("]")
         yield text
         if self.tags:
@@ -276,11 +256,3 @@ class Query(Base):
             else:
                 item = self.__wrap_values(item, query_term)
             yield self.__guide(item)
-
-    def __rich_measure__(
-        self,
-        console: Console,
-        options: ConsoleOptions,
-    ) -> Measurement:
-        renderables = list(self.__rich_console__(console, options))
-        return measure_renderables(console, options, renderables)

@@ -10,7 +10,7 @@ from rich.pretty import pretty_repr
 
 from esgpull.config import Config
 from esgpull.exceptions import SolrUnstableQueryError
-from esgpull.models import File, Query
+from esgpull.models import Dataset, File, Query
 from esgpull.tui import logger
 from esgpull.utils import index2url, sync  # , format_date
 
@@ -394,34 +394,40 @@ class Context:
             hints.append(query_counts)
         return hints
 
-    async def _search_raw(
+    async def _search_datasets(
         self,
         *queries: Query,
-        file: bool,
         hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        fields_param: list[str] | None = None,
-    ) -> list[str]:
+        # keep_duplicates: bool = True,
+        # fields_param: list[str] | None = None,
+    ) -> list[Dataset]:
         if hits is None:
-            hits = await self._hits(*queries, file=True)
+            hits = await self._hits(*queries, file=False)
         results = self._init_search(
             *queries,
-            file=file,
+            file=False,
             hits=hits,
             offset=offset,
             page_limit=page_limit,
             max_hits=max_hits,
-            fields_param=fields_param,
+            fields_param=["instance_id", "size"],
             # index_url=index_url,
             # index_node=index_node,
         )
-        docs: list[str] = []
+        datasets: list[Dataset] = []
         async for result in self._fetch(results):
-            if result.success:
-                docs.extend(result.json["response"]["docs"])
-        return docs
+            if not result.success:
+                continue
+            for doc in result.json["response"]["docs"]:
+                try:
+                    dataset = Dataset.serialize(doc)
+                    datasets.append(dataset)
+                except KeyError as exc:
+                    logger.exception(exc)
+        return datasets
 
     async def _search_files(
         self,
@@ -430,7 +436,7 @@ class Context:
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        keep_duplicates: bool = False,
+        keep_duplicates: bool = True,
     ) -> list[File]:
         if hits is None:
             hits = await self._hits(*queries, file=True)
@@ -634,25 +640,23 @@ class Context:
     #         self.query.facets = original_facets
     #     return result
 
-    def search_raw(
+    def search_datasets(
         self,
         *queries: Query,
-        file: bool,
         hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        fields_param: list[str] | None = None,
-    ) -> list[str]:
+        # fields_param: list[str] | None = None,
+    ) -> list[Dataset]:
         return self._sync(
-            self._search_raw(
+            self._search_datasets(
                 *queries,
-                file=file,
                 hits=hits,
                 offset=offset,
                 max_hits=max_hits,
                 page_limit=page_limit,
-                fields_param=fields_param,
+                # fields_param=fields_param,
             )
         )
 
@@ -663,7 +667,7 @@ class Context:
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        keep_duplicates: bool = False,
+        keep_duplicates: bool = True,
     ) -> list[File]:
         return self._sync(
             self._search_files(
@@ -675,3 +679,31 @@ class Context:
                 keep_duplicates=keep_duplicates,
             )
         )
+
+    def search(
+        self,
+        *queries: Query,
+        file: bool,
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        keep_duplicates: bool = True,
+    ) -> list[File] | list[Dataset]:
+        if file:
+            return self.search_files(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                keep_duplicates=keep_duplicates,
+            )
+        else:
+            return self.search_datasets(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+            )

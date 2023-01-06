@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from typing_extensions import TypedDict
 
 from esgpull.models.base import Base
-from esgpull.utils import find_int, find_str
+from esgpull.models.utils import find_int, find_str
 
 
 class FileStatus(Enum):
@@ -97,7 +97,6 @@ class File(Base):
         master_id = ".".join([dataset_master, filename])
         version = dataset_id.rsplit(".", 1)[1]
         local_path = get_local_path(source, version)
-
         result = cls(
             file_id=file_id,
             dataset_id=dataset_id,

@@ -2,22 +2,13 @@ import sqlalchemy as sa
 
 from esgpull.models.facet import Facet
 from esgpull.models.query import Query, query_tag_proxy
-from esgpull.models.selection import selection_facet_proxy
+from esgpull.models.selection import Selection, selection_facet_proxy
 from esgpull.models.tag import Tag
 
 # from esgpull.models.base import Base
 # from esgpull.models.query import query_file_proxy
-# from esgpull.models.selection import Selection
 # from esgpull.models.options import Options
 # from esgpull.models.file import File
-
-
-class tag:
-    all: sa.Select[tuple[Tag]] = sa.select(Tag)
-    shas: sa.Select[tuple[str]] = sa.select(Tag.sha)
-    orphans: sa.Select[tuple[Tag]] = (
-        sa.select(Tag).outerjoin(query_tag_proxy).filter_by(tag_sha=None)
-    )
 
 
 class facet:
@@ -35,6 +26,12 @@ class facet:
     @staticmethod
     def known_shas(shas: list[str]) -> sa.Select[tuple[str]]:
         return sa.select(Facet.sha).where(Facet.sha.in_(shas))
+
+    names: sa.Select[tuple[str]] = sa.select(Facet.name).distinct()
+
+    @staticmethod
+    def values(name: str) -> sa.Select[tuple[str]]:
+        return sa.select(Facet.value).where(Facet.name == name)
 
 
 class query:
@@ -60,4 +57,28 @@ class query:
     )
     name_sha: sa.Select[tuple[str, str]] = sa.select(__name_cte).join(
         __sha_cte, __name_cte.c.sha == __sha_cte.c.sha
+    )
+
+    @staticmethod
+    def with_tag(tag: str) -> sa.Select[tuple[Query]]:
+        return (
+            sa.select(Query)
+            .join_from(query_tag_proxy, Tag)
+            .join_from(query_tag_proxy, Query)
+            .where(Tag.name == tag)
+        )
+
+
+class selection:
+    all: sa.Select[tuple[Selection]] = sa.select(Selection)
+    orphans: sa.Select[tuple[Selection]] = (
+        sa.select(Selection).outerjoin(Query).where(Query.sha == None)  # noqa
+    )
+
+
+class tag:
+    all: sa.Select[tuple[Tag]] = sa.select(Tag)
+    shas: sa.Select[tuple[str]] = sa.select(Tag.sha)
+    orphans: sa.Select[tuple[Tag]] = (
+        sa.select(Tag).outerjoin(query_tag_proxy).filter_by(tag_sha=None)
     )

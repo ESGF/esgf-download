@@ -25,6 +25,7 @@ def compose(*decs: Dec) -> Dec:
 class args:
     facets: Dec = click.argument(
         "facets",
+        type=str,
         nargs=-1,
     )
     key: Dec = click.argument(
@@ -45,6 +46,12 @@ class args:
         "status",
         type=EnumParam(FileStatus),
         nargs=-1,
+    )
+    sha_or_name: Dec = click.argument(
+        "sha_or_name",
+        type=str,
+        nargs=1,
+        required=False,
     )
 
 
@@ -122,6 +129,18 @@ class opts:
         default=None,
         multiple=True,
     )
+    tag: Dec = click.option(
+        "--tag",
+        "-t",
+        type=str,
+        default=None,
+    )
+    yes: Dec = click.option(
+        "--yes",
+        "-y",
+        is_flag=True,
+        default=False,
+    )
     verbosity: Dec = click.option(
         "verbosity",
         "-v",
@@ -132,7 +151,7 @@ class opts:
 
 # Display group
 
-_display: Dec = optgroup.group(
+_display_group: Dec = optgroup.group(
     "Display options",
     cls=MutuallyExclusiveOptionGroup,
 )
@@ -163,12 +182,18 @@ _all: Dec = optgroup.option(
     default=False,
 )
 
-# Query options group
-
+# Query definition group
 OptionChoice = click.Choice([opt.name for opt in list(Option)[:-1]])
-_query: Dec = optgroup.group("Query options")
+_query_def: Dec = optgroup.group("Query definition")
 _tag: Dec = optgroup.option("tags", "--tag", "-t", multiple=True)
-_require: Dec = optgroup.option("--require", "-r")
+_require: Dec = optgroup.option(
+    "--require",
+    "-r",
+    type=str,
+    nargs=1,
+    required=False,
+    default=None,
+)
 _distrib: Dec = optgroup.option(
     "--distrib",
     "-d",
@@ -193,21 +218,47 @@ _retracted: Dec = optgroup.option(
 )
 # _since: Dec
 
+_show: Dec = optgroup.group("Show options")
+_children: Dec = optgroup.option(
+    "--children",
+    "-c",
+    is_flag=True,
+    default=False,
+)
+_parents: Dec = optgroup.option(
+    "--parents",
+    "-p",
+    is_flag=True,
+    default=False,
+)
+_expand: Dec = optgroup.option(
+    "--expand",
+    "-e",
+    is_flag=True,
+    default=False,
+)
+
 
 class groups:
     display: Dec = compose(
-        _display,
+        _display_group,
         _slice,
         _zero,
         _one,
         _all,
     )
-    query: Dec = compose(
-        _query,
+    query_def: Dec = compose(
+        _query_def,
         _tag,
         _require,
         _distrib,
         _latest,
         _replica,
         _retracted,
+    )
+    show: Dec = compose(
+        _show,
+        _children,
+        _parents,
+        _expand,
     )

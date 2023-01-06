@@ -1,4 +1,5 @@
 from esgpull.models.base import Base
+from esgpull.models.dataset import Dataset
 from esgpull.models.facet import Facet
 from esgpull.models.file import File, FileStatus
 from esgpull.models.options import Option, Options
@@ -8,6 +9,7 @@ from esgpull.models.tag import Tag
 
 __all__ = [
     "Base",
+    "Dataset",
     "Facet",
     "File",
     "FileStatus",
