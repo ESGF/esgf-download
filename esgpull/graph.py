@@ -9,12 +9,14 @@ from rich.tree import Tree
 
 from esgpull.config import Config
 from esgpull.database import Database
-from esgpull.exceptions import QueryDuplicate, TooShortKeyError, UnknownFacet
+from esgpull.exceptions import (
+    GraphWithoutDatabase,
+    QueryDuplicate,
+    TooShortKeyError,
+)
 from esgpull.models import sql
 from esgpull.models.facet import Facet
-from esgpull.models.options import Options
 from esgpull.models.query import Query, QueryDict
-from esgpull.models.selection import Selection
 from esgpull.models.tag import Tag
 from esgpull.models.utils import rich_measure_impl
 
@@ -23,8 +25,8 @@ from esgpull.models.utils import rich_measure_impl
 class Graph:
     db: Database | None
     queries: dict[str, Query]
-    _shas_: set[str]
-    _name_sha_: dict[str, str]
+    _shas: set[str]
+    _name_sha: dict[str, str]
     _rendered: set[str]
 
     @classmethod
@@ -55,18 +57,29 @@ class Graph:
     ) -> None:
         self.db = db
         self.queries = {}
-        self._shas_ = set()
-        self._name_sha_ = {}
-        self._load_db_shas()
+        self._shas = set()
+        self._name_sha = {}
+        if self.db is not None:
+            self._load_db_shas()
         if load_db:
             self.load_db()
         self.add(*queries, force=force, noraise=noraise)
 
     @staticmethod
+    def matching_shas(name: str, shas: set[str]) -> list[str]:
+        shas_copy = list(shas)
+        for pos, c in enumerate(name):
+            idx = 0
+            while idx < len(shas_copy):
+                if shas_copy[idx][pos] != c:
+                    shas_copy.pop(idx)
+                else:
+                    idx += 1
+        return shas_copy
+
+    @staticmethod
     def _expand_name(
-        name: str,
-        shas: set[str],
-        name_sha: dict[str, str],
+        name: str, shas: set[str], name_sha: dict[str, str]
     ) -> str:
         if name in name_sha:
             sha = name_sha[name]
@@ -76,51 +89,92 @@ class Graph:
             short_name = name
             if short_name.startswith("#"):
                 short_name = short_name[1:]
-            short_shas = {sha[: len(short_name)]: sha for sha in shas}
-            if len(short_shas) < len(shas):
+            matching_shas = Graph.matching_shas(short_name, shas)
+            if len(matching_shas) > 1:
                 raise TooShortKeyError(name)
-            elif short_name not in short_shas:
-                return name
+            elif len(matching_shas) == 1:
+                sha = matching_shas[0]
             else:
-                sha = short_shas[short_name]
+                sha = name
         return sha
 
-    def has(self, *, name: str | None = None, sha: str | None = None) -> bool:
-        if name is not None and sha is None:
-            sha = self._expand_name(name, self._shas_, self._name_sha_)
-        if sha is None:
-            raise ValueError("Missing `name` or `sha`")
-        return sha in self._shas_
+    def __contains__(self, item: Query | str) -> bool:
+        match item:
+            case Query():
+                item.compute_sha()
+                sha = item.sha
+            case str():
+                sha = self._expand_name(item, self._shas, self._name_sha)
+            case _:
+                raise TypeError(item)
+        return sha in self._shas
 
     def get(self, name: str) -> Query:
-        sha = self._expand_name(name, self._shas_, self._name_sha_)
+        sha = self._expand_name(name, self._shas, self._name_sha)
         if sha in self.queries:
             ...
         elif self.db is None:
-            raise KeyError(name)
-        elif (query := self.db.get(Query, sha)) and query is not None:
-            self.queries[sha] = query
+            raise GraphWithoutDatabase()
+        elif sha in self._shas:
+            query_db = self.db.get(Query, sha)
+            if query_db is not None:
+                self.queries[sha] = query_db
+            else:
+                raise
         else:
             raise KeyError(name)
         return self.queries[sha]
 
-    def get_kids(self, parent_sha: str | None, shas: set[str]) -> list[Query]:
-        kids: list[Query] = []
+    def get_mutable(self, name: str) -> Query:
+        sha = self._expand_name(name, self._shas, self._name_sha)
+        if self.db is None:
+            raise GraphWithoutDatabase()
+        elif sha in self._shas:
+            query_db = self.db.get(
+                Query,
+                sha,
+                lazy=False,
+                detached=True,
+            )
+            if query_db is not None:
+                self.queries[sha] = query_db
+            else:
+                raise
+        else:
+            raise KeyError(name)
+        return self.queries[sha]
+
+    def get_children(
+        self,
+        parent_sha: str | None,
+        shas: set[str] | None = None,
+    ) -> list[Query]:
+        if shas is None:
+            shas = set(self._shas)
+        children: list[Query] = []
         for sha in shas:
             query = self.get(sha)
             if query.require == parent_sha:
-                kids.append(query)
-        return kids
+                children.append(query)
+        return children
 
-    def get_all_kids(self, sha: str | None, shas: set[str]) -> list[Query]:
-        shas = set(shas)
-        kids = self.get_kids(sha, shas)
-        shas = shas - set([query.sha for query in kids])
-        for kid in kids:
-            query_kids = self.get_all_kids(kid.sha, shas)
-            kids.extend(query_kids)
-            shas = shas - set([query_kid.sha for query_kid in query_kids])
-        return kids
+    def get_all_children(
+        self,
+        sha: str | None,
+        shas: set[str] | None = None,
+    ) -> list[Query]:
+        if shas is None:
+            shas = set(self._shas)
+        else:
+            shas = set(shas)
+        children = self.get_children(sha, shas)
+        shas = shas - set([query.sha for query in children])
+        for i in range(len(children)):
+            query = children[i]
+            query_children = self.get_all_children(query.sha, shas)
+            children.extend(query_children)
+            shas = shas - set([query_kid.sha for query_kid in query_children])
+        return children
 
     def get_parent(self, query: Query) -> Query | None:
         if query.require is not None:
@@ -130,10 +184,24 @@ class Graph:
 
     def get_parents(self, query: Query) -> list[Query]:
         result: list[Query] = []
-        kid = self.get_parent(query)
-        while kid is not None:
-            result.append(kid)
-            kid = self.get_parent(kid)
+        parent = self.get_parent(query)
+        while parent is not None:
+            result.append(parent)
+            parent = self.get_parent(parent)
+        return result
+
+    def get_tags(self) -> list[Tag]:
+        if self.db is None:
+            raise GraphWithoutDatabase()
+        else:
+            return list(self.db.scalars(sql.tag.all))
+
+    def get_tag(self, name: str) -> Tag | None:
+        result: Tag | None = None
+        for tag in self.get_tags():
+            if tag.name == name:
+                result = tag
+                break
         return result
 
     def with_tag(self, tag_name: str) -> list[Query]:
@@ -144,49 +212,49 @@ class Graph:
             for query in db_queries:
                 queries.append(query)
                 shas.add(query.sha)
-        for query in self.queries.values():
-            if query.sha in shas:
-                continue
-            tag_names = [tag.name for tag in query.tags]
-            if tag_name in tag_names:
+        for sha in self._shas - shas:
+            query = self.queries[sha]
+            if query.get_tag(tag_name) is not None:
                 queries.append(query)
         return queries
 
     def subgraph(
         self,
         *queries: Query,
-        kids: bool = True,
+        children: bool = True,
         parents: bool = False,
     ) -> Graph:
         if not queries:
             raise ValueError("Cannot subgraph from nothing")
         graph = Graph(None, *queries, force=True)
-        shas = set(self._shas_)
-        if kids:
+        shas = set(self._shas)
+        if children:
             for query in queries:
-                shas = shas - graph._shas_
-                graph.add(*self.get_all_kids(query.sha, shas), force=True)
+                shas = shas - graph._shas
+                graph.add(*self.get_all_children(query.sha, shas), force=True)
         if parents:
             for query in queries:
-                shas = shas - graph._shas_
+                shas = shas - graph._shas
                 graph.add(*self.get_parents(query), force=True)
         return graph
 
     def _load_db_shas(self, full: bool = False) -> None:
-        if self.db is not None:
-            name_sha: dict[str, str] = {}
-            self._shas_ = set(self.db.scalars(sql.query.shas))
-            for name, sha in self.db.rows(sql.query.name_sha):
-                name_sha[name] = sha
-            self._name_sha_ = name_sha
+        if self.db is None:
+            raise GraphWithoutDatabase()
+        name_sha: dict[str, str] = {}
+        self._shas = set(self.db.scalars(sql.query.shas))
+        for name, sha in self.db.rows(sql.query.name_sha):
+            name_sha[name] = sha
+        self._name_sha = name_sha
 
     def load_db(self) -> None:
-        if self.db is not None:
-            queries = self.db.scalars(sql.query.all)
-            self.add(*queries, clone=False, force=True)
+        if self.db is None:
+            raise GraphWithoutDatabase()
+        queries = self.db.scalars(sql.query.all)
+        self.add(*queries, clone=False, force=True)
 
     def validate(self, *queries: Query, noraise: bool = False) -> set[str]:
-        names = set(self._name_sha_.keys())
+        names = set(self._name_sha.keys())
         duplicates = {q.name: q for q in queries if q.name in names}
         if duplicates and not noraise:
             raise QueryDuplicate(pretty_repr(duplicates))
@@ -194,11 +262,9 @@ class Graph:
             return set(duplicates.keys())
 
     def resolve_require(self, query: Query) -> None:
-        if query.require is None:
+        if query.require is None or query.require in self._shas:
             ...
-        elif self.has(sha=query.require):
-            ...
-        elif self.has(name=query.require):
+        elif query.require in self:  # self.has(sha=query.require):
             parent = self.get(query.require)
             query.require = parent.sha
             query.compute_sha()
@@ -215,13 +281,13 @@ class Graph:
 
         - (re)compute sha for each query
         - validate query.name against existing queries
-        - populate graph._name_sha_ to enable `graph[query.name]` indexing
+        - populate graph._name_sha to enable `graph[query.name]` indexing
         - replace query.require with full sha
         """
-        new_shas: set[str] = set(self._shas_)
+        new_shas: set[str] = set(self._shas)
         new_queries: dict[str, Query] = dict(self.queries.items())
         name_shas: dict[str, list[str]] = {
-            name: [sha] for name, sha in self._name_sha_.items()
+            name: [sha] for name, sha in self._name_sha.items()
         }
         queue: list[Query] = [
             query.clone(compute_sha=True) if clone else query
@@ -263,13 +329,17 @@ class Graph:
                     if sha != query.require:
                         raise ValueError("case change require")
         self.queries = new_queries
-        self._shas_ = new_shas
-        self._name_sha_ = new_name_sha
+        self._shas = new_shas
+        self._name_sha = new_name_sha
         return replaced
 
     def get_unknown_facets(self) -> set[Facet]:
+        """
+        Why was this implemented?
+        Maybe useful to enable adding facets (e.g. `table_id:*day*`)
+        """
         if self.db is None:
-            raise
+            raise GraphWithoutDatabase()
         facets: dict[str, Facet] = {}
         for query in self.queries.values():
             for facet in query.selection._facets:
@@ -281,7 +351,7 @@ class Graph:
         unknown_facets = set([facets[sha] for sha in unknown_shas])
         return unknown_facets
 
-    def _merge(self) -> dict[str, Query]:
+    def merge(self, commit: bool = False) -> dict[str, Query]:
         """
         Try to load instances from database into self.db.
 
@@ -294,67 +364,61 @@ class Graph:
         and updated options/selection/facets should change sha value.
         """
         if self.db is None:
-            raise
-        new_shas: list[str] = []
+            raise GraphWithoutDatabase()
+        updated_shas: set[str] = set()
         for sha, query in self.queries.items():
-            is_new = False
-            for i, tag in enumerate(query.tags):
-                if tag.state.persistent:
-                    ...
-                elif tag_db := self.db.get(Tag, tag.sha):
-                    query.tags[i] = tag_db
-                else:
-                    is_new = True
-                    query.tags[i] = self.db.session.merge(tag)
-            if query.state.persistent and not is_new:
-                # can skip options/selection/facets since tags are updated
-                # self.db.session.flush()  # needed? dont think (autoflush=True)
-                continue
-            elif query_db := self.db.get(Query, query.sha):
-                # save tags since they may have been updated
-                new_tags = query.tags[:]
-                query = query_db
-                if set(query.tags) != set(new_tags):
-                    query.tags = new_tags
-                self.queries[sha] = query
-            else:
-                is_new = True
-            if query.options.state.persistent:
+            query_db = self.db.merge(query, commit=commit)
+            if query is query_db:
                 ...
-            elif options_db := self.db.get(Options, query.options.sha):
-                query.options = options_db
             else:
-                is_new = True
-                query.options = self.db.session.merge(query.options)
-            if query.selection.state.persistent:
-                ...
-            elif selection_db := self.db.get(Selection, query.selection.sha):
-                query.selection = selection_db
-            else:
-                for i, facet in enumerate(query.selection._facets):
-                    if facet.state.persistent:
-                        ...
-                    elif facet_db := self.db.get(Facet, facet.sha):
-                        query.selection._facets[i] = facet_db
-                    else:
-                        raise UnknownFacet(facet)
-                is_new = True
-                query.selection = self.db.session.merge(query.selection)
-            self.queries[sha] = self.db.session.merge(query)
+                updated_shas.add(sha)
+                self.queries[sha] = query_db
+            # # if query_db is query:
+            # for i, tag in enumerate(query.tags):
+            #     if tag not in self.db.session:
+            #         if tag not in self.db:
+            #             updated_shas.add(sha)
+            #         query.tags[i] = self.db.merge(tag)
+            # if query in self.db.session:
+            #     continue
+            # # if query in self.db:
+            # elif query_db := self.db.get(Query, query.sha):
+            #     # save tags since they may have been updated
+            #     new_tags = query.tags[:]
+            #     query = query_db
+            #     if set(query.tags) != set(new_tags):
+            #         query.tags = new_tags
+            #     self.queries[sha] = query
+            # else:
+            #     is_new = True
+            # if query.options.state.persistent:
+            #     ...
+            # elif options_db := self.db.get(Options, query.options.sha):
+            #     query.options = options_db
+            # else:
+            #     is_new = True
+            #     query.options = self.db.session.merge(query.options)
+            # if query.selection.state.persistent:
+            #     ...
+            # elif selection_db := self.db.get(Selection, query.selection.sha):
+            #     query.selection = selection_db
+            # else:
+            #     for i, facet in enumerate(query.selection._facets):
+            #         if facet.state.persistent:
+            #             ...
+            #         elif facet_db := self.db.get(Facet, facet.sha):
+            #             query.selection._facets[i] = facet_db
+            #         else:
+            #             raise UnknownFacet(facet)
+            #     is_new = True
+            #     query.selection = self.db.session.merge(query.selection)
+            # self.queries[sha] = self.db.session.merge(query)
             # self.db.session.flush()
-            if is_new:
-                new_shas.append(sha)
-        return {sha: self.queries[sha] for sha in new_shas}
+        return {sha: self.queries[sha] for sha in updated_shas}
 
-    def commit(self) -> dict[str, Query]:
-        """
-        Merge with existing db instances, otherwise insert into new rows.
-        """
-        if self.db is None:
-            raise
-        new_queries = self._merge()
-        self.db.add(*self.queries.values())
-        return new_queries
+    # def remove(self, *queries: Query) -> None:
+    #     for query in self.queries:
+    #         if query.sha in
 
     def expand(self, name: str) -> Query:
         """
@@ -381,7 +445,9 @@ class Graph:
             if sha in self._rendered:
                 ...
             elif root is None:
-                if query.require is None or not self.has(sha=query.require):
+                if (
+                    query.require is None or query.require not in self
+                ):  # self.has(sha=query.require):
                     self._rendered.add(sha)
                     self.fill_tree(query, tree.add(query))
             elif query.require == root.sha:
@@ -403,12 +469,3 @@ class Graph:
         self.fill_tree(None, tree)
         del self._rendered
         yield tree
-
-
-#     def __rich_measure__(
-#         self,
-#         console: Console,
-#         options: ConsoleOptions,
-#     ) -> Measurement:
-#         renderables = list(self.__rich_console__(console, options))
-#         return measure_renderables(console, options, renderables)

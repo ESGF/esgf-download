@@ -11,6 +11,8 @@ from esgpull.cli.init import init
 from esgpull.cli.remove import remove
 from esgpull.cli.search import search
 from esgpull.cli.show import show
+from esgpull.cli.track import track, untrack
+from esgpull.cli.update import update
 from esgpull.tui import UI
 
 # from esgpull.cli.autoremove import autoremove
@@ -20,7 +22,6 @@ from esgpull.tui import UI
 # from esgpull.cli.login import login
 # from esgpull.cli.retry import retry
 # from esgpull.cli.status import status
-# from esgpull.cli.update import update
 
 # [-]TODO: stats
 #   - speed per index/data node
@@ -41,9 +42,11 @@ SUBCOMMANDS: list[click.Command] = [
     # retry,
     search,
     show,
+    track,
+    untrack,
     # status,
     # # stats,
-    # update,
+    update,
 ]
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])

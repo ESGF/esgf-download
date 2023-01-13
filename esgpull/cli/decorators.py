@@ -53,6 +53,12 @@ class args:
         nargs=1,
         required=False,
     )
+    sha_or_name_required: Dec = click.argument(
+        "sha_or_name",
+        type=str,
+        nargs=1,
+        required=True,
+    )
 
 
 class opts:
@@ -60,6 +66,12 @@ class opts:
         "all_",
         "--all",
         "-a",
+        is_flag=True,
+        default=False,
+    )
+    children: Dec = click.option(
+        "--children",
+        "-c",
         is_flag=True,
         default=False,
     )
@@ -107,9 +119,9 @@ class opts:
         is_flag=True,
         default=False,
     )
-    selection_file: Dec = click.option(
-        "--selection-file",
-        "-s",
+    query_file: Dec = click.option(
+        "--query-file",
+        "-q",
         type=click.Path(exists=True, dir_okay=False, path_type=Path),
         default=None,
     )
@@ -134,6 +146,11 @@ class opts:
         "-t",
         type=str,
         default=None,
+    )
+    track: Dec = click.option(
+        "--track",
+        is_flag=True,
+        default=False,
     )
     yes: Dec = click.option(
         "--yes",

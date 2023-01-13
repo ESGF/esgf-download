@@ -1,6 +1,6 @@
 from dataclasses import Field
 from hashlib import sha1
-from typing import ClassVar, cast
+from typing import Any, ClassVar, Mapping, TypeVar, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (
@@ -8,10 +8,10 @@ from sqlalchemy.orm import (
     InstanceState,
     Mapped,
     MappedAsDataclass,
-    Session,
     mapped_column,
 )
 
+T = TypeVar("T")
 Sha = sa.String(40)
 
 
@@ -45,5 +45,5 @@ class Base(MappedAsDataclass, DeclarativeBase):
     def state(self) -> InstanceState:
         return cast(InstanceState, sa.inspect(self))
 
-    def merge(self, session: Session) -> bool:
+    def asdict(self) -> Mapping[str, Any]:
         raise NotImplementedError

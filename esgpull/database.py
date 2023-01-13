@@ -11,15 +11,17 @@ import sqlalchemy.orm
 from alembic.config import Config as AlembicConfig
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, make_transient
 
 from esgpull import __file__
 from esgpull.config import Config
-from esgpull.models import Base
+from esgpull.models import Table, sql
 from esgpull.version import __version__
 
 # from esgpull.exceptions import NoClauseError
-# from esgpull.models import Base, Query
+# from esgpull.models import Query
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -30,6 +32,7 @@ class Database:
 
     url: str
     run_migrations: InitVar[bool] = True
+    _engine: sa.Engine = field(init=False)
     session: Session = field(init=False)
     version: str | None = field(init=False, default=None)
 
@@ -39,19 +42,19 @@ class Database:
         return Database(url, run_migrations=run_migrations)
 
     def __post_init__(self, run_migrations: bool) -> None:
-        engine = sa.create_engine(self.url)
-        self.session = Session(engine)
+        self._engine = sa.create_engine(self.url)
+        self.session = Session(self._engine)
         if run_migrations:
-            self.update(engine)
+            self._update()
 
-    def update(self, engine: sa.Engine) -> None:
+    def _update(self) -> None:
         config = AlembicConfig()
         migrations_path = Path(__file__).parent / "migrations"
         config.set_main_option("script_location", str(migrations_path))
-        config.attributes["connection"] = engine
+        config.attributes["connection"] = self._engine
         script = ScriptDirectory.from_config(config)
         head = script.get_current_head()
-        with engine.begin() as conn:
+        with self._engine.begin() as conn:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
             self.version = ctx.get_current_revision()
@@ -67,6 +70,7 @@ class Database:
             )
             self.version = __version__
 
+    @property
     @contextmanager
     def safe(self) -> Iterator[None]:
         try:
@@ -75,37 +79,67 @@ class Database:
             self.session.rollback()
             raise
 
-    Table = TypeVar("Table", covariant=True, bound=Base)
+    def get(
+        self,
+        table: type[Table],
+        sha: str,
+        lazy: bool = True,
+        detached: bool = False,
+    ) -> Table | None:
+        if lazy:
+            result = self.session.get(table, sha)
+        else:
+            stmt = sa.select(table).filter_by(sha=sha)
+            match self.scalars(stmt.options(joinedload("*")), unique=True):
+                case [result]:
+                    ...
+                case []:
+                    result = None
+                case [*many]:
+                    raise ValueError(f"{len(many)} found, expected 1.")
+        if detached and result is not None:
+            result = table(**result.asdict())
+        return result
 
-    def get(self, table: type[Table], sha: str) -> Table | None:
-        return self.session.get(table, sha)
+    def scalars(
+        self, statement: sa.Select[tuple[T]], unique: bool = False
+    ) -> Sequence[T]:
+        with self.safe:
+            result = self.session.scalars(statement)
+            if unique:
+                result = result.unique()
+            return result.all()
 
-    T_co = TypeVar("T_co", covariant=True)
+    SomeTuple = TypeVar("SomeTuple", bound=tuple)
 
-    def scalars(self, statement: sa.Select[tuple[T_co]]) -> Sequence[T_co]:
-        with self.safe():
-            return self.session.scalars(statement).all()
-
-    tuple_co = TypeVar("tuple_co", covariant=True, bound=tuple)
-
-    def rows(self, statement: sa.Select[tuple_co]) -> list[sa.Row[tuple_co]]:
-        with self.safe():
+    def rows(self, statement: sa.Select[SomeTuple]) -> list[sa.Row[SomeTuple]]:
+        with self.safe:
             return list(self.session.execute(statement).all())
 
-    def add(self, *items: Base) -> None:
-        with self.safe():
+    def add(self, *items: Table) -> None:
+        with self.safe:
             self.session.add_all(items)
             self.session.commit()
             for item in items:
                 self.session.refresh(item)
 
-    def delete(self, *items: Base) -> None:
-        with self.safe():
+    def delete(self, *items: Table) -> None:
+        with self.safe:
             for item in items:
                 self.session.delete(item)
             self.session.commit()
         for item in items:
-            sa.orm.session.make_transient(item)
+            make_transient(item)
+
+    def __contains__(self, item: Table) -> bool:
+        return self.scalars(sql.count(item))[0] > 0
+
+    def merge(self, item: Table, commit: bool = False) -> Table:
+        with self.safe:
+            result = self.session.merge(item)
+            if commit:
+                self.session.commit()
+        return result
 
     # def has(
     #     self,

@@ -1,14 +1,23 @@
 import sqlalchemy as sa
 
+from esgpull.models import Table
 from esgpull.models.facet import Facet
-from esgpull.models.query import Query, query_tag_proxy
+from esgpull.models.file import File
+from esgpull.models.query import Query, query_file_proxy, query_tag_proxy
 from esgpull.models.selection import Selection, selection_facet_proxy
 from esgpull.models.tag import Tag
 
 # from esgpull.models.base import Base
-# from esgpull.models.query import query_file_proxy
 # from esgpull.models.options import Options
-# from esgpull.models.file import File
+
+
+def count(item: Table) -> sa.Select[tuple[int]]:
+    table = item.__class__
+    return (
+        sa.select(sa.func.count("*"))
+        .select_from(table)
+        .filter_by(sha=item.sha)
+    )
 
 
 class facet:
@@ -32,6 +41,14 @@ class facet:
     @staticmethod
     def values(name: str) -> sa.Select[tuple[str]]:
         return sa.select(Facet.value).where(Facet.name == name)
+
+
+class file:
+    all: sa.Select[tuple[File]] = sa.select(File)
+    shas: sa.Select[tuple[str]] = sa.select(File.sha)
+    orphans: sa.Select[tuple[File]] = (
+        sa.select(File).outerjoin(query_file_proxy).filter_by(file_sha=None)
+    )
 
 
 class query:

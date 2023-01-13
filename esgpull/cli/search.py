@@ -62,16 +62,19 @@ def search(
     esg = Esgpull.with_verbosity(verbosity)
     # TODO: bug with slice_:
     # -> numeric ids are not consistent due to sort by instance_id
-    query = parse_query(
-        facets=facets,
-        tags=tags,
-        require=require,
-        distrib=distrib,
-        latest=latest,
-        replica=replica,
-        retracted=retracted,
-    )
     with esg.ui.logging("search", onraise=Abort):
+        query = parse_query(
+            facets=facets,
+            tags=tags,
+            require=require,
+            distrib=distrib,
+            latest=latest,
+            replica=replica,
+            retracted=retracted,
+        )
+        query.compute_sha()
+        esg.graph.add(query, force=True)
+        query = esg.graph.expand(query.sha)
         hits = esg.context.hits(query, file=file)
         nb = sum(hits)
         if zero:
@@ -120,7 +123,8 @@ def search(
         if max_hits > 200 and not yes:
             nb_req = max_hits // esg.config.search.page_limit
             message = f"{nb_req} requests will be send to ESGF. Continue?"
-            click.confirm(message, default=True, abort=True)
+            if not esg.ui.ask(message, default=True):
+                raise Abort
         results = esg.context.search(
             query,
             file=file,

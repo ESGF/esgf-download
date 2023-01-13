@@ -10,11 +10,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing_extensions import NotRequired, TypedDict
 
 from esgpull.models.base import Base, Sha
-from esgpull.models.file import File
+from esgpull.models.file import File, FileStatus
 from esgpull.models.options import Options
 from esgpull.models.selection import FacetValues, Selection
 from esgpull.models.tag import Tag
 from esgpull.models.utils import rich_measure_impl, short_sha
+from esgpull.utils import format_size
 
 query_file_proxy = sa.Table(
     "query_file",
@@ -145,9 +146,44 @@ class Query(Base):
 
     def clone(self, compute_sha: bool = True) -> Query:
         instance = Query(**self.asdict())
+        instance.files = list(self.files)
         if compute_sha:
             instance.compute_sha()
         return instance
+
+    def get_tag(self, name: str) -> Tag | None:
+        result: Tag | None = None
+        for tag in self.tags:
+            if tag.name == name:
+                result = tag
+                break
+        return result
+
+    def add_tag(
+        self,
+        name: str,
+        description: str | None = None,
+        compute_sha: bool = True,
+    ) -> None:
+        if self.get_tag(name) is not None:
+            raise ValueError(f"Tag '{name}' already exists.")
+        tag = Tag(name=name, description=description)
+        if compute_sha:
+            tag.compute_sha()
+        self.tags.append(tag)
+
+    def update_tag(self, name: str, description: str | None) -> None:
+        tag = self.get_tag(name)
+        if tag is None:
+            raise ValueError(f"Tag '{name}' does not exist.")
+        else:
+            tag.description = description
+
+    def remove_tag(self, name: str) -> bool:
+        tag = self.get_tag(name)
+        if tag is not None:
+            self.tags.remove(tag)
+        return tag is not None
 
     def no_require(self) -> Query:
         cl = self.clone(compute_sha=True)
@@ -225,6 +261,20 @@ class Query(Base):
             text.append(short_sha(self.require), style="green")
             text.append("]")
         yield text
+        if self.files:
+            text = Text("  ")
+            ondisk = [f for f in self.files if f.status == FileStatus.Done]
+            size_ondisk = format_size(sum([f.size for f in ondisk]))
+            size_total = format_size(sum([f.size for f in self.files]))
+            text.append(str(len(ondisk)), style="b magenta")
+            text.append(" / ")
+            text.append(str(len(self.files)), style="b magenta")
+            text.append(" files on disk [")
+            text.append(size_ondisk, style="b magenta")
+            text.append(" / ")
+            text.append(size_total, style="b magenta")
+            text.append("]")
+            yield self.__guide(text)
         if self.tags:
             text = Text("  ")
             text.append("tags", style="magenta")

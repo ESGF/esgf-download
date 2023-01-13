@@ -1,13 +1,13 @@
 import rich
-import sqlalchemy as sa
+
+from esgpull.database import Database
+from esgpull.graph import Graph
+from esgpull.models import Query
 
 # import yaml
 # from rich.panel import Panel
 # from rich.syntax import Syntax
-from sqlalchemy.orm import Session
 
-from esgpull.graph import Graph
-from esgpull.models import Query
 
 main = Query(
     tags="main",
@@ -75,11 +75,10 @@ queries = [main, day, rcp26, tasmax_day, tasmax_monfx, rcp85, other]
 # rich.print(rcp85)
 
 url = "sqlite:////home/srodriguez/ipsl/esg-pull/examples/graph.db"
-engine = sa.create_engine(url)
-session = Session(engine)
 eqs = " " + "=" * 10 + " "
+db = Database(url)
 
-graph = Graph(session)
+graph = Graph(db, load_db=True)
 rich.print(graph)
 
 # replaced = graph.add(

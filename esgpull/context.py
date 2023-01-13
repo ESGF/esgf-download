@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Coroutine, TypeAlias, TypeVar
+from typing import Any, AsyncIterator, Coroutine, Sequence, TypeAlias, TypeVar
 
 from exceptiongroup import BaseExceptionGroup
 from httpx import AsyncClient, HTTPError, Request
@@ -22,8 +22,9 @@ if asyncio.get_event_loop().is_running():
 
     nest_asyncio.apply()
 
-FacetCounts: TypeAlias = dict[str, dict[str, int]]
 
+T = TypeVar("T")
+FacetCounts: TypeAlias = dict[str, dict[str, int]]
 DangerousFacets = set(
     [
         "instance_id",
@@ -549,9 +550,7 @@ class Context:
     #             logger.info(f"Dropped {nb_dup} duplicate {f_or_d}{s}.")
     #     return result
 
-    T_co = TypeVar("T_co", covariant=True)
-
-    async def _with_client(self, coro: Coroutine[None, None, T_co]) -> T_co:
+    async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
         """
         Async wrapper to create client before await future.
         This is required since asyncio does not provide a way
@@ -563,7 +562,7 @@ class Context:
     def free_semaphores(self) -> None:
         self.semaphores = {}
 
-    def _sync(self, coro: Coroutine[None, None, T_co]) -> T_co:
+    def _sync(self, coro: Coroutine[None, None, T]) -> T:
         """
         Reset semaphore to ensure none is bound to an expired event loop.
         Run through `_with_client` wrapper to use `async with` synchronously.
@@ -571,10 +570,10 @@ class Context:
         self.free_semaphores()
         return sync(self._with_client(coro))
 
-    async def _gather(self, *coros: Coroutine[None, None, T_co]) -> list[T_co]:
+    async def _gather(self, *coros: Coroutine[None, None, T]) -> list[T]:
         return await asyncio.gather(*coros)
 
-    def sync_gather(self, *coros: Coroutine[None, None, T_co]) -> list[T_co]:
+    def sync_gather(self, *coros: Coroutine[None, None, T]) -> list[T]:
         return self._sync(self._gather(*coros))
 
     def hits(
@@ -689,7 +688,7 @@ class Context:
         max_hits: int | None = 200,
         page_limit: int | None = None,
         keep_duplicates: bool = True,
-    ) -> list[File] | list[Dataset]:
+    ) -> Sequence[File | Dataset]:
         if file:
             return self.search_files(
                 *queries,

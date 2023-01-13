@@ -15,6 +15,7 @@ from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.progress import Progress, ProgressColumn
+from rich.prompt import Confirm
 from rich.status import Status
 from rich.text import Text
 
@@ -102,6 +103,7 @@ class UI:
         except (click.exceptions.Exit, click.exceptions.Abort):
             if temp_path is not None:
                 atexit.register(temp_path.unlink)
+            raise
         except click.exceptions.ClickException:
             raise
         except BaseException as exc:
@@ -153,9 +155,12 @@ class UI:
                     kwargs.setdefault("overflow", "ignore")
                 console.print(msg, **kwargs)
 
-    def render(self, msg: Any, **kwargs: Any) -> str:
+    def render(self, msg: Any, json: bool = False, **kwargs: Any) -> str:
         with _console.capture() as capture:
-            _console.print(msg, **kwargs)
+            if json:
+                _console.print_json(json_dumps(msg), **kwargs)
+            else:
+                _console.print(msg, **kwargs)
         return capture.get()
 
     def live(
@@ -183,3 +188,6 @@ class UI:
 
     def spinner(self, msg: str) -> Status:
         return _console.status(msg, spinner="earth")
+
+    def ask(self, msg: str, default: bool = False) -> bool:
+        return Confirm.ask(msg, default=default)

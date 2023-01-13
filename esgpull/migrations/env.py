@@ -63,7 +63,7 @@ def run_migrations_online() -> None:
     if connectable is None:
         _config = Config()
         db = Database.from_config(_config, run_migrations=False)
-        connectable = db.engine
+        connectable = db._engine
 
     with connectable.connect() as connection:
         context.configure(

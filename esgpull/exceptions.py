@@ -13,8 +13,8 @@ class NoRootError(EsgpullException):
     msg = f"Environment variable `{ENV_VARNAME}` must be set."
 
 
-class UnknownFacet(EsgpullException):
-    msg = "{}"
+# class UnknownFacet(EsgpullException):
+#     msg = "{}"
 
 
 class FacetNameError(EsgpullException, AttributeError):
@@ -61,6 +61,10 @@ class QuerySourceError(EsgpullException):
 
 class TooShortKeyError(EsgpullException, KeyError):
     msg = "{}"
+
+
+class GraphWithoutDatabase(EsgpullException):
+    msg = "Graph is not connected to a database."
 
 
 class DownloadKindError(EsgpullException):

@@ -5,7 +5,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import get_queries
+from esgpull.cli.utils import get_queries, valid_name_tag
 from esgpull.tui import Verbosity
 
 
@@ -31,6 +31,8 @@ def show(
     """
     esg = Esgpull.with_verbosity(verbosity)
     with esg.ui.logging("show", onraise=Abort):
+        if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+            raise Exit(1)
         if expand and sha_or_name is not None:
             esg.ui.print(esg.graph.expand(sha_or_name))
             raise Exit(0)
@@ -38,13 +40,14 @@ def show(
             esg.graph.load_db()
             graph = esg.graph
         else:
-            queries, err_msg = get_queries(esg.graph, sha_or_name, tag)
-            if err_msg:
-                esg.ui.print(err_msg)
-                raise Exit(1)
+            queries = get_queries(esg.graph, sha_or_name, tag)
             graph = esg.graph.subgraph(
                 *queries,
-                kids=children,
+                children=children,
                 parents=parents,
             )
+        if tag is not None:
+            tag_db = esg.graph.get_tag(tag)
+            if tag_db is not None and tag_db.description is not None:
+                esg.ui.print(tag_db.description)
         esg.ui.print(graph)

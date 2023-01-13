@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from enum import Enum
-from typing import Any
+from typing import Any, Sequence
 
 import click
 import rich
@@ -22,7 +22,22 @@ from esgpull.models import (
     QueryDict,
     Selection,
 )
+from esgpull.tui import UI
 from esgpull.utils import format_size
+
+
+class Messages:
+    @staticmethod
+    def no_such_query(name: str) -> str:
+        return f":stop_sign: No such query [green]{name}[/]"
+
+    @staticmethod
+    def none_tagged(tag: str) -> str:
+        return f":stop_sign: No query tagged with [magenta]{tag}[/]"
+
+    @staticmethod
+    def multimatch(name: str) -> str:
+        return f"Found multiple queries starting with [b cyan]{name}[/]"
 
 
 def yaml_syntax(data: dict | QueryDict) -> Syntax:
@@ -72,7 +87,7 @@ class SliceParam(ListParamType):
 
 
 def filter_keys(
-    docs: list[File] | list[Dataset],
+    docs: Sequence[File | Dataset],
     indices: bool = True,
     size: bool = True,
     # data_node: bool = False,
@@ -180,17 +195,46 @@ def parse_query(
     )
 
 
+def valid_name_tag(
+    graph: Graph,
+    ui: UI,
+    sha_or_name: str | None,
+    tag: str | None,
+) -> bool:
+    result = True
+    if sha_or_name is not None:
+        shas = graph.matching_shas(sha_or_name, graph._shas)
+        if len(shas) > 1:
+            ui.print(Messages.multimatch(sha_or_name))
+            ui.print(shas, json=True)
+            result = False
+        elif len(shas) == 0:
+            ui.print(Messages.no_such_query(sha_or_name), err=True)
+            result = False
+    elif tag is not None:
+        tags = [t.name for t in graph.get_tags()]
+        if tag not in tags:
+            ui.print(Messages.none_tagged(tag), err=True)
+            result = False
+    return result
+
+
 def get_queries(
     graph: Graph,
     sha_or_name: str | None,
     tag: str | None,
-) -> tuple[list[Query], str]:
+    children: bool = False,
+) -> list[Query]:
+    queries: list[Query] = []
     if sha_or_name is not None:
-        if not graph.has(name=sha_or_name):
-            return [], f":stop_sign: No such query [green]{sha_or_name}[/]"
-        queries = [graph.get(name=sha_or_name)]
+        query = graph.get(name=sha_or_name)
+        if query is not None:
+            queries = [query]
     elif tag is not None:
         queries = graph.with_tag(tag)
-        if not queries:
-            return [], f":stop_sign: No query tagged with [magenta]{tag}[/]"
-    return queries, ""
+    if children:
+        for i in range(len(queries)):
+            query = queries[0]
+            kids = graph.get_all_children(query.sha)
+            queries.extend(kids)
+    return queries

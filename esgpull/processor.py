@@ -1,6 +1,5 @@
 import asyncio
 from functools import partial
-from pathlib import Path
 from typing import AsyncIterator, TypeAlias
 
 from aiostream.stream import merge
@@ -8,7 +7,6 @@ from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
 from esgpull.config import Config
-from esgpull.context import Context
 from esgpull.download import Simple
 from esgpull.exceptions import DownloadSizeError
 from esgpull.fs import Filesystem
@@ -25,37 +23,38 @@ class Task:
         config: Config,
         auth: Auth,
         fs: Filesystem,
-        *,
-        url: str | None = None,
-        file: File | None = None,
+        # *,
+        # url: str | None = None,
+        file: File,
         start_callbacks: list[Callback] | None = None,
     ) -> None:
         self.config = config
         self.auth = auth
         self.fs = fs
-        if file is None and url is not None:
-            self.file = self.fetch_file(url)
-        elif file is not None:
-            self.file = file
-        else:
-            raise ValueError("no arguments")
+        self.file = file
+        # if file is None and url is not None:
+        #     self.file = self.fetch_file(url)
+        # elif file is not None:
+        #     self.file = file
+        # else:
+        #     raise ValueError("no arguments")
         self.downloader = Simple()
         if start_callbacks is None:
             self.start_callbacks = []
         else:
             self.start_callbacks = start_callbacks
 
-    def fetch_file(self, url: str) -> File:
-        ctx = Context()
-        # [?]TODO: define map data_node->index_node to find url-file
-        # ctx.query.index_node = ...
-        ctx.query.title = Path(url).name
-        results = ctx.search(file=True)
-        for res in results:
-            file = File.from_dict(res)
-            if file.version in url:
-                return file
-        raise ValueError(f"{url} is not valid")
+    # def fetch_file(self, url: str) -> File:
+    #     ctx = Context()
+    #     # [?]TODO: define map data_node->index_node to find url-file
+    #     # ctx.query.index_node = ...
+    #     ctx.query.title = Path(url).name
+    #     results = ctx.search(file=True)
+    #     for res in results:
+    #         file = File.from_dict(res)
+    #         if file.version in url:
+    #             return file
+    #     raise ValueError(f"{url} is not valid")
 
     async def stream(
         self, semaphore: asyncio.Semaphore
@@ -95,7 +94,7 @@ class Processor:
         auth: Auth,
         fs: Filesystem,
         files: list[File],
-        start_callbacks: dict[int, list[Callback]],
+        start_callbacks: dict[str, list[Callback]],
     ) -> None:
         self.config = config
         self.files = files
@@ -106,7 +105,7 @@ class Processor:
                 auth=auth,
                 fs=fs,
                 file=file,
-                start_callbacks=start_callbacks[file.id],
+                start_callbacks=start_callbacks[file.sha],
             )
             self.tasks.append(task)
 
