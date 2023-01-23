@@ -38,53 +38,62 @@ def update(
                 tag,
                 children=children,
             )
-        queries = [query for query in queries if not query.transient]
+        queries = [query for query in queries if query.tracked]
         expanded = [esg.graph.expand(query.sha) for query in queries]
         if not queries:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             raise Exit(0)
-        hits = esg.context.hits(*expanded, file=True)
+        hints = esg.context.hints(*expanded, file=True, facets=["index_node"])
+        hits: list[int] = []
+        for query_hints in hints:
+            nodes = query_hints["index_node"]
+            query_hits = sum([nodes[node] for node in nodes])
+            hits.append(query_hits)
         nb = sum(hits)
         if not nb:
             esg.ui.print("No files found.")
             raise Exit(0)
         else:
             esg.ui.print(f"Found {nb} files.")
-        files_coros = []
-        for query_hits, query in zip(hits, expanded):
-            if query_hits > 5000:
-                nb_req = query_hits // esg.config.search.page_limit
+        results = []
+        for query_hits, query_hints, query in zip(hits, hints, expanded):
+            file_results = esg.context.prepare_search_distributed(
+                query,
+                file=True,
+                hints=[query_hints],
+                max_hits=None,
+            )
+            nb_req = len(file_results)
+            if nb_req > 50:
                 query_name = f"[b green]{query.name}[/]"
                 msg = (
-                    f"{nb_req} requests must be sent to ESGF "
-                    f"to update {query_name}. Continue?"
+                    f"{nb_req} requests will be sent to ESGF to"
+                    f" update {query_name}. Send anyway?"
                 )
                 if not esg.ui.ask(msg, default=False):
                     esg.ui.print(f"{query_name} is no longer tracked.")
-                    query.transient = True
-                    query_hits = 0
-            files_coro = esg.context._search_files(
-                query,
-                hits=[query_hits],
-                max_hits=query_hits,
-            )
-            files_coros.append(files_coro)
+                    query.tracked = False
+                    continue
+            results.append(file_results)
+        # TODO: dry_run to print urls here?
         with esg.ui.spinner("Fetching files"):
-            queries_files = esg.context.sync_gather(*files_coros)
+            coros = []
+            for query_results in results:
+                coro = esg.context._files(*query_results, keep_duplicates=True)
+                coros.append(coro)
+            files: list[list[File]] = esg.context.sync_gather(*coros)
         new_files: list[list[File]] = []
-        for i, files in enumerate(queries_files):
-            query = queries[i]
+        for query, query_files in zip(queries, files):
             shas = [f.sha for f in query.files]
             query_new_files: list[File] = []
-            for file in files:
-                file.compute_sha()
+            for file in query_files:
                 if file.sha not in shas:
                     file.status = FileStatus.Queued
                     query_new_files.append(file)
             new_files.append(query_new_files)
         for query, query_new_files in zip(queries, new_files):
             nb_files = len(query_new_files)
-            if query.transient:
+            if not query.tracked:
                 esg.db.add(query)
                 continue
             elif nb_files == 0:

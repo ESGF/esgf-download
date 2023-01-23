@@ -11,17 +11,20 @@ class Dataset:
     master_id: str
     version: str
     size: int
+    number_of_files: int
 
     @classmethod
     def serialize(cls, source: dict) -> Dataset:
         dataset_id = find_str(source["instance_id"]).partition("|")[0]
         size = find_int(source["size"])
         master_id, version = dataset_id.rsplit(".", 1)  # remove version
+        number_of_files = find_int(source["number_of_files"])
         return cls(
             dataset_id=dataset_id,
             master_id=master_id,
             version=version,
             size=size,
+            number_of_files=number_of_files,
         )
 
     def asdict(self) -> dict:

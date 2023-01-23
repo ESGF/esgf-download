@@ -37,8 +37,8 @@ class QueryDuplicate(EsgpullException):
     msg = "{}"
 
 
-class SliceIndexError(EsgpullException, IndexError):
-    msg = "Cannot use {} with {} files."
+class PageIndexError(EsgpullException, IndexError):
+    msg = "Cannot show page {}/{}."
 
 
 # # errors meant for use when validation is implemented

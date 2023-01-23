@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Mapping
 
 from rich.console import Console, ConsoleOptions
 from rich.pretty import pretty_repr
@@ -213,7 +213,7 @@ class Graph:
                 queries.append(query)
                 shas.add(query.sha)
         for sha in self._shas - shas:
-            query = self.queries[sha]
+            query = self.get(sha)
             if query.get_tag(tag_name) is not None:
                 queries.append(query)
         return queries
@@ -268,6 +268,8 @@ class Graph:
             parent = self.get(query.require)
             query.require = parent.sha
             query.compute_sha()
+        else:
+            query._unknown_require = True
 
     def add(
         self,
@@ -275,7 +277,7 @@ class Graph:
         force: bool = False,
         clone: bool = True,
         noraise: bool = False,
-    ) -> dict[str, Query]:
+    ) -> Mapping[str, Query]:
         """
         Add new query to the graph.
 
@@ -351,7 +353,7 @@ class Graph:
         unknown_facets = set([facets[sha] for sha in unknown_shas])
         return unknown_facets
 
-    def merge(self, commit: bool = False) -> dict[str, Query]:
+    def merge(self, commit: bool = False) -> Mapping[str, Query]:
         """
         Try to load instances from database into self.db.
 
@@ -434,6 +436,12 @@ class Graph:
         Dump full graph as list of dicts (yaml selection syntax).
         """
         return [q.asdict() for q in self.queries.values()]
+
+    def asdict(self) -> Mapping[str, QueryDict]:
+        """
+        Dump full graph as dict of dict, indexed by each query's sha.
+        """
+        return {q.sha: q.asdict() for q in self.queries.values()}
 
     def fill_tree(self, root: Query | None, tree: Tree) -> None:
         """

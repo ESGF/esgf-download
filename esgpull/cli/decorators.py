@@ -5,7 +5,7 @@ import click
 from click_option_group import MutuallyExclusiveOptionGroup, optgroup
 from click_params import StringListParamType
 
-from esgpull.cli.utils import EnumParam, SliceParam
+from esgpull.cli.utils import EnumParam
 from esgpull.models import FileStatus, Option
 from esgpull.tui import Verbosity
 
@@ -53,10 +53,10 @@ class args:
         nargs=1,
         required=False,
     )
-    sha_or_name_required: Dec = click.argument(
+    multi_sha_or_name: Dec = click.argument(
         "sha_or_name",
         type=str,
-        nargs=1,
+        nargs=-1,
         required=True,
     )
 
@@ -125,6 +125,12 @@ class opts:
         type=click.Path(exists=True, dir_okay=False, path_type=Path),
         default=None,
     )
+    shas: Dec = click.option(
+        "--shas",
+        "-s",
+        is_flag=True,
+        default=False,
+    )
     show: Dec = click.option(
         "--show",
         is_flag=True,
@@ -172,22 +178,15 @@ _display_group: Dec = optgroup.group(
     "Display options",
     cls=MutuallyExclusiveOptionGroup,
 )
-_slice: Dec = optgroup.option(
-    "slice_",
-    "--slice",
-    "-S",
-    type=SliceParam(),
-    default="0:20",
+_page: Dec = optgroup.option(
+    "--page",
+    "-p",
+    type=int,
+    default=0,  # 1?
 )
 _zero: Dec = optgroup.option(
     "--zero",
     "-0",
-    is_flag=True,
-    default=False,
-)
-_one: Dec = optgroup.option(
-    "--one",
-    "-1",
     is_flag=True,
     default=False,
 )
@@ -259,9 +258,8 @@ _expand: Dec = optgroup.option(
 class groups:
     display: Dec = compose(
         _display_group,
-        _slice,
+        _page,
         _zero,
-        _one,
         _all,
     )
     query_def: Dec = compose(

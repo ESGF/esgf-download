@@ -8,7 +8,7 @@ Queries are first-class in esgpull.
 erDiagram
 
   query {
-    BOOLEAN transient
+    BOOLEAN tracked
     VARCHAR require
     VARCHAR options_sha FK
     VARCHAR select_sha FK

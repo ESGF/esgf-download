@@ -51,6 +51,11 @@ class Search:
 
 
 @define
+class CLI:
+    page_size: int = 20
+
+
+@define
 class Db:
     filename: str = "esgpull.db"
 
@@ -65,6 +70,7 @@ class Download:
 @define
 class Config:
     paths: Paths = Factory(Paths)
+    cli: CLI = Factory(CLI)
     db: Db = Factory(Db)
     search: Search = Factory(Search)
     download: Download = Factory(Download)

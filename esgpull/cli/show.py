@@ -13,8 +13,9 @@ from esgpull.tui import Verbosity
 @args.sha_or_name
 @opts.tag
 @groups.show
-# @opts.dump
-# @opts.json
+@opts.dump
+@opts.json
+@opts.shas
 @opts.verbosity
 def show(
     sha_or_name: str | None,
@@ -22,8 +23,9 @@ def show(
     children: bool,
     parents: bool,
     expand: bool,
-    # dump: bool,
-    # json: bool,
+    dump: bool,
+    json: bool,
+    shas: bool,
     verbosity: Verbosity,
 ) -> None:
     """
@@ -50,4 +52,12 @@ def show(
             tag_db = esg.graph.get_tag(tag)
             if tag_db is not None and tag_db.description is not None:
                 esg.ui.print(tag_db.description)
-        esg.ui.print(graph)
+        if shas:
+            esg.ui.print(list(graph.queries.keys()), json=True)
+        elif dump:
+            if json:
+                esg.ui.print(graph.asdict(), json=True)
+            else:
+                esg.ui.print(graph.asdict(), yaml=True)
+        else:
+            esg.ui.print(graph)

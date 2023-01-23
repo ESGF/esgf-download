@@ -1,27 +1,15 @@
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, Sequence
+from typing import Any, Literal, Sequence
 
 import click
 import rich
-import tomlkit
-import yaml
 from click.exceptions import BadArgumentUsage
-from click_params import ListParamType
-from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
 from esgpull.graph import Graph
-from esgpull.models import (
-    Dataset,
-    File,
-    Option,
-    Options,
-    Query,
-    QueryDict,
-    Selection,
-)
+from esgpull.models import Dataset, File, Option, Options, Query, Selection
 from esgpull.tui import UI
 from esgpull.utils import format_size
 
@@ -40,14 +28,6 @@ class Messages:
         return f"Found multiple queries starting with [b cyan]{name}[/]"
 
 
-def yaml_syntax(data: dict | QueryDict) -> Syntax:
-    return Syntax(yaml.dump(data), "yaml", theme="ansi_dark")
-
-
-def toml_syntax(data: dict | QueryDict) -> Syntax:
-    return Syntax(tomlkit.dumps(data), "toml", theme="ansi_dark")
-
-
 class EnumParam(click.Choice):
     name = "enum"
 
@@ -60,52 +40,23 @@ class EnumParam(click.Choice):
         return self.__enum(converted_str)
 
 
-class SliceParam(ListParamType):
-    name = "slice"
-
-    def __init__(self) -> None:
-        super().__init__(click.INT, separator=":", name="integers")
-
-    def convert(self, value: str, param, ctx) -> slice:
-        # https://github.com/click-contrib/click_params/blob/master/click_params/base.py#L115-L117
-        if isinstance(value, str):
-            self._convert_called = False
-        converted_list = super().convert(value, param, ctx)
-        start: int
-        stop: int
-        match converted_list:
-            case [start, stop] if start < stop:
-                ...
-            case [stop]:
-                start = 0
-            case _:
-                error_message = self._error_message.format(
-                    errors=converted_list
-                )
-                self.fail(error_message, param, ctx)
-        return slice(start, stop)
-
-
 def filter_keys(
     docs: Sequence[File | Dataset],
-    indices: bool = True,
     size: bool = True,
     # data_node: bool = False,
     # date: bool = False,
-    offset: int = 0,
 ) -> list[OrderedDict[str, Any]]:
     result: list[OrderedDict[str, Any]] = []
     for i, doc in enumerate(docs):
         od: OrderedDict[str, Any] = OrderedDict()
         # is_file = doc["type"].lower() == "file"
-        if indices:
-            od["#"] = i + offset
-        if size:
-            od["size"] = doc.size
         if isinstance(doc, File):
             od["file"] = doc.file_id
         else:
             od["dataset"] = doc.dataset_id
+            od["files"] = doc.number_of_files
+        if size:
+            od["size"] = doc.size
         # if data_node:
         #     od["data_node"] = doc.data_node
         # if date:
@@ -117,9 +68,16 @@ def filter_keys(
 def totable(docs: list[OrderedDict[str, Any]]) -> Table:
     table = Table(box=rich.box.MINIMAL)
     for key in docs[0].keys():
+        justify: Literal["left", "right", "center"]
+        if key == "size":
+            justify = "right"
+        elif key == "files":
+            justify = "center"
+        else:
+            justify = "left"
         table.add_column(
             Text(key, justify="center"),
-            justify="right" if key in ["#", "size"] else "left",
+            justify=justify,
         )
     for doc in docs:
         row: list[str] = []

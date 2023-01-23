@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Coroutine, Sequence, TypeAlias, TypeVar
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Sequence,
+    TypeAlias,
+    TypeVar,
+)
 
 from exceptiongroup import BaseExceptionGroup
 from httpx import AsyncClient, HTTPError, Request
@@ -24,7 +32,8 @@ if asyncio.get_event_loop().is_running():
 
 
 T = TypeVar("T")
-FacetCounts: TypeAlias = dict[str, dict[str, int]]
+RT = TypeVar("RT", bound="Result")
+HintsDict: TypeAlias = dict[str, dict[str, int]]
 DangerousFacets = set(
     [
         "instance_id",
@@ -43,6 +52,7 @@ class Result:
     request: Request = field(init=False, repr=False)
     json: dict[str, Any] = field(init=False, repr=False)
     exc: BaseException | None = field(init=False, default=None, repr=False)
+    processed: bool = field(init=False, default=False, repr=False)
 
     @property
     def success(self) -> bool:
@@ -101,6 +111,85 @@ class Result:
             raise SolrUnstableQueryError(pretty_repr(self.query))
         self.request = Request("GET", index_url, params=params)
 
+    def to(self, subtype: type[RT]) -> RT:
+        result: RT = subtype(self.query, self.file)
+        result.request = self.request
+        result.exc = self.exc
+        result.json = self.json
+        return result
+
+
+@dataclass
+class ResultHits(Result):
+    data: int = field(init=False, repr=False)
+
+    def process(self) -> None:
+        if self.success:
+            self.data = self.json["response"]["numFound"]
+        else:
+            self.data = 0
+        self.processed = True
+
+
+@dataclass
+class ResultHints(Result):
+    data: HintsDict = field(init=False, repr=False)
+
+    def process(self) -> None:
+        self.data = {}
+        if self.success:
+            facet_fields = self.json["facet_counts"]["facet_fields"]
+            for name, value_count in facet_fields.items():
+                if len(value_count) == 0:
+                    continue
+                values: list[str] = value_count[::2]
+                counts: list[int] = value_count[1::2]
+                self.data[name] = dict(zip(values, counts))
+        self.processed = True
+
+
+class ResultSearch(Result):
+    data: Sequence[File | Dataset] = field(init=False, repr=False)
+    instance_id: str = field(init=False, repr=False)
+
+    def process(self) -> None:
+        raise NotImplementedError
+
+
+class ResultDatasets(Result):
+    data: Sequence[Dataset] = field(init=False, repr=False)
+
+    def process(self) -> None:
+        self.data = []
+        if self.success:
+            for doc in self.json["response"]["docs"]:
+                self.instance_id = doc["instance_id"]
+                try:
+                    dataset = Dataset.serialize(doc)
+                    self.data.append(dataset)
+                except KeyError as exc:
+                    logger.exception(exc)
+        self.processed = True
+
+
+class ResultFiles(Result):
+    data: Sequence[File] = field(init=False, repr=False)
+
+    def process(self) -> None:
+        self.data = []
+        if self.success:
+            for doc in self.json["response"]["docs"]:
+                self.instance_id = doc["instance_id"]
+                try:
+                    f = File.serialize(doc)
+                    self.data.append(f)
+                except KeyError as exc:
+                    logger.exception(exc)
+                    fid = self.instance_id
+                    logger.warning(f"File {fid} has invalid metadata")
+                    logger.debug(pretty_repr(doc))
+        self.processed = True
+
 
 def _distribute_hits_impl(hits: list[int], max_hits: int) -> list[int]:
     i = total = 0
@@ -148,7 +237,6 @@ def _distribute_hits(
 @dataclass
 class Context:
     config: Config = field(default_factory=Config.default)
-    # index_nodes: list[str] | None = None
     client: AsyncClient = field(
         init=False,
         repr=False,
@@ -164,13 +252,11 @@ class Context:
     #     config: Config | None = None,
     #     *,
     #     # since: str | datetime | None = None,
-    #     index_nodes: list[str] | None = None,
     # ):
     #     # if since is None:
     #     #     self.since = since
     #     # else:
     #     #     self.since = format_date(since)
-    #     # self.index_nodes = index_nodes
 
     async def __aenter__(self) -> Context:
         if hasattr(self, "client"):
@@ -184,16 +270,16 @@ class Context:
         await self.client.aclose()
         del self.client
 
-    def _init_hits(
+    def prepare_hits(
         self,
         *queries: Query,
         file: bool,
         index_url: str | None = None,
         index_node: str | None = None,
-    ) -> list[Result]:
-        results: list[Result] = []
+    ) -> list[ResultHits]:
+        results = []
         for i, query in enumerate(queries):
-            result = Result(query, file)
+            result = ResultHits(query, file)
             result.prepare(
                 index_node=index_node or self.config.search.index_node,
                 page_limit=0,
@@ -202,17 +288,17 @@ class Context:
             results.append(result)
         return results
 
-    def _init_hints(
+    def prepare_hints(
         self,
         *queries: Query,
         file: bool,
         facets: list[str],
         index_url: str | None = None,
         index_node: str | None = None,
-    ) -> list[Result]:
-        results: list[Result] = []
+    ) -> list[ResultHints]:
+        results = []
         for i, query in enumerate(queries):
-            result = Result(query, file)
+            result = ResultHints(query, file)
             result.prepare(
                 index_node=index_node or self.config.search.index_node,
                 page_limit=0,
@@ -222,62 +308,7 @@ class Context:
             results.append(result)
         return results
 
-    # def _init_results_search(
-    #     self,
-    #     hits: list[int],
-    #     file: bool,
-    #     max_results: int | None = 200,
-    #     offset: int = 0,
-    #     page_limit: int | None = None,
-    # ) -> list[dict]:
-    #     better_distrib: bool
-    #     index_nodes: list[str]
-    #     if self.distrib and self.index_nodes:
-    #         better_distrib = True
-    #         index_nodes = self.index_nodes
-    #         if max_results is not None:
-    #             max_results = max_results // len(index_nodes)
-    #         original_query = self.query.clone()
-    #         original_distrib = self.distrib
-    #         self.distrib = False
-    #     else:
-    #         better_distrib = False
-    #         index_nodes = list(self.query.index_node.values)
-    #     if page_limit is None:
-    #         page_limit = self.config.search.page_limit
-    #     if offset:
-    #         offsets = self._adjust_hits(hits, offset)
-    #         hits = [h - o for h, o in zip(hits, offsets)]
-    #         if max_results is not None:
-    #             hits = self._adjust_hits(hits, max_results)
-    #     else:
-    #         offsets = [0 for _ in hits]
-    #         if max_results is not None:
-    #             hits = self._adjust_hits(hits, max_results)
-    #     queries = []
-    #     for index_node in index_nodes:
-    #         self.query.index_node = index_node
-    #         raw_queries = self._init_results(
-    #             offsets=offsets,
-    #             file=file,
-    #         )
-    #         for i, query in list(enumerate(raw_queries)):
-    #             nb_queries = (hits[i] - 1) // page_limit + 1
-    #             query_offset = offsets[i]
-    #             for j in range(nb_queries):
-    #                 offset = query_offset + j * page_limit
-    #                 page_limit = min(
-    #                     page_limit, hits[i] + query_offset - offset
-    #                 )
-    #                 queries.append(
-    #                     query | dict(page_limit=page_limit, offset=offset)
-    #                 )
-    #     if better_distrib:
-    #         self.distrib = original_distrib
-    #         self.query = original_query
-    #     return queries
-
-    def _init_search(
+    def prepare_search(
         self,
         *queries: Query,
         file: bool,
@@ -288,7 +319,7 @@ class Context:
         index_url: str | None = None,
         index_node: str | None = None,
         fields_param: list[str] | None = None,
-    ) -> list[Result]:
+    ) -> list[ResultSearch]:
         if page_limit is None:
             page_limit = self.config.search.page_limit
         slices = _distribute_hits(
@@ -297,10 +328,10 @@ class Context:
             max_hits=max_hits,
             page_limit=page_limit,
         )
-        results: list[Result] = []
-        for i, query in enumerate(queries):
-            for sl in slices[i]:
-                result = Result(query, file=file)
+        results = []
+        for query, query_slices in zip(queries, slices):
+            for sl in query_slices:
+                result = ResultSearch(query, file=file)
                 result.prepare(
                     index_node=index_node or self.config.search.index_node,
                     offset=sl.start,
@@ -311,7 +342,50 @@ class Context:
                 results.append(result)
         return results
 
-    async def _fetch_one(self, result: Result) -> Result:
+    def prepare_search_distributed(
+        self,
+        *queries: Query,
+        file: bool,
+        hints: list[HintsDict],
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        fields_param: list[str] | None = None,
+    ) -> list[ResultSearch]:
+        if page_limit is None:
+            page_limit = self.config.search.page_limit
+        hits: list[int] = []
+        for query_hints in hints:
+            if "index_node" not in query_hints:
+                raise NotImplementedError
+            nodes = query_hints["index_node"]
+            query_hits = sum([nodes[node] for node in nodes])
+            hits.append(query_hits)
+        if max_hits is not None:
+            hits = _distribute_hits_impl(hits, max_hits)
+        results = []
+        for query, query_hints, query_max_hits in zip(queries, hints, hits):
+            nodes = query_hints["index_node"]
+            nodes_hits = [nodes[node] for node in nodes]
+            slices = _distribute_hits(
+                hits=nodes_hits,
+                offset=offset,
+                max_hits=query_max_hits,
+                page_limit=page_limit,
+            )
+            for node, node_slices in zip(nodes, slices):
+                for sl in node_slices:
+                    result = ResultSearch(query, file=file)
+                    result.prepare(
+                        index_node=node,
+                        offset=sl.start,
+                        page_limit=sl.stop - sl.start,
+                        fields_param=fields_param,
+                    )
+                    results.append(result)
+        return results
+
+    async def _fetch_one(self, result: RT) -> RT:
         host = result.request.url.host
         if host not in self.semaphores:
             max_concurrent = self.config.search.max_concurrent
@@ -329,226 +403,75 @@ class Context:
                 result.exc = exc
             return result
 
-    async def _fetch(self, in_results: list[Result]) -> AsyncIterator[Result]:
-        coros = [
-            asyncio.ensure_future(self._fetch_one(result))
+    async def _fetch(self, *in_results: RT) -> AsyncIterator[RT]:
+        tasks = [
+            asyncio.create_task(self._fetch_one(result))
             for result in in_results
         ]
         excs = []
-        for future in coros:
-            result = await future
+        for task in tasks:
+            result = await task
             yield result
             if result.exc is not None:
                 excs.append(result.exc)
         if excs:
             raise BaseExceptionGroup("fetch", excs)
 
-    async def _hits(
-        self,
-        *queries: Query,
-        file: bool,
-        index_url: str | None = None,
-        index_node: str | None = None,
-    ) -> list[int]:
+    async def _hits(self, *results: ResultHits) -> list[int]:
         hits = []
-        results = self._init_hits(
-            *queries,
-            file=file,
-            index_url=index_url,
-            index_node=index_node,
-        )
-        async for result in self._fetch(results):
-            if result.success:
-                hits.append(result.json["response"]["numFound"])
-            else:
-                hits.append(0)
+        async for result in self._fetch(*results):
+            result.process()
+            if result.processed:
+                hits.append(result.data)
         return hits
 
-    async def _hints(
-        self,
-        *queries: Query,
-        file: bool,
-        facets: list[str],
-        index_url: str | None = None,
-        index_node: str | None = None,
-    ) -> list[FacetCounts]:
-        results = self._init_hints(
-            *queries,
-            file=file,
-            facets=facets,
-            index_url=index_url,
-            index_node=index_node,
-        )
-        hints: list[FacetCounts] = []
-        async for result in self._fetch(results):
-            if not result.success:
-                hints.append({})
-                continue
-            query_counts: FacetCounts = {}
-            facet_fields = result.json["facet_counts"]["facet_fields"]
-            for name, value_count in facet_fields.items():
-                if len(value_count) == 0:
-                    continue
-                values: list[str] = value_count[::2]
-                counts: list[int] = value_count[1::2]
-                query_counts[name] = dict(zip(values, counts))
-            hints.append(query_counts)
+    async def _hints(self, *results: ResultHints) -> list[HintsDict]:
+        hints: list[HintsDict] = []
+        async for result in self._fetch(*results):
+            result.process()
+            if result.processed:
+                hints.append(result.data)
         return hints
 
-    async def _search_datasets(
+    async def _datasets(
         self,
-        *queries: Query,
-        hits: list[int] | None = None,
-        offset: int = 0,
-        max_hits: int | None = 200,
-        page_limit: int | None = None,
-        # keep_duplicates: bool = True,
-        # fields_param: list[str] | None = None,
+        *results: ResultSearch,
+        keep_duplicates: bool,
     ) -> list[Dataset]:
-        if hits is None:
-            hits = await self._hits(*queries, file=False)
-        results = self._init_search(
-            *queries,
-            file=False,
-            hits=hits,
-            offset=offset,
-            page_limit=page_limit,
-            max_hits=max_hits,
-            fields_param=["instance_id", "size"],
-            # index_url=index_url,
-            # index_node=index_node,
-        )
         datasets: list[Dataset] = []
-        async for result in self._fetch(results):
-            if not result.success:
-                continue
-            for doc in result.json["response"]["docs"]:
-                try:
-                    dataset = Dataset.serialize(doc)
-                    datasets.append(dataset)
-                except KeyError as exc:
-                    logger.exception(exc)
+        ids: set[str] = set()
+        async for result in self._fetch(*results):
+            dataset_result = result.to(ResultDatasets)
+            dataset_result.process()
+            if dataset_result.processed:
+                for d in dataset_result.data:
+                    if not keep_duplicates and d.dataset_id in ids:
+                        logger.warning(f"Duplicate dataset {d.dataset_id}")
+                    else:
+                        datasets.append(d)
+                        ids.add(d.dataset_id)
         return datasets
 
-    async def _search_files(
+    async def _files(
         self,
-        *queries: Query,
-        hits: list[int] | None = None,
-        offset: int = 0,
-        max_hits: int | None = 200,
-        page_limit: int | None = None,
-        keep_duplicates: bool = True,
+        *results: ResultSearch,
+        keep_duplicates: bool,
     ) -> list[File]:
-        if hits is None:
-            hits = await self._hits(*queries, file=True)
-        results = self._init_search(
-            *queries,
-            file=True,
-            hits=hits,
-            offset=offset,
-            page_limit=page_limit,
-            max_hits=max_hits,
-            fields_param=["*"]
-            # index_url=index_url,
-            # index_node=index_node,
-        )
         files: list[File] = []
-        nb_bad = 0
         shas: set[str] = set()
-        async for result in self._fetch(results):
-            if not result.success:
-                continue
-            for doc in result.json["response"]["docs"]:
-                try:
-                    f = File.serialize(doc)
+        async for result in self._fetch(*results):
+            file_result = result.to(ResultFiles)
+            file_result.process()
+            if file_result.processed:
+                for f in file_result.data:
                     if not keep_duplicates and f.sha in shas:
-                        msg = "Duplicate file:"
-                        logger.warning(f"{msg}\n{pretty_repr(doc)}")
+                        logger.warning(f"Duplicate file {f.file_id}")
                     else:
                         files.append(f)
                         shas.add(f.sha)
-                except KeyError as exc:
-                    logger.exception(exc)
-                    if nb_bad == 0:
-                        msg = "File with invalid metadata (1st occurence):"
-                        logger.warning(f"{msg}\n{pretty_repr(doc)}")
-                    nb_bad += 1
-        if max_hits is None:
-            nb_expected = sum(hits)
-        else:
-            nb_expected = min(sum(hits), max_hits)
-        if nb_bad:
-            s = "s" if nb_bad > 1 else ""
-            logger.warning(f"Dropped {nb_bad} file{s} with invalid metadata.")
-        nb_dup = nb_expected - len(files) - nb_bad
-        if nb_dup:
-            s = "s" if nb_dup > 1 else ""
-            logger.info(f"Dropped {nb_dup} duplicate file{s}.")
+            else:
+                logger.warning(f"Bad metadata for {result.instance_id}.")
         return files
-
-    # async def _search_files(
-    #     self,
-    #     *queries: Query,
-    #     hits: list[int],
-    #     # file: bool,
-    #     # offset: int = 0,
-    #     page_limit: int | None = None,
-    #     max_results: int | None = 200,
-    #     keep_duplicates: bool = False,
-    # ) -> list[dict]:
-    #     # if hits is None:
-    #     #     hits = await self._hits(*queries, file=file)
-    #     requests_per_query = self._init_results_search(
-    #         *queries,
-    #         hits=hits,
-    #         # file=file,
-    #         # offset=offset,
-    #         page_limit=page_limit,
-    #         max_results=max_results,
-    #     )
-    #     checksums = set()
-    #     result = []
-    #     nb_bad = 0
-    #     streams = [self._fetch(requests) for requests in requests_per_query]
-    #     async with merge(*streams).stream() as stream:
-    #         async for json in stream:
-    #             for doc in json["response"]["docs"]:
-    #                 if keep_duplicates:
-    #                     result.append(doc)
-    #                     continue
-    #                 f = File.from_dict(doc)
-    #                 f.compute_sha()
-    #                 # if file:
-    #                 #     try:
-    #                 #         f = File.from_dict(doc)
-    #                 #     except KeyError:
-    #                 #         if nb_bad == 0:
-    #                 #             msg = "File with invalid metadata (1st occurence):"
-    #                 #             logger.warning(f"{msg}\n{doc}")
-    #                 #         nb_bad += 1
-    #                 #         continue
-    #                 #     checksum = f.checksum
-    #                 # else:
-    #                 #     checksum = doc["instance_id"]
-    #                 if checksum not in checksums:
-    #                     result.append(doc)
-    #                     checksums.add(checksum)
-    #     if max_results is None:
-    #         nb_expected = sum(hits)
-    #     else:
-    #         nb_expected = min(sum(hits), max_results)
-    #     f_or_d = "file" if file else "dataset"
-    #     if nb_bad:
-    #         s = "s" if nb_bad > 1 else ""
-    #         logger.warning(
-    #             f"Dropped {nb_bad} {f_or_d}{s} with invalid metadata."
-    #         )
-    #     if not keep_duplicates:
-    #         nb_dup = nb_expected - len(checksums) - nb_bad
-    #         if nb_dup:
-    #             s = "s" if nb_dup > 1 else ""
-    #             logger.info(f"Dropped {nb_dup} duplicate {f_or_d}{s}.")
-    #     return result
 
     async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
         """
@@ -583,14 +506,13 @@ class Context:
         index_url: str | None = None,
         index_node: str | None = None,
     ) -> list[int]:
-        return self._sync(
-            self._hits(
-                *queries,
-                file=file,
-                index_url=index_url,
-                index_node=index_node,
-            )
+        results = self.prepare_hits(
+            *queries,
+            file=file,
+            index_url=index_url,
+            index_node=index_node,
         )
+        return self._sync(self._hits(*results))
 
     def hints(
         self,
@@ -599,67 +521,44 @@ class Context:
         facets: list[str],
         index_url: str | None = None,
         index_node: str | None = None,
-    ) -> list[FacetCounts]:
-        return self._sync(
-            self._hints(
-                *queries,
-                file=file,
-                facets=facets,
-                index_url=index_url,
-                index_node=index_node,
-            )
+    ) -> list[HintsDict]:
+        results = self.prepare_hints(
+            *queries,
+            file=file,
+            facets=facets,
+            index_url=index_url,
+            index_node=index_node,
         )
+        return self._sync(self._hints(*results))
 
-    # def options(
-    #     self,
-    #     file=False,
-    #     facets: list[str] | None = None,
-    # ) -> list[FacetCounts]:
-    #     if facets is not None:
-    #         original_facets = self.query.facets.values
-    #         self.query.facets = facets
-    #     queries = self.query.flatten()
-    #     result = []
-    #     for query, hints in zip(queries, self.hints(file=file)):
-    #         facet_options = {}
-    #         for facet, counts in hints.items():
-    #             # force all facets if specified, no more no less
-    #             if facets is not None:
-    #                 if facet in facets:
-    #                     facet_options[facet] = counts
-    #                 continue
-    #             # discard non-facets
-    #             if facet not in self.query._facets:
-    #                 continue
-    #             # keep only when there are 2 or more options
-    #             if len(counts) > 1:
-    #                 facet_options[facet] = counts
-    #         result.append(facet_options)
-    #     if facets is not None:
-    #         self.query.facets = original_facets
-    #     return result
-
-    def search_datasets(
+    def datasets(
         self,
         *queries: Query,
         hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        # fields_param: list[str] | None = None,
+        keep_duplicates: bool = True,
     ) -> list[Dataset]:
+        if hits is None:
+            hits = self.hits(*queries, file=False)
+        results = self.prepare_search(
+            *queries,
+            file=False,
+            hits=hits,
+            offset=offset,
+            page_limit=page_limit,
+            max_hits=max_hits,
+            fields_param=["instance_id", "size", "number_of_files"],
+        )
         return self._sync(
-            self._search_datasets(
-                *queries,
-                hits=hits,
-                offset=offset,
-                max_hits=max_hits,
-                page_limit=page_limit,
-                # fields_param=fields_param,
+            self._datasets(
+                *results,
+                keep_duplicates=keep_duplicates,
             )
         )
 
-    def search_files(
+    def files(
         self,
         *queries: Query,
         hits: list[int] | None = None,
@@ -668,13 +567,20 @@ class Context:
         page_limit: int | None = None,
         keep_duplicates: bool = True,
     ) -> list[File]:
+        if hits is None:
+            hits = self.hits(*queries, file=True)
+        results = self.prepare_search(
+            *queries,
+            file=True,
+            hits=hits,
+            offset=offset,
+            page_limit=page_limit,
+            max_hits=max_hits,
+            fields_param=["*"],
+        )
         return self._sync(
-            self._search_files(
-                *queries,
-                hits=hits,
-                offset=offset,
-                max_hits=max_hits,
-                page_limit=page_limit,
+            self._files(
+                *results,
                 keep_duplicates=keep_duplicates,
             )
         )
@@ -689,20 +595,16 @@ class Context:
         page_limit: int | None = None,
         keep_duplicates: bool = True,
     ) -> Sequence[File | Dataset]:
+        fun: Callable[..., Sequence[File | Dataset]]
         if file:
-            return self.search_files(
-                *queries,
-                hits=hits,
-                offset=offset,
-                max_hits=max_hits,
-                page_limit=page_limit,
-                keep_duplicates=keep_duplicates,
-            )
+            fun = self.files
         else:
-            return self.search_datasets(
-                *queries,
-                hits=hits,
-                offset=offset,
-                max_hits=max_hits,
-                page_limit=page_limit,
-            )
+            fun = self.datasets
+        return fun(
+            *queries,
+            hits=hits,
+            offset=offset,
+            max_hits=max_hits,
+            page_limit=page_limit,
+            keep_duplicates=keep_duplicates,
+        )

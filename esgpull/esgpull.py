@@ -122,13 +122,13 @@ class Esgpull:
         query = Query(options=options)
         hints_coros = []
         for index_node in index_nodes:
-            hints_coro = self.context._hints(
+            hints_results = self.context.prepare_hints(
                 query,
                 file=False,
                 facets=["*"],
                 index_node=index_node,
             )
-            hints_coros.append(hints_coro)
+            hints_coros.append(self.context._hints(*hints_results))
         hints = self.context.sync_gather(*hints_coros)
         new_facets: set[Facet] = set()
         for index_hints in hints:

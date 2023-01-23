@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import IntEnum
 from json import dumps as json_dumps
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import click.exceptions
 from attrs import define, field
@@ -17,7 +17,10 @@ from rich.logging import RichHandler
 from rich.progress import Progress, ProgressColumn
 from rich.prompt import Confirm
 from rich.status import Status
+from rich.syntax import Syntax
 from rich.text import Text
+from tomlkit import dumps as tomlkit_dumps
+from yaml import dump as yaml_dump
 
 from esgpull.config import Config
 
@@ -53,6 +56,14 @@ class DummyLive:
 
     def __exit__(self, *args):
         ...
+
+
+def yaml_syntax(data: Mapping[str, Any]) -> Syntax:
+    return Syntax(yaml_dump(data), "yaml", theme="ansi_dark")
+
+
+def toml_syntax(data: Mapping[str, Any]) -> Syntax:
+    return Syntax(tomlkit_dumps(data), "toml", theme="ansi_dark")
 
 
 @define
@@ -142,6 +153,8 @@ class UI:
         msg: Any,
         err: bool = False,
         json: bool = False,
+        yaml: bool = False,
+        toml: bool = False,
         verbosity: Verbosity = Verbosity.Normal,
         **kwargs: Any,
     ) -> None:
@@ -149,16 +162,31 @@ class UI:
             console = _err_console if err else _console
             if json:
                 console.print_json(json_dumps(msg), **kwargs)
+            elif yaml:
+                console.print(yaml_syntax(msg), **kwargs)
+            elif toml:
+                console.print(toml_syntax(msg), **kwargs)
             else:
                 if not console.is_interactive:
                     kwargs.setdefault("crop", False)
                     kwargs.setdefault("overflow", "ignore")
                 console.print(msg, **kwargs)
 
-    def render(self, msg: Any, json: bool = False, **kwargs: Any) -> str:
+    def render(
+        self,
+        msg: Any,
+        json: bool = False,
+        yaml: bool = False,
+        toml: bool = False,
+        **kwargs: Any,
+    ) -> str:
         with _console.capture() as capture:
             if json:
                 _console.print_json(json_dumps(msg), **kwargs)
+            elif yaml:
+                _console.print(yaml_syntax(msg), **kwargs)
+            elif toml:
+                _console.print(toml_syntax(msg), **kwargs)
             else:
                 _console.print(msg, **kwargs)
         return capture.get()

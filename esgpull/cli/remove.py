@@ -14,13 +14,11 @@ from esgpull.tui import Verbosity
 @args.sha_or_name
 @opts.tag
 @opts.children
-# @opts.status
 @opts.verbosity
 def remove(
     sha_or_name: str | None,
     tag: str | None,
     children: bool,
-    # status: list[FileStatus],
     verbosity: Verbosity,
 ) -> None:
     """
@@ -54,4 +52,4 @@ def remove(
                     esg.ui.print(esg.graph.subgraph(query, children=True))
                 raise Exit(1)
         esg.db.delete(*queries)
-        esg.ui.print(":thumbs_up:")
+        esg.ui.print(":+1:")

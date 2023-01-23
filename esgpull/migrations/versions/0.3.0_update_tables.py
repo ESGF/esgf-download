@@ -97,7 +97,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "query",
-        sa.Column("transient", sa.Boolean(), nullable=False),
+        sa.Column("tracked", sa.Boolean(), nullable=False),
         sa.Column("require", sa.String(length=40), nullable=True),
         sa.Column("options_sha", sa.String(length=40), nullable=False),
         sa.Column("selection_sha", sa.String(length=40), nullable=False),

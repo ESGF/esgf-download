@@ -21,14 +21,12 @@ main = Query(
         distrib=False,
         latest=True,
     ),
-    transient=True,
 )
 
 day = Query(
     tags="day",
     require="main",
     selection=dict(time_frequency="day"),
-    transient=True,
 )
 
 tasmax_monfx = Query(
@@ -36,23 +34,24 @@ tasmax_monfx = Query(
     tags=["tasmax", "monfx"],
     require="main",
     selection={"time_frequency": ["mon", "fx"], "variable": "tasmax"},
+    tracked=True,
 )
 
-tasmax_day = Query(tags="tasmax", require="day")
+tasmax_day = Query(tags="tasmax", require="day", tracked=True)
 tasmax_day.selection.experiment = "historical"  # type: ignore [attr-defined]
 tasmax_day.selection.variable = "tasmax"  # type: ignore [attr-defined]
 
-rcp26 = Query(tags="rcp26", require="main")
+rcp26 = Query(tags="rcp26", require="main", tracked=True)
 rcp26.selection.experiment = "rcp26"  # type: ignore [attr-defined]
 rcp26.selection.time_frequency = "mon"  # type: ignore [attr-defined]
 rcp26.selection.variable = "tasmin"  # type: ignore [attr-defined]
 
 
-rcp85 = Query(require="day")
+rcp85 = Query(require="day", tracked=True)
 rcp85.selection.experiment = "rcp85"  # type: ignore [attr-defined]
 rcp85.selection.variable = ["tas", "ua"]  # type: ignore [attr-defined]
 
-other = Query(tags="other", selection=dict(project="CMIP6"))
+other = Query(tags="other", selection=dict(project="CMIP6"), tracked=True)
 
 queries = [main, day, rcp26, tasmax_day, tasmax_monfx, rcp85, other]
 

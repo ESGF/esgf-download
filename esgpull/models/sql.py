@@ -2,7 +2,7 @@ import sqlalchemy as sa
 
 from esgpull.models import Table
 from esgpull.models.facet import Facet
-from esgpull.models.file import File
+from esgpull.models.file import File, FileStatus
 from esgpull.models.query import Query, query_file_proxy, query_tag_proxy
 from esgpull.models.selection import Selection, selection_facet_proxy
 from esgpull.models.tag import Tag
@@ -48,6 +48,22 @@ class file:
     shas: sa.Select[tuple[str]] = sa.select(File.sha)
     orphans: sa.Select[tuple[File]] = (
         sa.select(File).outerjoin(query_file_proxy).filter_by(file_sha=None)
+    )
+
+    @staticmethod
+    def with_status(
+        *status: FileStatus, count: bool
+    ) -> sa.Select[tuple[File]]:
+        return sa.select(File).where(File.status.in_(status))
+
+    status_count_size: sa.Select[tuple[FileStatus, int, int]] = (
+        sa.select(
+            File.status,
+            sa.func.count("*"),
+            sa.func.sum(File.size),
+        )
+        .group_by(File.status)
+        .where(File.status != FileStatus.Done)
     )
 
 

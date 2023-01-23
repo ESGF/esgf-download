@@ -59,7 +59,8 @@ def add(
                 replica=replica,
                 retracted=retracted,
             )
-            query.transient = not track
+            query.tracked = track
+            esg.graph.resolve_require(query)
             queries = [query]
         subgraph = Graph(None, *queries)
         esg.ui.print(subgraph)
@@ -81,6 +82,6 @@ def add(
         nb = len(new_queries)
         ies = "ies" if nb > 1 else "y"
         if new_queries:
-            esg.ui.print(f":thumbs_up: {nb} new quer{ies} added.")
+            esg.ui.print(f":+1: {nb} new quer{ies} added.")
         else:
             esg.ui.print(":stop_sign: No new query was added.")

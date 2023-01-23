@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, Literal
+from typing import Any, Iterator, Literal, Mapping
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
@@ -33,10 +33,11 @@ query_tag_proxy = sa.Table(
 
 class QueryDict(TypedDict):
     tags: NotRequired[str | list[str]]
-    transient: NotRequired[Literal[True]]
+    tracked: NotRequired[Literal[True]]
     require: NotRequired[str]
-    options: NotRequired[dict[str, bool | None]]
-    selection: NotRequired[dict[str, FacetValues]]
+    options: NotRequired[Mapping[str, bool | None]]
+    selection: NotRequired[Mapping[str, FacetValues]]
+    # children: NotRequired[list[QueryDict]]
 
 
 class Query(Base):
@@ -46,7 +47,7 @@ class Query(Base):
         secondary=query_tag_proxy,
         default_factory=list,
     )
-    transient: Mapped[bool] = mapped_column(default=False)
+    tracked: Mapped[bool] = mapped_column(default=False)
     require: Mapped[str | None] = mapped_column(Sha, default=None)
     options_sha: Mapped[str] = mapped_column(
         Sha,
@@ -119,8 +120,8 @@ class Query(Base):
             yield "name", self.name
         if self.tags:
             yield "tags", [tag.name for tag in self.tags]
-        if self.transient:
-            yield "transient", self.transient
+        if self.tracked:
+            yield "tracked", self.tracked
         if self.require is not None:
             yield "require", short_sha(self.require)
         if self.options:
@@ -134,8 +135,8 @@ class Query(Base):
             result["tags"] = [tag.name for tag in self.tags]
         elif len(self.tags) == 1:
             result["tags"] = self.tags[0].name
-        if self.transient:
-            result["transient"] = self.transient
+        if self.tracked:
+            result["tracked"] = self.tracked
         if self.require is not None:
             result["require"] = self.require
         if self.options:
@@ -201,8 +202,12 @@ class Query(Base):
             setattr(result.options, name, option)
         for name, values in other.selection.items():
             result.selection[name] = values
-        result.transient = other.transient
+        result.tracked = other.tracked
         result.compute_sha()
+        files_shas = set([f.sha for f in result.files])
+        for file in other.files:
+            if file.sha not in files_shas:
+                result.files.append(file)
         return result
 
     def __rich_repr__(self) -> Iterator:
@@ -254,13 +259,20 @@ class Query(Base):
     ) -> Iterator[Text | Padding]:
         text = Text()
         text.append(self.name, style="b green")
-        if self.transient:
-            text.append(" <transient>", style="i red")
-        if not hasattr(self, "_rich_no_require") and self.require is not None:
-            text.append(" [require: ")
-            text.append(short_sha(self.require), style="green")
-            text.append("]")
+        if not self.tracked:
+            text.append(" <untracked>", style="i red")
         yield text
+        if not hasattr(self, "_rich_no_require") and self.require is not None:
+            text = Text("  require: ")
+            if len(self.require) == 40:
+                text.append(short_sha(self.require), style="i green")
+            else:
+                if hasattr(self, "_unknown_require"):
+                    text.append(self.require, style="red")
+                    text.append(" [?]")
+                else:
+                    text.append(self.require, style="magenta")
+            yield self.__guide(text)
         if self.files:
             text = Text("  ")
             ondisk = [f for f in self.files if f.status == FileStatus.Done]

@@ -5,8 +5,8 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import filter_keys, parse_query, totable, yaml_syntax
-from esgpull.exceptions import SliceIndexError
+from esgpull.cli.utils import filter_keys, parse_query, totable
+from esgpull.exceptions import PageIndexError
 from esgpull.models import Query
 from esgpull.tui import Verbosity
 
@@ -39,8 +39,7 @@ def search(
     # display
     all_: bool,
     zero: bool,
-    one: bool,
-    slice_: slice,
+    page: int,
     # ungrouped
     # date: bool,
     # data_node: bool,
@@ -60,7 +59,6 @@ def search(
     More info
     """
     esg = Esgpull.with_verbosity(verbosity)
-    # TODO: bug with slice_:
     # -> numeric ids are not consistent due to sort by instance_id
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(
@@ -73,22 +71,25 @@ def search(
             retracted=retracted,
         )
         query.compute_sha()
+        esg.graph.resolve_require(query)
         esg.graph.add(query, force=True)
-        query = esg.graph.expand(query.sha)
-        hits = esg.context.hits(query, file=file)
-        nb = sum(hits)
-        if zero:
-            slice_ = slice(0, 0)
-        elif one:
-            slice_ = slice(0, 1)
-        elif all_:
-            slice_ = slice(0, nb)
-        offset = slice_.start
-        max_hits = slice_.stop - slice_.start
-        if nb > 0 and slice_.start >= nb:
-            raise SliceIndexError(slice_, nb)
+        if not dump and not show:
+            query = esg.graph.expand(query.sha)
+            hits = esg.context.hits(query, file=file)
+            nb = sum(hits)
+            page_size = esg.config.cli.page_size
+            nb_pages = (nb // page_size) or 1
+            offset = page * page_size
+            max_hits = min(page_size, nb - offset)
+            if page > nb_pages:
+                raise PageIndexError(page, nb_pages)
+            elif zero:
+                max_hits = 0
+            elif all_:
+                offset = 0
+                max_hits = nb
         if dry_run:
-            search_results = esg.context._init_search(
+            search_results = esg.context.prepare_search(
                 query,
                 file=file,
                 hits=hits,
@@ -115,14 +116,14 @@ def search(
             if json:
                 esg.ui.print(query.asdict(), json=True)
             else:
-                esg.ui.print(yaml_syntax(query.asdict()))
+                esg.ui.print(query.asdict(), yaml=True)
             raise Exit(0)
         if show:
             esg.ui.print(query)
             raise Exit(0)
         if max_hits > 200 and not yes:
             nb_req = max_hits // esg.config.search.page_limit
-            message = f"{nb_req} requests will be send to ESGF. Continue?"
+            message = f"{nb_req} requests will be sent to ESGF. Send anyway?"
             if not esg.ui.ask(message, default=True):
                 raise Abort
         results = esg.context.search(
@@ -131,6 +132,7 @@ def search(
             hits=hits,
             offset=offset,
             max_hits=max_hits,
+            keep_duplicates=False,
         )
         if json:
             esg.ui.print([f.asdict() for f in results], json=True)
@@ -139,10 +141,5 @@ def search(
         s = "s" if nb != 1 else ""
         esg.ui.print(f"Found {nb} {f_or_d}{s}.")
         if results:
-            docs = filter_keys(
-                results,
-                # data_node=data_node,
-                # date=date,
-                offset=offset,
-            )
+            docs = filter_keys(results)
             esg.ui.print(totable(docs))
