@@ -62,6 +62,7 @@ def update(
                 file=True,
                 hints=[query_hints],
                 max_hits=None,
+                fields_param=["*"],
             )
             nb_req = len(file_results)
             if nb_req > 50:
@@ -73,7 +74,7 @@ def update(
                 if not esg.ui.ask(msg, default=False):
                     esg.ui.print(f"{query_name} is no longer tracked.")
                     query.tracked = False
-                    continue
+                    file_results = []
             results.append(file_results)
         # TODO: dry_run to print urls here?
         with esg.ui.spinner("Fetching files"):
