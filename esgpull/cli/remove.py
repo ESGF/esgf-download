@@ -46,7 +46,7 @@ def remove(
             if not children and esg.graph.get_children(query.sha):
                 esg.ui.print(
                     ":stop_sign: Some queries block "
-                    f"removal of [b green]{query.name}[/]."
+                    f"removal of {query.rich_name}."
                 )
                 if esg.ui.ask("Show blocking queries?", default=False):
                     esg.ui.print(esg.graph.subgraph(query, children=True))

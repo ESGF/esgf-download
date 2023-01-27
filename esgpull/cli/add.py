@@ -72,12 +72,11 @@ def add(
             if query.sha == empty.sha:
                 esg.ui.print(":stop_sign: Trying to add empty query.")
                 raise Exit(1)
-            query_name = f"[b green]{query.name}[/]"
             if query.sha in esg.graph:  # esg.graph.has(sha=query.sha):
-                esg.ui.print(f"Skipping existing query: {query_name}")
+                esg.ui.print(f"Skipping existing query: {query.rich_name}")
             else:
                 esg.graph.add(query)
-                esg.ui.print(f"New query added: {query_name}")
+                esg.ui.print(f"New query added: {query.rich_name}")
         new_queries = esg.graph.merge(commit=True)
         nb = len(new_queries)
         ies = "ies" if nb > 1 else "y"

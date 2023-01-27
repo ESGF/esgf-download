@@ -112,6 +112,10 @@ class Query(Base):
             self.compute_sha()
         return short_sha(self.sha)
 
+    @property
+    def rich_name(self) -> str:
+        return f"[b green]{self.name}[/]"
+
     def items(
         self,
         include_name: bool = False,
