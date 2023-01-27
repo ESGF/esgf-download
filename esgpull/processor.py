@@ -7,7 +7,7 @@ from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
 from esgpull.config import Config
-from esgpull.download import Simple
+from esgpull.download import DownloadCtx, Simple
 from esgpull.exceptions import DownloadSizeError
 from esgpull.fs import Filesystem
 from esgpull.models import File
@@ -59,7 +59,7 @@ class Task:
     async def stream(
         self, semaphore: asyncio.Semaphore
     ) -> AsyncIterator[Result]:
-        completed = 0
+        ctx = DownloadCtx(self.file)
         try:
             async with (
                 semaphore,
@@ -72,19 +72,19 @@ class Task:
             ):
                 for callback in self.start_callbacks:
                     callback()
-                async for chunk in self.downloader.stream(client, self.file):
-                    await file_obj.write(chunk)
-                    completed += len(chunk)
-                    if completed > self.file.size:
-                        raise DownloadSizeError(completed, self.file.size)
-                    yield Ok(self.file, completed)
+                async for ctx in self.downloader.stream(client, ctx):
+                    if ctx.chunk is not None:
+                        await file_obj.write(ctx.chunk)
+                    if ctx.completed > self.file.size:
+                        raise DownloadSizeError(ctx.completed, self.file.size)
+                    yield Ok(ctx)
         except (
             HTTPError,
             DownloadSizeError,
             GeneratorExit,
             # KeyboardInterrupt,
         ) as err:
-            yield Err(self.file, completed, err)
+            yield Err(ctx, err)
 
 
 class Processor:
