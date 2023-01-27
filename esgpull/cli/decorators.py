@@ -125,6 +125,11 @@ class opts:
         type=click.Path(exists=True, dir_okay=False, path_type=Path),
         default=None,
     )
+    quiet: Dec = click.option(
+        "--quiet",
+        is_flag=True,
+        default=False,
+    )
     shas: Dec = click.option(
         "--shas",
         "-s",

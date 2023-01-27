@@ -1,37 +1,61 @@
-# import asyncio
+import asyncio
 
-# import click
-# import rich
-# from click.exceptions import Abort, Exit
-# from exceptiongroup import BaseExceptionGroup
+import click
+import rich
+from click.exceptions import Abort, Exit
+from exceptiongroup import BaseExceptionGroup
 
-# from esgpull import Esgpull
-# from esgpull.cli.decorators import opts
-# from esgpull.db.models import FileStatus
-# from esgpull.tui import Verbosity, logger
-# from esgpull.utils import format_size
+from esgpull import Esgpull
+from esgpull.cli.decorators import args, opts
+from esgpull.cli.utils import get_queries, valid_name_tag
+from esgpull.models import File, FileStatus
+from esgpull.tui import Verbosity, logger
+from esgpull.utils import format_size
 
 
-# @click.command()
-# @opts.quiet
-# @opts.verbosity
-# def download(
-#     quiet: bool,
-#     verbosity: Verbosity,
-# ):
-#     esg = Esgpull.with_verbosity(verbosity)
-#     queue = esg.db.search(statuses=[FileStatus.Queued])
-#     if not queue:
-#         rich.print("Download queue is empty.")
-#         raise Exit(0)
-#     coro = esg.download(queue, show_progress=not quiet)
-#     with esg.ui.logging("download", onraise=Abort):
-#         files, errors = asyncio.run(coro)
-#         if files:
-#             size = format_size(sum(file.size for file in files))
-#             esg.ui.print(
-#                 f"Downloaded {len(files)} new files for a total size of {size}"
-#             )
-#         if errors:
-#             logger.error(f"{len(errors)} files could not be installed.")
-#             raise BaseExceptionGroup("Download", [e.err for e in errors])
+@click.command()
+@args.sha_or_name
+@opts.tag
+@opts.quiet
+@opts.verbosity
+def download(
+    sha_or_name: str | None,
+    tag: str | None,
+    quiet: bool,
+    verbosity: Verbosity,
+):
+    esg = Esgpull.with_verbosity(verbosity)
+    with esg.ui.logging("download", onraise=Abort):
+        if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+            raise Exit(1)
+        if sha_or_name is None and tag is None:
+            esg.graph.load_db()
+            graph = esg.graph
+        else:
+            queries = get_queries(esg.graph, sha_or_name, tag)
+            graph = esg.graph.subgraph(
+                *queries,
+                children=True,
+                parents=True,
+            )
+        esg.ui.print(graph)
+        shas: set[str] = set()
+        queue: list[File] = []
+        for query in graph.queries.values():
+            for file in query.files:
+                if file.status == FileStatus.Queued and file.sha not in shas:
+                    shas.add(file.sha)
+                    queue.append(file)
+        if not queue:
+            rich.print("Download queue is empty.")
+            raise Exit(0)
+        coro = esg.download(queue, show_progress=not quiet)
+        files, errors = asyncio.run(coro)
+        if files:
+            size = format_size(sum(file.size for file in files))
+            esg.ui.print(
+                f"Downloaded {len(files)} new files for a total size of {size}"
+            )
+        if errors:
+            logger.error(f"{len(errors)} files could not be installed.")
+            raise BaseExceptionGroup("Download", [e.err for e in errors])
