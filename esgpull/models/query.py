@@ -4,8 +4,9 @@ from typing import Any, Iterator, Literal, Mapping
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
-from rich.padding import Padding
+from rich.table import Table
 from rich.text import Text
+from rich.tree import Tree
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing_extensions import NotRequired, TypedDict
 
@@ -222,103 +223,59 @@ class Query(Base):
         items = [f"{k}={v}" for k, v in self.items(include_name=True)]
         return f"{cls_name}(" + ", ".join(items) + ")"
 
-    def __guide(self, text: Text, size: int = 2) -> Text:
-        return text.with_indent_guides(size, style="dim default")
-
-    def __wrap_values(
-        self,
-        text: Text,
-        values: list[str],
-        maxlen: int = 40,
-    ) -> Text:
-        text.append("[")  # ]
-        textlen = len(text)
-        maxlen = 40 - textlen
-        padding = " " * textlen
-        lines: list[str] = []
-        curline: list[str] = []
-        for value in values:
-            newline = curline + [value]
-            strline = ", ".join(newline)
-            if len(strline) < maxlen:
-                curline = newline
-            else:
-                curline = []
-                lines.append(strline)
-        if not lines:
-            lines = [", ".join(curline)]
-        text.append(lines[0])
-        for line in lines[1:]:
-            text.append(f",\n{padding}{line}")
-            text = self.__guide(text, textlen)
-        text.append("]")
-        return text
-
     __rich_measure__ = rich_measure_impl
+
+    def _rich_tree(self) -> Tree:
+        title = Text.from_markup(self.rich_name)
+        if not self.tracked:
+            title.append(" untracked", style="i red")
+        contents = Table.grid(padding=(0, 1))
+        if not hasattr(self, "_rich_no_require") and self.require is not None:
+            if len(self.require) == 40:
+                require = Text(short_sha(self.require), style="i green")
+            else:
+                if hasattr(self, "_unknown_require"):
+                    require = Text(f"{self.require} [?]", style="red")
+                else:
+                    require = Text(self.require, style="magenta")
+            contents.add_row("require:", require)
+        if self.tags:
+            text = Text()
+            text.append("tags", style="magenta")
+            text.append(":")
+            contents.add_row(text, ", ".join([tag.name for tag in self.tags]))
+        for name, option in self.options.items():
+            text = Text()
+            text.append(name, style="yellow")
+            text.append(":")
+            contents.add_row(text, str(option.value))
+        for name, values in self.selection.items():
+            text = Text()
+            if name != "query":
+                text.append(name, style="blue")
+                text.append(":")
+            if len(values) == 1:
+                values_str = values[0]
+            else:
+                values_str = ", ".join(values)
+            contents.add_row(text, values_str)
+        if self.files:
+            ondisk = [f for f in self.files if f.status == FileStatus.Done]
+            size_ondisk = format_size(sum([f.size for f in ondisk]))
+            size_total = format_size(sum([f.size for f in self.files]))
+            sizes = f"{size_ondisk} / {size_total}"
+            lens = f"{len(ondisk)}/{len(self.files)}"
+            contents.add_row(
+                "files:", Text(f"{sizes} [{lens}]", style="magenta")
+            )
+        tree = Tree("", hide_root=True, guide_style="dim").add(title)
+        if contents.row_count:
+            tree.add(contents)
+        return tree
 
     def __rich_console__(
         self,
         console: Console,
-        options: ConsoleOptions,
-    ) -> Iterator[Text | Padding]:
-        text = Text()
-        text.append(self.name, style="b green")
-        if not self.tracked:
-            text.append(" <untracked>", style="i red")
-        yield text
-        if not hasattr(self, "_rich_no_require") and self.require is not None:
-            text = Text("  require: ")
-            if len(self.require) == 40:
-                text.append(short_sha(self.require), style="i green")
-            else:
-                if hasattr(self, "_unknown_require"):
-                    text.append(self.require, style="red")
-                    text.append(" [?]")
-                else:
-                    text.append(self.require, style="magenta")
-            yield self.__guide(text)
-        if self.files:
-            text = Text("  ")
-            ondisk = [f for f in self.files if f.status == FileStatus.Done]
-            size_ondisk = format_size(sum([f.size for f in ondisk]))
-            size_total = format_size(sum([f.size for f in self.files]))
-            text.append(str(len(ondisk)), style="b magenta")
-            text.append(" / ")
-            text.append(str(len(self.files)), style="b magenta")
-            text.append(" files on disk [")
-            text.append(size_ondisk, style="b magenta")
-            text.append(" / ")
-            text.append(size_total, style="b magenta")
-            text.append("]")
-            yield self.__guide(text)
-        if self.tags:
-            text = Text("  ")
-            text.append("tags", style="magenta")
-            text.append(": ")
-            text = self.__wrap_values(text, [tag.name for tag in self.tags])
-            yield self.__guide(text)
-        for name, option in self.options.items():
-            text = Text("  ")
-            text.append(name, style="yellow")
-            text.append(f": {option.value}")
-            yield self.__guide(text)
-        query_term: list[str] | None = None
-        for name, values in self.selection.items():
-            if name == "query":
-                query_term = values
-                continue
-            item = Text("  ")
-            item.append(name, style="blue")
-            if len(values) == 1:
-                item.append(f": {values[0]}")
-            else:
-                item.append(": ")
-                item = self.__wrap_values(item, values)
-            yield self.__guide(item)
-        if query_term is not None:
-            item = Text("  ", style="blue")
-            if len(query_term) == 1:
-                item.append(query_term[0])
-            else:
-                item = self.__wrap_values(item, query_term)
-            yield self.__guide(item)
+        opts: ConsoleOptions,
+    ) -> Iterator[Tree]:
+        yield self._rich_tree()

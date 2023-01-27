@@ -450,6 +450,7 @@ class Graph:
             - require is not in self.queries
         """
         for sha, query in self.queries.items():
+            query_tree: Tree | None = None
             if sha in self._rendered:
                 ...
             elif root is None:
@@ -457,10 +458,13 @@ class Graph:
                     query.require is None or query.require not in self
                 ):  # self.has(sha=query.require):
                     self._rendered.add(sha)
-                    self.fill_tree(query, tree.add(query))
+                    query_tree = query._rich_tree()
             elif query.require == root.sha:
                 self._rendered.add(sha)
-                self.fill_tree(query, tree.add(query.no_require()))
+                query_tree = query.no_require()._rich_tree()
+            if query_tree is not None:
+                tree.add(query_tree)
+                self.fill_tree(query, query_tree)
 
     __rich_measure__ = rich_measure_impl
 
