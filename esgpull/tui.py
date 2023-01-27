@@ -59,7 +59,7 @@ class DummyLive:
 
 
 def yaml_syntax(data: Mapping[str, Any]) -> Syntax:
-    return Syntax(yaml_dump(data), "yaml", theme="ansi_dark")
+    return Syntax(yaml_dump(data, sort_keys=False), "yaml", theme="ansi_dark")
 
 
 def toml_syntax(data: Mapping[str, Any]) -> Syntax:

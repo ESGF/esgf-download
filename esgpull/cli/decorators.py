@@ -102,6 +102,11 @@ class opts:
         "-F",
         is_flag=True,
     )
+    files: Dec = click.option(
+        "--files",
+        is_flag=True,
+        default=False,
+    )
     force: Dec = click.option(
         "--force",
         "-f",
@@ -165,6 +170,11 @@ class opts:
     )
     track: Dec = click.option(
         "--track",
+        is_flag=True,
+        default=False,
+    )
+    yaml: Dec = click.option(
+        "--yaml",
         is_flag=True,
         default=False,
     )

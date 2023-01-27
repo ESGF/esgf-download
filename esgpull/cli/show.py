@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import click
-from click.exceptions import Abort, Exit
+from click.exceptions import Abort, BadArgumentUsage, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
@@ -13,8 +13,9 @@ from esgpull.tui import Verbosity
 @args.sha_or_name
 @opts.tag
 @groups.show
-@opts.dump
+@opts.files
 @opts.json
+@opts.yaml
 @opts.shas
 @opts.verbosity
 def show(
@@ -23,8 +24,9 @@ def show(
     children: bool,
     parents: bool,
     expand: bool,
-    dump: bool,
+    files: bool,
     json: bool,
+    yaml: bool,
     shas: bool,
     verbosity: Verbosity,
 ) -> None:
@@ -54,10 +56,12 @@ def show(
                 esg.ui.print(tag_db.description)
         if shas:
             esg.ui.print(list(graph.queries.keys()), json=True)
-        elif dump:
-            if json:
-                esg.ui.print(graph.asdict(), json=True)
-            else:
-                esg.ui.print(graph.asdict(), yaml=True)
+        if json:
+            esg.ui.print(graph.asdict(files=files), json=True)
+        elif yaml:
+            esg.ui.print(graph.asdict(files=files), yaml=True)
+        elif files:
+            msg = "--files can only be used with --json or --yaml"
+            raise BadArgumentUsage(msg)
         else:
             esg.ui.print(graph)
