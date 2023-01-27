@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 import click
 from click.exceptions import Abort, Exit
 
@@ -14,6 +16,7 @@ from esgpull.tui import Verbosity
 @click.command()
 @args.facets
 @groups.query_def
+@groups.query_date
 @groups.display
 # @opts.date
 # @opts.data_node
@@ -35,6 +38,8 @@ def search(
     latest: str | None,
     replica: str | None,
     retracted: str | None,
+    date_from: datetime | None,
+    date_to: datetime | None,
     ## display
     _all: bool,
     zero: bool,
@@ -74,7 +79,12 @@ def search(
         esg.graph.add(query, force=True)
         if not dump and not show:
             query = esg.graph.expand(query.sha)
-            hits = esg.context.hits(query, file=file)
+            hits = esg.context.hits(
+                query,
+                file=file,
+                date_from=date_from,
+                date_to=date_to,
+            )
             nb = sum(hits)
             page_size = esg.config.cli.page_size
             nb_pages = (nb // page_size) or 1
@@ -94,6 +104,8 @@ def search(
                 hits=hits,
                 offset=offset,
                 max_hits=max_hits,
+                date_from=date_from,
+                date_to=date_to,
             )
             for result in search_results:
                 esg.ui.print(result.request.url)
@@ -105,10 +117,18 @@ def search(
                     not_distrib_query,
                     file=file,
                     facets=["*"],
+                    date_from=date_from,
+                    date_to=date_to,
                 )
                 esg.ui.print(list(facet_counts[0]), json=True)
                 raise Exit(0)
-            facet_counts = esg.context.hints(query, file=file, facets=hints)
+            facet_counts = esg.context.hints(
+                query,
+                file=file,
+                facets=hints,
+                date_from=date_from,
+                date_to=date_to,
+            )
             esg.ui.print(facet_counts, json=True)
             raise Exit(0)
         if dump:
@@ -131,7 +151,9 @@ def search(
             hits=hits,
             offset=offset,
             max_hits=max_hits,
-            keep_duplicates=False,
+            keep_duplicates=True,
+            date_from=date_from,
+            date_to=date_to,
         )
         if json:
             esg.ui.print([f.asdict() for f in results], json=True)

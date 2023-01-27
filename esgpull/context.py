@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import (
     Any,
     AsyncIterator,
@@ -20,9 +21,7 @@ from esgpull.config import Config
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import Dataset, File, Query
 from esgpull.tui import logger
-from esgpull.utils import index2url, sync  # , format_date
-
-# from datetime import datetime
+from esgpull.utils import format_date, index2url, sync
 
 # workaround for notebooks with running event loop
 if asyncio.get_event_loop().is_running():
@@ -66,6 +65,8 @@ class Result:
         index_url: str | None = None,
         fields_param: list[str] | None = None,
         facets_param: list[str] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> None:
         params: dict[str, str | int | bool] = {
             "type": "File" if self.file else "Dataset",
@@ -80,6 +81,10 @@ class Result:
             params["fields"] = ",".join(fields_param)
         else:
             params["fields"] = "instance_id"
+        if date_from is not None:
+            params["from"] = format_date(date_from)
+        if date_to is not None:
+            params["to"] = format_date(date_to)
         if facets_param is not None:
             if len(set(facets_param) & DangerousFacets) > 0:
                 raise SolrUnstableQueryError(pretty_repr(self.query))
@@ -115,7 +120,8 @@ class Result:
         result: RT = subtype(self.query, self.file)
         result.request = self.request
         result.exc = self.exc
-        result.json = self.json
+        if result.success:
+            result.json = self.json
         return result
 
 
@@ -234,6 +240,15 @@ def _distribute_hits(
     return result
 
 
+FileFieldParams = ["*"]
+DatasetFieldParams = [
+    "instance_id",
+    "data_node",
+    "size",
+    "number_of_files",
+]
+
+
 @dataclass
 class Context:
     config: Config = field(default_factory=Config.default)
@@ -276,6 +291,8 @@ class Context:
         file: bool,
         index_url: str | None = None,
         index_node: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[ResultHits]:
         results = []
         for i, query in enumerate(queries):
@@ -284,6 +301,8 @@ class Context:
                 index_node=index_node or self.config.search.index_node,
                 page_limit=0,
                 index_url=index_url,
+                date_from=date_from,
+                date_to=date_to,
             )
             results.append(result)
         return results
@@ -295,6 +314,8 @@ class Context:
         facets: list[str],
         index_url: str | None = None,
         index_node: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[ResultHints]:
         results = []
         for i, query in enumerate(queries):
@@ -304,6 +325,8 @@ class Context:
                 page_limit=0,
                 facets_param=facets,
                 index_url=index_url,
+                date_from=date_from,
+                date_to=date_to,
             )
             results.append(result)
         return results
@@ -319,9 +342,16 @@ class Context:
         index_url: str | None = None,
         index_node: str | None = None,
         fields_param: list[str] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[ResultSearch]:
         if page_limit is None:
             page_limit = self.config.search.page_limit
+        if fields_param is None:
+            if file:
+                fields_param = FileFieldParams
+            else:
+                fields_param = DatasetFieldParams
         slices = _distribute_hits(
             hits=hits,
             offset=offset,
@@ -338,6 +368,8 @@ class Context:
                     page_limit=sl.stop - sl.start,
                     fields_param=fields_param,
                     index_url=index_url,
+                    date_from=date_from,
+                    date_to=date_to,
                 )
                 results.append(result)
         return results
@@ -351,9 +383,16 @@ class Context:
         max_hits: int | None = 200,
         page_limit: int | None = None,
         fields_param: list[str] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[ResultSearch]:
         if page_limit is None:
             page_limit = self.config.search.page_limit
+        if fields_param is None:
+            if file:
+                fields_param = FileFieldParams
+            else:
+                fields_param = DatasetFieldParams
         hits: list[int] = []
         for query_hints in hints:
             if "index_node" not in query_hints:
@@ -381,6 +420,8 @@ class Context:
                         offset=sl.start,
                         page_limit=sl.stop - sl.start,
                         fields_param=fields_param,
+                        date_from=date_from,
+                        date_to=date_to,
                     )
                     results.append(result)
         return results
@@ -505,14 +546,25 @@ class Context:
         file: bool,
         index_url: str | None = None,
         index_node: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[int]:
         results = self.prepare_hits(
             *queries,
             file=file,
             index_url=index_url,
             index_node=index_node,
+            date_from=date_from,
+            date_to=date_to,
         )
         return self._sync(self._hits(*results))
+
+    def hits_from_hints(self, *hints: HintsDict) -> list[int]:
+        result: list[int] = []
+        for hint in hints:
+            key = next(iter(hint))
+            result.append(sum(hint[key].values()))
+        return result
 
     def hints(
         self,
@@ -521,6 +573,8 @@ class Context:
         facets: list[str],
         index_url: str | None = None,
         index_node: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[HintsDict]:
         results = self.prepare_hints(
             *queries,
@@ -528,6 +582,8 @@ class Context:
             facets=facets,
             index_url=index_url,
             index_node=index_node,
+            date_from=date_from,
+            date_to=date_to,
         )
         return self._sync(self._hints(*results))
 
@@ -538,6 +594,8 @@ class Context:
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> list[Dataset]:
         if hits is None:
@@ -549,14 +607,11 @@ class Context:
             offset=offset,
             page_limit=page_limit,
             max_hits=max_hits,
-            fields_param=["instance_id", "size", "number_of_files"],
+            date_from=date_from,
+            date_to=date_to,
         )
-        return self._sync(
-            self._datasets(
-                *results,
-                keep_duplicates=keep_duplicates,
-            )
-        )
+        coro = self._datasets(*results, keep_duplicates=keep_duplicates)
+        return self._sync(coro)
 
     def files(
         self,
@@ -565,6 +620,8 @@ class Context:
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> list[File]:
         if hits is None:
@@ -576,14 +633,11 @@ class Context:
             offset=offset,
             page_limit=page_limit,
             max_hits=max_hits,
-            fields_param=["*"],
+            date_from=date_from,
+            date_to=date_to,
         )
-        return self._sync(
-            self._files(
-                *results,
-                keep_duplicates=keep_duplicates,
-            )
-        )
+        coro = self._files(*results, keep_duplicates=keep_duplicates)
+        return self._sync(coro)
 
     def search(
         self,
@@ -593,6 +647,8 @@ class Context:
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> Sequence[File | Dataset]:
         fun: Callable[..., Sequence[File | Dataset]]
@@ -606,5 +662,7 @@ class Context:
             offset=offset,
             max_hits=max_hits,
             page_limit=page_limit,
+            date_from=date_from,
+            date_to=date_to,
             keep_duplicates=keep_duplicates,
         )

@@ -252,7 +252,21 @@ _retracted: Dec = optgroup.option(
     type=OptionChoice,
     # default="notset",
 )
-# _since: Dec
+
+# Query dates group
+_query_date: Dec = optgroup.group("Query dates")
+_from: Dec = optgroup.option(
+    "date_from",
+    "--from",
+    type=click.DateTime(),
+    default=None,
+)
+_to: Dec = optgroup.option(
+    "date_to",
+    "--to",
+    type=click.DateTime(),
+    default=None,
+)
 
 _show: Dec = optgroup.group("Show options")
 _children: Dec = optgroup.option(
@@ -290,6 +304,10 @@ class groups:
         _latest,
         _replica,
         _retracted,
+    )
+    query_date: Dec = compose(
+        _from,
+        _to,
     )
     show: Dec = compose(
         _show,
