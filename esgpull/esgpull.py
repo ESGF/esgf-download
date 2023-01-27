@@ -1,42 +1,35 @@
 from __future__ import annotations
 
-# from functools import partial
+from functools import partial
 from pathlib import Path
+from typing import AsyncIterator
 
 from attrs import define, field
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 
 from esgpull.auth import Auth, Credentials
 from esgpull.config import Config
 from esgpull.context import Context
 from esgpull.database import Database
-
-# from esgpull.exceptions import DownloadCancelled
+from esgpull.exceptions import DownloadCancelled
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
-from esgpull.models import Facet, Options, Query, sql
-
-# from esgpull.processor import Processor
-# from esgpull.result import Err, Ok, Result
+from esgpull.models import Facet, File, FileStatus, Options, Query, sql
+from esgpull.models.utils import short_sha
+from esgpull.processor import Processor
+from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, Verbosity, logger
-from esgpull.utils import Root  # , format_size
-
-# from typing import AsyncIterator
-
-
-# from rich.progress import (
-#     BarColumn,
-#     DownloadColumn,
-#     MofNCompleteColumn,
-#     Progress,
-#     SpinnerColumn,
-#     TaskID,
-#     TextColumn,
-#     TimeRemainingColumn,
-#     TransferSpeedColumn,
-# )
-
-
-# from esgpull.models import File, FileStatus
+from esgpull.utils import Root, format_size
 
 
 @define
@@ -143,60 +136,7 @@ class Esgpull:
         self.db.add(*new_facets)
         return len(new_facets) > 0
 
-    # def fetch_updated_files(
-    #     self,
-    #     query: Query | None = None,
-    #     distrib: bool = True,
-    #     replica: bool | None = None,
-    #     since: str | None = None,
-    # ) -> list[File] | None:
-    #     max_master_id = 100
-    #     max_instance_id = 50
-    #     matching_files = self.db.search(
-    #         query=query,
-    #         statuses=[FileStatus.Done],
-    #     )
-    #     if not matching_files:
-    #         return None
-    #     local_dataset_ids = set([f.dataset_id for f in matching_files])
-    #     master_ids = [dsid.rsplit(".", 1)[0] for dsid in local_dataset_ids]
-    #     with self.context(
-    #         distrib=distrib,
-    #         latest=True,
-    #         replica=replica,
-    #         since=since,
-    #     ) as ctx:
-    #         if query:
-    #             ctx.query = query.clone()
-    #         for start in range(0, len(master_ids), max_master_id):
-    #             stop = start + max_master_id
-    #             subquery = ctx.query.add()
-    #             subquery.master_id = master_ids[start:stop]
-    #         options = ctx.options(facets=["instance_id"])
-    #     new_dataset_ids: set[str] = set()
-    #     for suboptions in options:
-    #         new_dataset_ids |= set(suboptions["instance_id"])
-    #     new_dataset_ids -= local_dataset_ids
-    #     instance_ids = [dsid + "*" for dsid in new_dataset_ids]
-    #     if not instance_ids:
-    #         return []
-    #     with self.context(
-    #         distrib=distrib,
-    #         latest=True,
-    #         replica=replica,
-    #         since=since,
-    #     ) as ctx:
-    #         if query:
-    #             ctx.query = query.clone()
-    #         for start in range(0, len(instance_ids), max_instance_id):
-    #             stop = start + max_instance_id
-    #             subquery = ctx.query.add()
-    #             subquery.instance_id = instance_ids[start:stop]
-    #         docs = ctx.search(file=True, max_results=None)
-    #     files = [File.from_dict(doc) for doc in docs]
-    #     return files
-
-    # def record(
+    # def add(
     #     self,
     #     *queries: Query,
     #     with_file: bool = False,
@@ -261,117 +201,117 @@ class Esgpull:
     #     deprecated = self.db.get_deprecated_files()
     #     return self.remove(*deprecated)
 
-    # async def iter_results(
-    #     self,
-    #     processor: Processor,
-    #     progress: Progress,
-    #     task_ids: dict[int, TaskID],
-    # ) -> AsyncIterator[Result]:
-    #     async for result in processor.process():
-    #         task_idx = progress.task_ids.index(task_ids[result.file.id])
-    #         task = progress.tasks[task_idx]
-    #         progress.update(task.id, visible=True)
-    #         match result:
-    #             case Ok():
-    #                 progress.update(task.id, completed=result.completed)
-    #                 if task.finished:
-    #                     # TODO: add checksum verif here
-    #                     progress.stop_task(task.id)
-    #                     progress.update(task.id, visible=False)
-    #                     id = f"[bold cyan]id:{result.file.id}[/]"
-    #                     size = f"[green]{format_size(int(task.completed))}[/]"
-    #                     items = [id, size]
-    #                     if task.elapsed is not None:
-    #                         final_speed = int(task.completed / task.elapsed)
-    #                         speed = f"[red]{format_size(final_speed)}/s[/]"
-    #                         items.append(speed)
-    #                     logger.info("✓ " + " · ".join(items))
-    #                     yield result
-    #             case Err():
-    #                 progress.remove_task(task.id)
-    #                 yield result
-    #             case _:
-    #                 raise ValueError("Unexpected result")
+    async def iter_results(
+        self,
+        processor: Processor,
+        progress: Progress,
+        task_ids: dict[str, TaskID],
+    ) -> AsyncIterator[Result]:
+        async for result in processor.process():
+            task_idx = progress.task_ids.index(task_ids[result.data.file.sha])
+            task = progress.tasks[task_idx]
+            progress.update(task.id, visible=True)
+            match result:
+                case Ok():
+                    progress.update(task.id, completed=result.data.completed)
+                    if task.finished:
+                        # TODO: add checksum verif here
+                        progress.stop_task(task.id)
+                        progress.update(task.id, visible=False)
+                        sha = short_sha(result.data.file.sha)
+                        sha = f"file: [cyan]{sha}[/]"
+                        size = f"[green]{format_size(int(task.completed))}[/]"
+                        items = [sha, size]
+                        if task.elapsed is not None:
+                            final_speed = int(task.completed / task.elapsed)
+                            speed = f"[red]{format_size(final_speed)}/s[/]"
+                            items.append(speed)
+                        logger.info("✓ " + " · ".join(items))
+                        yield result
+                case Err():
+                    progress.remove_task(task.id)
+                    yield result
+                case _:
+                    raise ValueError("Unexpected result")
 
-
-#     async def download(
-#         self,
-#         queue: list[File],
-#         show_progress: bool = True,
-#     ) -> tuple[list[File], list[Err]]:
-#         """
-#         Download all files from db for which status is `Queued`.
-#         """
-#         for file in queue:
-#             file.status = FileStatus.Starting
-#         self.db.add(*queue)
-#         main_progress = self.ui.make_progress(
-#             SpinnerColumn(),
-#             MofNCompleteColumn(),
-#             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
-#         )
-#         file_progress = self.ui.make_progress(
-#             TextColumn("[cyan][{task.id}]"),
-#             "[progress.percentage]{task.percentage:>3.0f}%",
-#             BarColumn(),
-#             "·",
-#             DownloadColumn(),
-#             "·",
-#             TransferSpeedColumn(),
-#             transient=True,
-#         )
-#         queue_size = len(queue)
-#         main_task_id = main_progress.add_task("", total=queue_size)
-#         file_task_ids = {}
-#         start_callbacks = {}
-#         for file in queue:
-#             task_id = file_progress.add_task(
-#                 "", total=file.size, visible=False, start=False
-#             )
-#             callback = partial(file_progress.start_task, task_id)
-#             file_task_ids[file.id] = task_id
-#             start_callbacks[file.id] = [callback]
-#         processor = Processor(
-#             config=self.config,
-#             auth=self.auth,
-#             fs=self.fs,
-#             files=queue,
-#             start_callbacks=start_callbacks,
-#         )
-#         # TODO: rename ? installed/downloaded/completed/...
-#         files: list[File] = []
-#         errors: list[Err] = []
-#         remaining_dict = {file.id: file for file in queue}
-#         try:
-#             with self.ui.live(
-#                 file_progress,
-#                 main_progress,
-#                 disable=not show_progress,
-#             ):
-#                 async for result in self.iter_results(
-#                     processor, file_progress, file_task_ids
-#                 ):
-#                     match result:
-#                         case Ok():
-#                             main_progress.update(main_task_id, advance=1)
-#                             result.file.status = FileStatus.Done
-#                             files.append(result.file)
-#                         case Err():
-#                             queue_size -= 1
-#                             main_progress.update(
-#                                 main_task_id, total=queue_size
-#                             )
-#                             result.file.status = FileStatus.Error
-#                             errors.append(result)
-#                     self.db.add(result.file)
-#                     remaining_dict.pop(result.file.id)
-#         finally:
-#             if remaining_dict:
-#                 logger.warning(f"Cancelling {len(remaining_dict)} downloads.")
-#                 cancelled: list[File] = []
-#                 for file in remaining_dict.values():
-#                     file.status = FileStatus.Cancelled
-#                     cancelled.append(file)
-#                     errors.append(Err(file, 0, DownloadCancelled()))
-#                 self.db.add(*cancelled)
-#         return files, errors
+    async def download(
+        self,
+        queue: list[File],
+        show_progress: bool = True,
+    ) -> tuple[list[File], list[Err]]:
+        """
+        Download all files from db for which status is `Queued`.
+        """
+        for file in queue:
+            file.status = FileStatus.Starting
+        self.db.add(*queue)
+        main_progress = self.ui.make_progress(
+            SpinnerColumn(),
+            MofNCompleteColumn(),
+            TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+        )
+        file_progress = self.ui.make_progress(
+            TextColumn("[cyan][{task.id}]"),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            BarColumn(),
+            "·",
+            DownloadColumn(),
+            "·",
+            TransferSpeedColumn(),
+            transient=True,
+        )
+        queue_size = len(queue)
+        main_task_id = main_progress.add_task("", total=queue_size)
+        file_task_shas = {}
+        start_callbacks = {}
+        for file in queue:
+            task_id = file_progress.add_task(
+                "", total=file.size, visible=False, start=False
+            )
+            callback = partial(file_progress.start_task, task_id)
+            file_task_shas[file.sha] = task_id
+            start_callbacks[file.sha] = [callback]
+        processor = Processor(
+            config=self.config,
+            auth=self.auth,
+            fs=self.fs,
+            files=queue,
+            start_callbacks=start_callbacks,
+        )
+        # TODO: rename ? installed/downloaded/completed/...
+        files: list[File] = []
+        errors: list[Err] = []
+        remaining_dict = {file.sha: file for file in queue}
+        try:
+            with self.ui.live(
+                file_progress,
+                main_progress,
+                disable=not show_progress,
+            ):
+                async for result in self.iter_results(
+                    processor, file_progress, file_task_shas
+                ):
+                    match result:
+                        case Ok():
+                            main_progress.update(main_task_id, advance=1)
+                            result.data.file.status = FileStatus.Done
+                            files.append(result.data.file)
+                        case Err():
+                            queue_size -= 1
+                            main_progress.update(
+                                main_task_id, total=queue_size
+                            )
+                            result.data.file.status = FileStatus.Error
+                            errors.append(result)
+                    self.db.add(result.data.file)
+                    remaining_dict.pop(result.data.file.sha)
+        finally:
+            if remaining_dict:
+                logger.warning(f"Cancelling {len(remaining_dict)} downloads.")
+                cancelled: list[File] = []
+                for file in remaining_dict.values():
+                    file.status = FileStatus.Cancelled
+                    cancelled.append(file)
+                    errors.append(Err(file, DownloadCancelled()))
+                self.db.add(*cancelled)
+        return files, errors
