@@ -68,8 +68,11 @@ class Root:
             root_env = os.environ.get(ENV_VARNAME)
             if root_env is None:
                 cls.root = Path.home() / ".esgpull"
-                msg = f"Using root directory: {cls.root}\n"
-                msg += f"Set {ENV_VARNAME} to the desired root directory to disable this warning."
+                msg = (
+                    f"Using root directory: {cls.root}\n"
+                    f"Set {ENV_VARNAME} to the desired root directory to"
+                    " disable this warning."
+                )
                 logger = logging.getLogger("esgpull")
                 logger.warning(msg)
             else:
