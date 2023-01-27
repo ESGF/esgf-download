@@ -15,7 +15,7 @@ from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.progress import Progress, ProgressColumn
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 from rich.status import Status
 from rich.syntax import Syntax
 from rich.text import Text
@@ -219,3 +219,14 @@ class UI:
 
     def ask(self, msg: str, default: bool = False) -> bool:
         return Confirm.ask(msg, default=default)
+
+    def choice(
+        self,
+        msg: str,
+        choices: list[str],
+        default: str | None = None,
+    ) -> str:
+        if default is not None:
+            return Prompt.ask(msg, choices=choices, default=default)
+        else:
+            return Prompt.ask(msg, choices=choices)
