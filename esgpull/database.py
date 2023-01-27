@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, joinedload, make_transient
 
 from esgpull import __file__
 from esgpull.config import Config
-from esgpull.models import Table, sql
+from esgpull.models import File, Table, sql
 from esgpull.version import __version__
 
 # from esgpull.exceptions import NoClauseError
@@ -48,22 +48,22 @@ class Database:
             self._update()
 
     def _update(self) -> None:
-        config = AlembicConfig()
+        alembic_config = AlembicConfig()
         migrations_path = Path(__file__).parent / "migrations"
-        config.set_main_option("script_location", str(migrations_path))
-        config.attributes["connection"] = self._engine
-        script = ScriptDirectory.from_config(config)
+        alembic_config.set_main_option("script_location", str(migrations_path))
+        alembic_config.attributes["connection"] = self._engine
+        script = ScriptDirectory.from_config(alembic_config)
         head = script.get_current_head()
         with self._engine.begin() as conn:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
             self.version = ctx.get_current_revision()
         if self.version != head:
-            alembic.command.upgrade(config, __version__)
+            alembic.command.upgrade(alembic_config, __version__)
             self.version = head
         if self.version != __version__:
             alembic.command.revision(
-                config,
+                alembic_config,
                 message="update tables",
                 autogenerate=True,
                 rev_id=__version__,
@@ -141,21 +141,17 @@ class Database:
                 self.session.commit()
         return result
 
-    # def get_deprecated_files(self) -> list[File]:
-    #     with (self.select(File) as query, self.select(File) as subquery):
-    #         subquery.group_by(File.master_id)
-    #         subquery.having(sa.func.count("*") > 1).alias()
-    #         join_clause = File.master_id == subquery.stmt.c.master_id
-    #         duplicates = query.join(subquery.stmt, join_clause).scalars
-    #     duplicates_dict: dict[str, list[File]] = {}
-    #     for file in duplicates:
-    #         duplicates_dict.setdefault(file.master_id, [])
-    #         duplicates_dict[file.master_id].append(file)
-    #     deprecated: list[File] = []
-    #     for files in duplicates_dict.values():
-    #         versions = [int(f.version[1:]) for f in files]
-    #         latest_version = "v" + str(max(versions))
-    #         for file in files:
-    #             if file.version != latest_version:
-    #                 deprecated.append(file)
-    #     return deprecated
+    def get_deprecated_files(self) -> list[File]:
+        duplicates = self.scalars(sql.file.duplicates)
+        duplicates_dict: dict[str, list[File]] = {}
+        for file in duplicates:
+            duplicates_dict.setdefault(file.master_id, [])
+            duplicates_dict[file.master_id].append(file)
+        deprecated: list[File] = []
+        for files in duplicates_dict.values():
+            versions = [int(f.version[1:]) for f in files]
+            latest_version = "v" + str(max(versions))
+            for file in files:
+                if file.version != latest_version:
+                    deprecated.append(file)
+        return deprecated

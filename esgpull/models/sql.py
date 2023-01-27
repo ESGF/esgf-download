@@ -50,6 +50,15 @@ class file:
     orphans: sa.Select[tuple[File]] = (
         sa.select(File).outerjoin(query_file_proxy).filter_by(file_sha=None)
     )
+    __dups_cte = (
+        sa.select(File.master_id)
+        .group_by(File.master_id)
+        .having(sa.func.count("*") > 1)
+        .cte()
+    )
+    duplicates: sa.Select[tuple[File]] = sa.select(File).join(
+        __dups_cte, File.master_id == __dups_cte.c.master_id
+    )
 
     @staticmethod
     def with_status(*status: FileStatus) -> sa.Select[tuple[File]]:
