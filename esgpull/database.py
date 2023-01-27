@@ -141,59 +141,6 @@ class Database:
                 self.session.commit()
         return result
 
-    # def has(
-    #     self,
-    #     /,
-    #     file: File | None = None,
-    #     filepath: Path | None = None,
-    # ) -> bool:
-    #     if file is not None:
-    #         clause = File.file_id == file.file_id
-    #     elif filepath is not None:
-    #         local_path = str(filepath.parent)
-    #         filename = filepath.name
-    #         local_path_clause = File.local_path == local_path
-    #         filename_clause = File.filename == filename
-    #         clause = local_path_clause & filename_clause
-    #     else:
-    #         raise ValueError("TODO: custom error")
-    #     with self.select(File) as sel:
-    #         matching = sel.where(clause).scalars
-    #     return any(matching)
-
-    # def search(
-    #     self,
-    #     query: Query | None = None,
-    #     statuses: Sequence[FileStatus] | None = None,
-    #     ids: Sequence[int] | None = None,
-    # ) -> list[File]:
-    #     clauses: list[sa.ColumnElement] = []
-    #     if not statuses and not query and not ids:
-    #         raise ValueError("TODO: custom error")
-    #     if statuses:
-    #         clauses.append(File.status.in_(statuses))
-    #     if query:
-    #         query_clauses = []
-    #         for flat in query.flatten():
-    #             flat_clauses = []
-    #             for facet in flat:
-    #                 # values are in a list, to keep support for CMIP5
-    #                 # search by first value only is supported for now
-    #                 facet_clause = sa.func.json_extract(
-    #                     File.raw, f"$.{facet.name}[0]"
-    #                 ).in_(list(facet.values))
-    #                 flat_clauses.append(facet_clause)
-    #             if flat_clauses:
-    #                 query_clauses.append(sa.and_(*flat_clauses))
-    #         if query_clauses:
-    #             clauses.append(sa.or_(*query_clauses))
-    #     if ids:
-    #         clauses.append(File.id.in_(ids))
-    #     if not clauses:
-    #         raise NoClauseError()
-    #     with self.select(File) as sel:
-    #         return sel.where(sa.and_(*clauses)).scalars
-
     # def get_deprecated_files(self) -> list[File]:
     #     with (self.select(File) as query, self.select(File) as subquery):
     #         subquery.group_by(File.master_id)

@@ -14,10 +14,7 @@ from esgpull.exceptions import (
     QueryDuplicate,
     TooShortKeyError,
 )
-from esgpull.models import sql
-from esgpull.models.facet import Facet
-from esgpull.models.query import Query, QueryDict
-from esgpull.models.tag import Tag
+from esgpull.models import Facet, Query, QueryDict, Tag, sql
 from esgpull.models.utils import rich_measure_impl
 
 
@@ -375,47 +372,6 @@ class Graph:
             else:
                 updated_shas.add(sha)
                 self.queries[sha] = query_db
-            # # if query_db is query:
-            # for i, tag in enumerate(query.tags):
-            #     if tag not in self.db.session:
-            #         if tag not in self.db:
-            #             updated_shas.add(sha)
-            #         query.tags[i] = self.db.merge(tag)
-            # if query in self.db.session:
-            #     continue
-            # # if query in self.db:
-            # elif query_db := self.db.get(Query, query.sha):
-            #     # save tags since they may have been updated
-            #     new_tags = query.tags[:]
-            #     query = query_db
-            #     if set(query.tags) != set(new_tags):
-            #         query.tags = new_tags
-            #     self.queries[sha] = query
-            # else:
-            #     is_new = True
-            # if query.options.state.persistent:
-            #     ...
-            # elif options_db := self.db.get(Options, query.options.sha):
-            #     query.options = options_db
-            # else:
-            #     is_new = True
-            #     query.options = self.db.session.merge(query.options)
-            # if query.selection.state.persistent:
-            #     ...
-            # elif selection_db := self.db.get(Selection, query.selection.sha):
-            #     query.selection = selection_db
-            # else:
-            #     for i, facet in enumerate(query.selection._facets):
-            #         if facet.state.persistent:
-            #             ...
-            #         elif facet_db := self.db.get(Facet, facet.sha):
-            #             query.selection._facets[i] = facet_db
-            #         else:
-            #             raise UnknownFacet(facet)
-            #     is_new = True
-            #     query.selection = self.db.session.merge(query.selection)
-            # self.queries[sha] = self.db.session.merge(query)
-            # self.db.session.flush()
         return {sha: self.queries[sha] for sha in updated_shas}
 
     # def remove(self, *queries: Query) -> None:
