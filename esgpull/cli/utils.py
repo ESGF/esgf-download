@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Any, Literal, Sequence
 
 import click
-import rich
 from click.exceptions import BadArgumentUsage
+from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.table import Table
 from rich.text import Text
 
@@ -43,13 +43,12 @@ class EnumParam(click.Choice):
 def filter_keys(
     docs: Sequence[File | Dataset],
     size: bool = True,
-    # data_node: bool = False,
+    data_node: bool = False,
     # date: bool = False,
 ) -> list[OrderedDict[str, Any]]:
     result: list[OrderedDict[str, Any]] = []
     for i, doc in enumerate(docs):
         od: OrderedDict[str, Any] = OrderedDict()
-        # is_file = doc["type"].lower() == "file"
         if isinstance(doc, File):
             od["file"] = doc.file_id
         else:
@@ -57,8 +56,8 @@ def filter_keys(
             od["files"] = doc.number_of_files
         if size:
             od["size"] = doc.size
-        # if data_node:
-        #     od["data_node"] = doc.data_node
+        if data_node:
+            od["data_node"] = doc.data_node
         # if date:
         #     od["date"] = doc.get("timestamp") or doc.get("_timestamp")
         result.append(od)
@@ -66,7 +65,7 @@ def filter_keys(
 
 
 def totable(docs: list[OrderedDict[str, Any]]) -> Table:
-    table = Table(box=rich.box.MINIMAL)
+    table = Table(box=MINIMAL_DOUBLE_HEAD)
     for key in docs[0].keys():
         justify: Literal["left", "right", "center"]
         if key == "size":

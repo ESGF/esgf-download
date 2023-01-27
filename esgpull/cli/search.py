@@ -162,5 +162,8 @@ def search(
         s = "s" if nb != 1 else ""
         esg.ui.print(f"Found {nb} {f_or_d}{s}.")
         if results:
-            docs = filter_keys(results)
+            unique_ids = {r.master_id for r in results}
+            unique_nodes = {(r.master_id, r.data_node) for r in results}
+            needs_data_node = len(unique_nodes) > len(unique_ids)
+            docs = filter_keys(results, data_node=needs_data_node)
             esg.ui.print(totable(docs))
