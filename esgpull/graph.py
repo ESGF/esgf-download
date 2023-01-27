@@ -393,11 +393,16 @@ class Graph:
         """
         return [q.asdict() for q in self.queries.values()]
 
-    def asdict(self) -> Mapping[str, QueryDict]:
+    def asdict(self, files: bool = False) -> Mapping[str, QueryDict]:
         """
         Dump full graph as dict of dict, indexed by each query's sha.
         """
-        return {q.sha: q.asdict() for q in self.queries.values()}
+        result = {}
+        for sha, query in self.queries.items():
+            result[sha] = query.asdict()
+            if files:
+                result[sha]["files"] = [f.asdict() for f in query.files]
+        return result
 
     def fill_tree(self, root: Query | None, tree: Tree) -> None:
         """
