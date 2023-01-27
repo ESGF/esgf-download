@@ -31,3 +31,24 @@ def find_int(container: list | int) -> int:
         return container
     else:
         raise ValueError(container)
+
+
+def get_local_path(source: dict, version: str) -> str:
+    flat_raw = {}
+    for k, v in source.items():
+        if isinstance(v, list) and len(v) == 1:
+            flat_raw[k] = v[0]
+        else:
+            flat_raw[k] = v
+    template = find_str(flat_raw["directory_format_template_"])
+    # format: "%(a)/%(b)/%(c)/..."
+    template = template.removeprefix("%(root)s/")
+    template = template.replace("%(", "{")
+    template = template.replace(")s", "}")
+    flat_raw.pop("version", None)
+    if "rcm_name" in flat_raw:  # cordex special case
+        institute = flat_raw["institute"]
+        rcm_name = flat_raw["rcm_name"]
+        rcm_model = institute + "-" + rcm_name
+        flat_raw["rcm_model"] = rcm_model
+    return template.format(version=version, **flat_raw)

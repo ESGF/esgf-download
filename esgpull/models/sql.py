@@ -2,13 +2,12 @@ import sqlalchemy as sa
 
 from esgpull.models import Table
 from esgpull.models.facet import Facet
-from esgpull.models.file import File, FileStatus
-from esgpull.models.query import Query, query_file_proxy, query_tag_proxy
+from esgpull.models.file import FileStatus
+from esgpull.models.query import File, Query, query_file_proxy, query_tag_proxy
 from esgpull.models.selection import Selection, selection_facet_proxy
 from esgpull.models.synda_file import SyndaFile
 from esgpull.models.tag import Tag
 
-# from esgpull.models.base import Base
 # from esgpull.models.options import Options
 
 

@@ -5,7 +5,8 @@ from sqlalchemy.orm import (
     mapped_column,
 )
 
-from esgpull.models.file import File, FileStatus
+from esgpull.models.file import FileStatus
+from esgpull.models.query import File
 
 
 class SyndaBase(MappedAsDataclass, DeclarativeBase):
