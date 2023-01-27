@@ -28,19 +28,18 @@ from esgpull.tui import Verbosity
 # @opts.selection_file
 def search(
     facets: list[str],
-    # query options
+    ## query_def
     tags: list[str],
     require: str | None,
     distrib: str | None,
     latest: str | None,
     replica: str | None,
     retracted: str | None,
-    # since: str | None,
-    # display
-    all_: bool,
+    ## display
+    _all: bool,
     zero: bool,
     page: int,
-    # ungrouped
+    ## ungrouped
     # date: bool,
     # data_node: bool,
     dry_run: bool,
@@ -85,7 +84,7 @@ def search(
                 raise PageIndexError(page, nb_pages)
             elif zero:
                 max_hits = 0
-            elif all_:
+            elif _all:
                 offset = 0
                 max_hits = nb
         if dry_run:

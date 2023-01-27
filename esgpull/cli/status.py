@@ -1,48 +1,63 @@
-# from collections import Counter
-# from typing import cast
+import click
+from click.exceptions import Abort, Exit
+from rich.box import MINIMAL_DOUBLE_HEAD
+from rich.table import Table
+from rich.text import Text
 
-# import click
-# from click.exceptions import Abort, Exit
-# from rich.box import MINIMAL
-# from rich.table import Table
-# from sqlalchemy.orm.attributes import InstrumentedAttribute
-
-# from esgpull import Esgpull
-# from esgpull.cli.decorators import opts
-# from esgpull.db.models import File, FileStatus
-# from esgpull.tui import Verbosity
-# from esgpull.utils import format_size
+from esgpull import Esgpull
+from esgpull.cli.decorators import opts
+from esgpull.models import sql
+from esgpull.tui import Verbosity
+from esgpull.utils import format_size
 
 
-# @click.command()
-# @opts.all
-# @opts.verbosity
-# def status(
-#     all_: bool,
-#     verbosity: Verbosity,
-# ):
-#     esg = Esgpull.with_verbosity(verbosity)
-#     with esg.ui.logging("status", onraise=Abort):
-#         statuses = set(FileStatus)
-#         if not all_:
-#             statuses.remove(FileStatus.Done)
-#         status_attr = cast(InstrumentedAttribute, File.status)
-#         with esg.db.select(File) as stmt:
-#             files = stmt.where(status_attr.in_(list(statuses))).scalars
-#         counts = Counter(file.status for file in files)
-#         sizes = {
-#             status: sum(file.size for file in files if file.status == status)
-#             for status in counts.keys()
-#         }
-#         if not counts:
-#             esg.ui.print("Queue is empty.")
-#             raise Exit(0)
-#         table = Table(box=MINIMAL)
-#         table.add_column("status", justify="right", style="bold blue")
-#         table.add_column("#")
-#         table.add_column("size")
-#         for status in counts.keys():
-#             table.add_row(
-#                 status.value, str(counts[status]), format_size(sizes[status])
-#             )
-#         esg.ui.print(table)
+@click.command()
+@opts.simple
+@opts.verbosity
+def status(
+    simple: bool,
+    verbosity: Verbosity,
+):
+    esg = Esgpull.with_verbosity(verbosity)
+    with esg.ui.logging("status", onraise=Abort):
+        status_count_size = list(esg.db.rows(sql.file.status_count_size))
+        table = Table(box=MINIMAL_DOUBLE_HEAD)
+        table.add_column("status", justify="right", style="bold blue")
+        table.add_column("files", justify="center")
+        table.add_column("size", justify="right", style="magenta")
+        if not status_count_size:
+            esg.ui.print("Queue is empty.")
+            raise Exit(0)
+        if simple:
+            for status, count, size in status_count_size:
+                table.add_row(status.value, str(count), format_size(size))
+        else:
+            esg.graph.load_db()
+            first_line = True
+            for status, count, total_size in status_count_size:
+                first_row = True
+                for query in esg.graph.queries.values():
+                    files = [f for f in query.files if f.status == status]
+                    if files:
+                        if first_row:
+                            if first_line:
+                                first_line = False
+                            else:
+                                # table.add_row()
+                                table.add_row(end_section=True)
+                            table.add_row(
+                                Text(status.value, justify="left"),
+                                # "",
+                                str(count),
+                                format_size(total_size),
+                                style="bold",
+                                end_section=True,
+                            )
+                            first_row = False
+                        table.add_row(
+                            # "",
+                            query.rich_name,
+                            str(len(files)),
+                            format_size(sum([f.size for f in files])),
+                        )
+        esg.ui.print(table)

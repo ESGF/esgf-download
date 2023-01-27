@@ -52,9 +52,7 @@ class file:
     )
 
     @staticmethod
-    def with_status(
-        *status: FileStatus, count: bool
-    ) -> sa.Select[tuple[File]]:
+    def with_status(*status: FileStatus) -> sa.Select[tuple[File]]:
         return sa.select(File).where(File.status.in_(status))
 
     status_count_size: sa.Select[tuple[FileStatus, int, int]] = (

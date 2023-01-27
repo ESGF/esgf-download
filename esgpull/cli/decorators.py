@@ -63,7 +63,7 @@ class args:
 
 class opts:
     all: Dec = click.option(
-        "all_",
+        "_all",
         "--all",
         "-a",
         is_flag=True,
@@ -136,6 +136,11 @@ class opts:
         is_flag=True,
         default=False,
     )
+    simple: Dec = click.option(
+        "--simple",
+        is_flag=True,
+        default=False,
+    )
     since: Dec = click.option(
         "--since",
         type=str,
@@ -191,7 +196,7 @@ _zero: Dec = optgroup.option(
     default=False,
 )
 _all: Dec = optgroup.option(
-    "all_",
+    "_all",
     "--all",
     "-a",
     is_flag=True,
