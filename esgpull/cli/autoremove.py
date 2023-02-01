@@ -14,7 +14,7 @@
 #     force: bool,
 #     verbosity: Verbosity,
 # ):
-#     esg = Esgpull.with_verbosity(verbosity)
+#     esg = Esgpull(verbosity=verbosity)
 #     with esg.ui.logging("autoremove", onraise=Abort):
 #         deprecated = esg.db.get_deprecated_files()
 #         nb = len(deprecated)

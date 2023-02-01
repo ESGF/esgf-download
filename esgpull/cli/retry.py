@@ -23,7 +23,7 @@ def retry(
         status = FileStatus.retryable()
     if not status:
         status = [FileStatus.Error, FileStatus.Cancelled]
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("retry", onraise=Abort):
         assert FileStatus.Done not in status
         assert FileStatus.Queued not in status

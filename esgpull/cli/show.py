@@ -6,7 +6,7 @@ from click.exceptions import Abort, BadArgumentUsage, Exit
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
 from esgpull.cli.utils import get_queries, valid_name_tag
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -33,7 +33,8 @@ def show(
     """
     Show recorded query data
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("show", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
             raise Exit(1)

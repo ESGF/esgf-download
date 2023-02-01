@@ -1,14 +1,14 @@
 import pytest
 
+from esgpull.config import RootSolver
 from esgpull.db.models import File, FileStatus
-from esgpull.utils import Root
 
 
 @pytest.fixture
 def root(tmp_path):
-    Root.root = tmp_path / "esgpull"
-    Root.root.mkdir()
-    return Root.get()
+    RootSolver.root = tmp_path / "esgpull"
+    RootSolver.mkdir()
+    return RootSolver.root
 
 
 @pytest.fixture

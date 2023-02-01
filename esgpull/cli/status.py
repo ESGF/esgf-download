@@ -18,7 +18,7 @@ def status(
     simple: bool,
     verbosity: Verbosity,
 ):
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("status", onraise=Abort):
         status_count_size = list(esg.db.rows(sql.file.status_count_size))
         table = Table(box=MINIMAL_DOUBLE_HEAD)

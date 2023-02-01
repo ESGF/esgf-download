@@ -1,16 +1,27 @@
-from esgpull.constants import ENV_VARNAME
+from esgpull.constants import ROOT_ENV
 
 
 class EsgpullException(Exception):
     msg: str = NotImplemented
 
-    def __init__(self, *args):
-        self.message = self.msg.format(*args)
-        super().__init__(self.message)
+    def __init__(self, *args, **kwargs):
+        self.message = self.msg.format(*args, **kwargs)
+        super().__init__(self.message.strip())
 
 
 class NoRootError(EsgpullException):
-    msg = f"Environment variable `{ENV_VARNAME}` must be set."
+    msg = f"Environment variable `{ROOT_ENV}` must be set."
+
+
+class InvalidInstallDirectory(EsgpullException):
+    msg = """{root}
+
+To setup a new install directory, please run:
+$ esgpull init
+
+or to set this location as the install directory:
+$ esgpull init --root {root}
+"""
 
 
 # class UnknownFacet(EsgpullException):
@@ -50,13 +61,17 @@ class PageIndexError(EsgpullException, IndexError):
 
 
 class SolrUnstableQueryError(EsgpullException):
-    msg = """Solr can not handle this query:
-{}"""
+    msg = """
+    Solr can not handle this query:
+    {}
+    """
 
 
 class QuerySourceError(EsgpullException):
-    msg = """This source cannot be parsed as a query:
-{}"""
+    msg = """
+    This source cannot be parsed as a query:
+    {}
+    """
 
 
 class TooShortKeyError(EsgpullException, KeyError):
@@ -76,12 +91,18 @@ class DownloadKindError(EsgpullException):
 
 
 class DownloadSizeError(EsgpullException):
-    msg = """Downloaded file is larger than expected: {} > {}"""
+    msg = """
+    Downloaded file is larger than expected: {} > {}
+    """
 
 
 class DownloadCancelled(EsgpullException):
-    msg = """Download cancelled by user."""
+    msg = """
+    Download cancelled by user.
+    """
 
 
 class NoClauseError(EsgpullException):
-    msg = """No clause provided (query might be empty)."""
+    msg = """
+    No clause provided (query might be empty).
+    """

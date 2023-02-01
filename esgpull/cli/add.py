@@ -40,7 +40,7 @@ def add(
     Adding a query will mark it as `untracked` by default.
     To associate files to this query, run the update command.
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("add", onraise=Abort):
         if query_file is not None:
             with query_file.open() as f:

@@ -62,7 +62,7 @@ def search(
 
     More info
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     # -> numeric ids are not consistent due to sort by instance_id
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(

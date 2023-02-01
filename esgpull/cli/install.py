@@ -30,7 +30,7 @@
 #     since: str | None,
 #     verbosity: Verbosity,
 # ) -> None:
-#     esg = Esgpull.with_verbosity(verbosity)
+#     esg = Esgpull(verbosity=verbosity)
 #     with (
 #         esg.context(
 #             distrib=distrib,

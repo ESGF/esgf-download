@@ -19,7 +19,7 @@ def track(
     """
     Remove queries
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("track", onraise=Abort):
         for sha in sha_or_name:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):
@@ -47,7 +47,7 @@ def untrack(
     """
     Remove queries
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("track", onraise=Abort):
         for sha in sha_or_name:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):

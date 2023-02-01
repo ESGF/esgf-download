@@ -1,43 +1,44 @@
 from __future__ import annotations
 
+from dataclasses import InitVar, dataclass, field
 from pathlib import Path
 from typing import Iterator
 
 import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
-from attrs import define, field
 
 from esgpull.config import Config
 from esgpull.models import File
 from esgpull.tui import logger
 
 
-@define
+@dataclass
 class Filesystem:
-    root: Path
     auth: Path
     data: Path
     db: Path
     log: Path
     tmp: Path
+    mkdir: InitVar[bool] = True
 
     @staticmethod
-    def from_config(config: Config) -> Filesystem:
+    def from_config(config: Config, mkdir: bool = False) -> Filesystem:
         return Filesystem(
-            root=config.paths.root,
             auth=config.paths.auth,
             data=config.paths.data,
             db=config.paths.db,
             log=config.paths.log,
             tmp=config.paths.tmp,
+            mkdir=mkdir,
         )
 
-    def __attrs_post_init__(self) -> None:
-        self.auth.mkdir(exist_ok=True)
-        self.data.mkdir(exist_ok=True)
-        self.db.mkdir(exist_ok=True)
-        self.log.mkdir(exist_ok=True)
-        self.tmp.mkdir(exist_ok=True)
+    def __post_init__(self, mkdir: bool = True) -> None:
+        if mkdir:
+            self.auth.mkdir(exist_ok=True)
+            self.data.mkdir(exist_ok=True)
+            self.db.mkdir(exist_ok=True)
+            self.log.mkdir(exist_ok=True)
+            self.tmp.mkdir(exist_ok=True)
 
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
@@ -81,7 +82,7 @@ class Filesystem:
                 logger.info(f"Deleted empty folder {subpath}")
 
 
-@define
+@dataclass
 class FileObject:
     tmp_path: Path
     final_path: Path

@@ -24,7 +24,7 @@ def remove(
     """
     Remove queries
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("remove", onraise=Abort):
         if sha_or_name is None and tag is None:
             raise click.UsageError("No query or tag provided.")

@@ -36,7 +36,7 @@ def update(
     yes: bool,
     verbosity: Verbosity,
 ) -> None:
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("update", onraise=Abort):
         # Select which queries to update + setup
         if sha_or_name is None and tag is None:

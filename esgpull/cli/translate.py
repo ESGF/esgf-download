@@ -1,4 +1,3 @@
-import logging
 from collections import Counter
 from pathlib import Path
 from typing import Mapping
@@ -17,9 +16,8 @@ from esgpull.cli.decorators import opts
 from esgpull.graph import Graph
 from esgpull.models import Options, Query
 from esgpull.models.selection import FacetValues, Selection
-from esgpull.tui import Verbosity
+from esgpull.tui import Verbosity, logger
 
-logger = logging.getLogger()
 SKIP = {"priority", "protocol"}
 options_names = Options()._names
 pp.ParserElement.set_default_whitespace_chars(" \t,")  # remove newline
@@ -183,7 +181,7 @@ def translate(
     """
     Translates each selection file
     """
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("translate", onraise=Abort):
         if len(paths) == 0:
             esg.ui.print("No file provided")

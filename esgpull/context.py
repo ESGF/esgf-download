@@ -261,6 +261,7 @@ class Context:
         repr=False,
         default_factory=dict,
     )
+    noraise: bool = False
 
     # def __init__(
     #     self,
@@ -456,7 +457,11 @@ class Context:
             if result.exc is not None:
                 excs.append(result.exc)
         if excs:
-            raise BaseExceptionGroup("fetch", excs)
+            group = BaseExceptionGroup("fetch", excs)
+            if self.noraise:
+                logger.exception(group)
+            else:
+                raise group
 
     async def _hits(self, *results: ResultHits) -> list[int]:
         hits = []

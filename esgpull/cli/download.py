@@ -24,7 +24,7 @@ def download(
     quiet: bool,
     verbosity: Verbosity,
 ):
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("download", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
             raise Exit(1)

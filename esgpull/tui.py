@@ -70,6 +70,8 @@ def toml_syntax(data: Mapping[str, Any]) -> Syntax:
 class UI:
     path: Path = field(converter=Path)
     verbosity: Verbosity = Verbosity.Normal
+    logfile: bool = True
+    default_onraise: type[Exception] | Exception | None = None
     # max_size: int = 1 << 30
 
     @staticmethod
@@ -81,8 +83,8 @@ class UI:
     @contextmanager
     def logging(
         self,
-        modulename: str,
-        onraise: type[Exception] | None = None,
+        modulename: str = "",
+        onraise: type[Exception] | Exception | None = None,
     ):
         handler: logging.Handler
         temp_path: Path | None = None
@@ -101,12 +103,14 @@ class UI:
             else:
                 handler = logging.StreamHandler()
             handler.setLevel(self.verbosity.get_level())
-        else:
+        elif self.logfile:
             date = datetime.utcnow().strftime(file_datefmt)
             filename = "-".join(["esgpull", modulename, date]) + ".log"
             temp_path = self.path / filename
             handler = logging.FileHandler(temp_path)
             handler.setLevel(logging.DEBUG)
+        else:
+            handler = logging.NullHandler()
         handler.setFormatter(logging.Formatter(fmt=fmt, datefmt=datefmt))
         logging.root.addHandler(handler)
         try:
@@ -132,14 +136,16 @@ class UI:
             locals_text = self.render(f_locals, highlight=False)
             logging.root.debug(f"Locals:\n{locals_text}")
             logging.root.exception("")
-            if self.verbosity < Verbosity.Errors:
-                self.print(f"[red]{type(exc).__name__}[/]: {exc}", err=True)
+            self.print(f"[red]{type(exc).__name__}[/]: {exc}", err=True)
+            if self.verbosity < Verbosity.Errors and self.logfile:
                 self.print(
                     f"See [yellow]{temp_path}[/] for error log.",
                     err=True,
                 )
             if onraise is not None:
                 raise onraise
+            elif self.default_onraise is not None:
+                raise self.default_onraise
             else:
                 raise
         else:
@@ -230,3 +236,11 @@ class UI:
             return Prompt.ask(msg, choices=choices, default=default)
         else:
             return Prompt.ask(msg, choices=choices)
+
+
+TempUI = UI(
+    "/tmp",
+    Verbosity.Errors,
+    logfile=False,
+    default_onraise=click.exceptions.Exit(1),
+)

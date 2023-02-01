@@ -14,7 +14,7 @@ def facet(
     key: str | None,
     verbosity: Verbosity,
 ):
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("facet", onraise=Abort):
         if key is None:
             results = esg.db.scalars(sql.facet.names)

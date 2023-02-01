@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import AsyncIterator
 
-from attrs import define, field
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -18,10 +18,11 @@ from rich.progress import (
 )
 
 from esgpull.auth import Auth, Credentials
-from esgpull.config import Config
+from esgpull.config import Config, RootSolver, RootSource
+from esgpull.constants import ROOT_ENV
 from esgpull.context import Context
 from esgpull.database import Database
-from esgpull.exceptions import DownloadCancelled
+from esgpull.exceptions import DownloadCancelled, InvalidInstallDirectory
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
 from esgpull.models import Facet, File, FileStatus, Options, Query, sql
@@ -29,41 +30,51 @@ from esgpull.models.utils import short_sha
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, Verbosity, logger
-from esgpull.utils import Root, format_size
+from esgpull.utils import format_size
 
 
-@define
+@dataclass(repr=False)
 class Esgpull:
-    root: Path = field(converter=Path, factory=Root.get)
-    config: Config = field(init=False)
-    ui: UI = field(init=False)
-    auth: Auth = field(init=False)
-    db: Database = field(init=False)
-    context: Context = field(init=False)
-    fs: Filesystem = field(init=False)
-    graph: Graph = field(init=False)
+    root: Path
+    config: Config
+    ui: UI
+    auth: Auth
+    db: Database
+    context: Context
+    fs: Filesystem
+    graph: Graph
 
-    @classmethod
-    def with_verbosity(
-        cls,
-        verbosity: Verbosity,
-        root: Path | None = None,
-    ) -> Esgpull:
-        with UI("/tmp", Verbosity.Detail).logging("root"):
-            if root is None:
-                root = Root.get()
-        esg = Esgpull(root)
-        esg.ui.verbosity = verbosity
-        return esg
-
-    def __attrs_post_init__(self) -> None:
+    def __init__(
+        self,
+        path: Path | str | None = None,
+        verbosity: Verbosity = Verbosity.Detail,
+        install: bool = False,
+    ) -> None:
+        RootSolver.set(path)
+        if RootSolver.installed:
+            if RootSolver.from_user_config is None:
+                warning = "Install directory has not been initialized.\n"
+                if RootSolver.source == RootSource.Default:
+                    warning += f"Using default location: {RootSolver.default}"
+                elif RootSolver.source == RootSource.Env:
+                    warning += f"Using env {ROOT_ENV}={RootSolver.from_env}"
+                else:
+                    warning += f"{RootSolver.source}"
+                warning += "\nTo disable this warning, please read from:\n"
+                warning += "$ esgpull init --help"
+                logger.warning(warning)
+        elif install:
+            RootSolver.mkdir()
+        else:
+            raise InvalidInstallDirectory(root=RootSolver.root)
+        self.root = RootSolver.root
         self.config = Config.load(root=self.root)
+        self.fs = Filesystem.from_config(self.config, mkdir=install)
         self.ui = UI.from_config(self.config)
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
         self.db = Database.from_config(self.config)
-        self.context = Context(self.config)
-        self.fs = Filesystem.from_config(self.config)
+        self.context = Context(self.config, noraise=True)
         self.graph = Graph(self.db)
 
     def fetch_index_nodes(self) -> list[str]:

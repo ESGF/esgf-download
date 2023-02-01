@@ -27,7 +27,7 @@ def config(
     value: str | None,
     verbosity: Verbosity,
 ):
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("config", onraise=Abort):
         info = extract_command(esg.config.dump(), key)
         esg.ui.print(info, toml=True)
