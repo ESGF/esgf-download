@@ -20,10 +20,14 @@ def count(item: Table) -> sa.Select[tuple[int]]:
     )
 
 
+def count_table(table: type[Table]) -> sa.Select[tuple[int]]:
+    return sa.select(sa.func.count("*")).select_from(table)
+
+
 class facet:
     all: sa.Select[tuple[Facet]] = sa.select(Facet)
     shas: sa.Select[tuple[str]] = sa.select(Facet.sha)
-    count: sa.Select[tuple[str, int]] = sa.select(
+    name_count: sa.Select[tuple[str, int]] = sa.select(
         Facet.name, sa.func.count("*")
     ).group_by(Facet.name)
     usage: sa.Select[tuple[Facet, int]] = (

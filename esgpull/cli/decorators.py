@@ -135,6 +135,16 @@ class opts:
         is_flag=True,
         default=False,
     )
+    reset: Dec = click.option(
+        "--reset",
+        is_flag=True,
+        default=False,
+    )
+    root: Dec = click.option(
+        "--root",
+        type=click.Path(exists=False, path_type=Path),
+        default=None,
+    )
     shas: Dec = click.option(
         "--shas",
         "-s",

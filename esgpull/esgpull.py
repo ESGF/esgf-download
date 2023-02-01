@@ -99,7 +99,7 @@ class Esgpull:
 
     def fetch_facets(self, update: bool = False) -> bool:
         """
-        Fill db with all existing params found in ESGF index nodes.
+        Fill db with all existing facets found in ESGF index nodes.
 
         1. Fetch index nodes from `Esgpull.fetch_index_nodes()`
         2. Fetch all facets (names + values) from all index nodes.
@@ -116,11 +116,10 @@ class Esgpull:
             "creation_date",
             # "datetime_end",
         ]
-        facets_db = self.db.scalars(sql.facet.all)
-        logger.debug(f"Found {len(facets_db)} facets in database")
-        if facets_db and not update:
+        nb_facets = self.db.scalars(sql.count_table(Facet))[0]
+        logger.info(f"Found {nb_facets} facets in database")
+        if nb_facets and not update:
             return False
-        # self.db.delete(*params)
         index_nodes = self.fetch_index_nodes()
         options = Options(distrib=False)
         query = Query(options=options)
@@ -135,6 +134,7 @@ class Esgpull:
             hints_coros.append(self.context._hints(*hints_results))
         hints = self.context.sync_gather(*hints_coros)
         new_facets: set[Facet] = set()
+        facets_db = self.db.scalars(sql.facet.all)
         for index_hints in hints:
             for name, values in index_hints[0].items():
                 if name in IGNORE_NAMES:
