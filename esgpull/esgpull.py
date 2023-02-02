@@ -18,8 +18,7 @@ from rich.progress import (
 )
 
 from esgpull.auth import Auth, Credentials
-from esgpull.config import Config, RootSolver, RootSource
-from esgpull.constants import ROOT_ENV
+from esgpull.config import Config, InstallConfig
 from esgpull.context import Context
 from esgpull.database import Database
 from esgpull.exceptions import DownloadCancelled, InvalidInstallDirectory
@@ -35,7 +34,7 @@ from esgpull.utils import format_size
 
 @dataclass(repr=False)
 class Esgpull:
-    root: Path
+    path: Path
     config: Config
     ui: UI
     auth: Auth
@@ -50,26 +49,25 @@ class Esgpull:
         verbosity: Verbosity = Verbosity.Detail,
         install: bool = False,
     ) -> None:
-        RootSolver.set(path)
-        if RootSolver.installed:
-            if RootSolver.from_user_config is None:
-                warning = "Install directory has not been initialized.\n"
-                if RootSolver.source == RootSource.Default:
-                    warning += f"Using default location: {RootSolver.default}"
-                elif RootSolver.source == RootSource.Env:
-                    warning += f"Using env {ROOT_ENV}={RootSolver.from_env}"
-                else:
-                    warning += f"{RootSolver.source}"
-                warning += "\nTo disable this warning, please read from:\n"
-                warning += "$ esgpull init --help"
-                logger.warning(warning)
-        elif install:
-            RootSolver.mkdir()
+        if path is not None:
+            path = Path(path)
+            InstallConfig.choose(path=path)
+            default = path
+            warning = f"Using unknown location: {path}\n"
         else:
-            raise InvalidInstallDirectory(root=RootSolver.root)
-        self.root = RootSolver.root
-        self.config = Config.load(root=self.root)
-        self.fs = Filesystem.from_config(self.config, mkdir=install)
+            default = InstallConfig.default
+            warning = f"Using default location: {default}\n"
+        if InstallConfig.current is None:
+            self.path = default
+            warning += "To disable this warning, please run:\n"
+            warning += f"$ esgpull self install {self.path}"
+            logger.warning(warning)
+        else:
+            self.path = InstallConfig.current.path
+        if not install and not self.path.is_dir():
+            raise InvalidInstallDirectory(path=self.path)
+        self.config = Config.load(path=self.path)
+        self.fs = Filesystem.from_config(self.config, install=install)
         self.ui = UI.from_config(self.config)
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)

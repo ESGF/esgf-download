@@ -14,13 +14,25 @@ class NoRootError(EsgpullException):
 
 
 class InvalidInstallDirectory(EsgpullException):
-    msg = """{root}
+    msg = """{path}
 
 To setup a new install directory, please run:
-$ esgpull init
+$ esgpull self install
 
 or to set this location as the install directory:
-$ esgpull init --root {root}
+$ esgpull self install {path}
+"""
+
+
+class PathAlreadyInstalled(EsgpullException):
+    msg = """{path}
+{msg}
+"""
+
+
+class NameAlreadyInstalled(EsgpullException):
+    msg = """{name}
+{msg}
 """
 
 

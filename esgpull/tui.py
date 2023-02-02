@@ -237,11 +237,14 @@ class UI:
         else:
             return Prompt.ask(msg, choices=choices)
 
-    def prompt(self, msg, default: str | None = None) -> str:
+    def prompt(self, msg: str, default: str | None = None) -> str:
         if default is not None:
             return Prompt.ask(msg, default=default)
         else:
             return Prompt.ask(msg)
+
+    def rule(self, msg: str):
+        _console.rule(msg)
 
 
 TempUI = UI(

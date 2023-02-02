@@ -1,14 +1,14 @@
 import pytest
 
-from esgpull.config import RootSolver
+from esgpull.config import InstallConfig
 from esgpull.db.models import File, FileStatus
 
 
 @pytest.fixture
 def root(tmp_path):
-    RootSolver.root = tmp_path / "esgpull"
-    RootSolver.mkdir()
-    return RootSolver.root
+    idx = InstallConfig.add(tmp_path / "esgpull")
+    InstallConfig.choose(idx=idx)
+    return InstallConfig.installs[idx].path
 
 
 @pytest.fixture

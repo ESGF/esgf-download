@@ -42,6 +42,12 @@ class args:
         required=False,
         default=None,
     )
+    path: Dec = click.argument(
+        "path",
+        type=click.Path(exists=False, path_type=Path),
+        required=False,
+        default=None,
+    )
     status: Dec = click.argument(
         "status",
         type=EnumParam(FileStatus),
@@ -124,6 +130,12 @@ class opts:
         is_flag=True,
         default=False,
     )
+    name: Dec = click.option(
+        "--name",
+        "-n",
+        type=str,
+        default=None,
+    )
     query_file: Dec = click.option(
         "--query-file",
         "-q",
@@ -139,11 +151,6 @@ class opts:
         "--reset",
         is_flag=True,
         default=False,
-    )
-    root: Dec = click.option(
-        "--root",
-        type=click.Path(exists=False, path_type=Path),
-        default=None,
     )
     shas: Dec = click.option(
         "--shas",

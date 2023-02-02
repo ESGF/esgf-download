@@ -1,5 +1,5 @@
 CONFIG_FILENAME = "config.toml"
-ROOT_ENV = "ESGPULL_HOME"
+ROOT_ENV = "ESGPULL_CURRENT"
 
 IDP = "/esgf-idp/openid/"
 CEDA_IDP = "/OpenID/Provider/server/"

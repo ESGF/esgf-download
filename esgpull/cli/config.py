@@ -3,6 +3,7 @@ from click.exceptions import Abort
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
+from esgpull.constants import CONFIG_FILENAME
 from esgpull.tui import Verbosity
 
 
@@ -30,4 +31,5 @@ def config(
     esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("config", onraise=Abort):
         info = extract_command(esg.config.dump(), key)
+        esg.ui.rule(str(esg.path / CONFIG_FILENAME))
         esg.ui.print(info, toml=True)

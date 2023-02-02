@@ -8,10 +8,10 @@ from esgpull.cli.add import add
 from esgpull.cli.config import config
 from esgpull.cli.download import download
 from esgpull.cli.facet import facet
-from esgpull.cli.init import init
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search
+from esgpull.cli.self import self
 from esgpull.cli.show import show
 from esgpull.cli.status import status
 from esgpull.cli.track import track, untrack
@@ -36,7 +36,7 @@ SUBCOMMANDS: list[click.Command] = [
     download,
     facet,
     # get,
-    init,
+    self,
     # install,
     # login,
     remove,

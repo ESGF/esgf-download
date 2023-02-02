@@ -19,21 +19,21 @@ class Filesystem:
     db: Path
     log: Path
     tmp: Path
-    mkdir: InitVar[bool] = True
+    install: InitVar[bool] = True
 
     @staticmethod
-    def from_config(config: Config, mkdir: bool = False) -> Filesystem:
+    def from_config(config: Config, install: bool = False) -> Filesystem:
         return Filesystem(
             auth=config.paths.auth,
             data=config.paths.data,
             db=config.paths.db,
             log=config.paths.log,
             tmp=config.paths.tmp,
-            mkdir=mkdir,
+            install=install,
         )
 
-    def __post_init__(self, mkdir: bool = True) -> None:
-        if mkdir:
+    def __post_init__(self, install: bool = True) -> None:
+        if install:
             self.auth.mkdir(exist_ok=True)
             self.data.mkdir(exist_ok=True)
             self.db.mkdir(exist_ok=True)

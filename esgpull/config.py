@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
-from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
@@ -11,129 +11,175 @@ import tomlkit
 from attrs import Factory, define, field
 from cattrs import Converter
 from cattrs.gen import make_dict_unstructure_fn, override
+from typing_extensions import NotRequired, TypedDict
 
 from esgpull.constants import CONFIG_FILENAME, ROOT_ENV
+from esgpull.exceptions import NameAlreadyInstalled, PathAlreadyInstalled
 
 
-class RootSource(Enum):
-    Set = auto()
-    UserConfig = auto()
-    Env = auto()
-    Default = auto()
+@dataclass(init=False)
+class Install:
+    path: Path
+    name: str | None = None
+
+    def __init__(self, path: Path | str, name: str | None = None) -> None:
+        self.path = Path(path)
+        self.name = name
+
+    def asdict(self) -> InstallDict:
+        result: InstallDict = {"path": str(self.path)}
+        if self.name is not None:
+            result["name"] = self.name
+        return result
 
 
-@dataclass
-class _RootSolver:
-    root: Path
-    default: Path
-    from_set: Path | None
-    from_env: Path | None
-    from_user_config: Path | None
-    user_config_path: Path
+class InstallDict(TypedDict):
+    path: str
+    name: NotRequired[str]
 
-    def __init__(self, root: Path | str | None = None) -> None:
-        self.default = Path.home() / ".esgpull"
-        self.from_set = None
-        self.reload()
 
-    def reload(self) -> None:
-        self._load_from_env()
-        self._load_from_user_config()
-        self._resolve()
+class InstallConfigDict(TypedDict):
+    current: NotRequired[int]
+    installs: list[InstallDict]
 
-    def set(self, root: Path | str | None = None) -> None:
-        if root is not None:
-            self.from_set = Path(root).expanduser().resolve()
-        else:
-            self.from_set = None
-        self.reload()
 
-    @property
-    def source(self) -> RootSource:
-        if self.from_set is not None:
-            return RootSource.Set
-        elif self.from_user_config is not None:
-            return RootSource.UserConfig
-        elif self.from_env is not None:
-            return RootSource.Env
-        else:
-            return RootSource.Default
+@dataclass(init=False)
+class _InstallConfig:
+    path: Path
+    current_idx: int | None
+    installs: list[Install]
 
-    @property
-    def installed(self) -> bool:
-        return self.root.is_dir()
-
-    @property
-    def user_installed(self) -> bool:
-        if self.from_user_config is None:
-            return False
-        else:
-            return self.from_user_config.is_dir()
-
-    def mkdir(self) -> None:
-        self.root.mkdir(parents=True, exist_ok=True)
-        config_file = self.root / CONFIG_FILENAME
-        if not config_file.is_file():
-            config_file.touch()
-
-    def create_user_config(self, override: bool = False) -> None:
-        if self.user_config_path.is_file() and not override:
-            raise ValueError(f"{self.user_config_path} already exists")
-        elif self.root is None:
-            raise ValueError("Nothing to do")
-        user_config_dir = self.user_config_path.parent
-        if not user_config_dir.is_dir():
-            user_config_dir.mkdir(parents=True)
-        with self.user_config_path.open("w") as f:
-            f.write(str(self.root))
-
-    def reset_user_config(self) -> None:
-        user_config_dir = self.user_config_path.parent
-        if self.user_config_path.is_file():
-            self.user_config_path.unlink()
-        if user_config_dir.is_dir():
-            user_config_dir.rmdir()
-
-    def _different_env(self) -> None:
-        raise ValueError(
-            f"{ROOT_ENV}={self.from_env} is different from installation "
-            f"directory at {self.from_user_config}"
-        )
-
-    def _load_from_env(self) -> None:
-        from_env = os.getenv(ROOT_ENV)
-        if from_env is not None:
-            self.from_env = Path(from_env).expanduser().resolve()
-        else:
-            self.from_env = None
-
-    def _load_from_user_config(self) -> None:
+    def __init__(self) -> None:
         user_config_dir = platformdirs.user_config_path("esgpull")
-        self.user_config_path = user_config_dir / "root.path"
-        if self.user_config_path.is_file():
-            content = self.user_config_path.read_text()
-            self.from_user_config = Path(content).expanduser().resolve()
+        self.path = user_config_dir / "config.json"
+        if self.path.is_file():
+            with self.path.open() as f:
+                content = json.load(f)
+            self.current_idx = content.get("current")
+            installs = content.get("installs", [])
+            self.installs = [Install(**inst) for inst in installs]
         else:
-            self.from_user_config = None
+            self.current_idx = None
+            self.installs = []
 
-    def _resolve(self):
-        if self.from_set is not None:
-            self.root = self.from_set
-        elif self.from_env is None and self.from_user_config is not None:
-            self.root = self.from_user_config
-        elif self.from_env is not None and self.from_user_config is None:
-            self.root = self.from_env
-        elif self.from_env is not None and self.from_user_config is not None:
-            if self.from_env != self.from_user_config:
-                self.root = None
-                self._different_env()
-            else:
-                self.root = self.from_user_config
+    def fullpath(self, path: Path) -> Path:
+        return path.expanduser().resolve()
+
+    @property
+    def current(self) -> Install | None:
+        env = os.getenv(ROOT_ENV)
+        if env is not None:
+            return self.installs[int(env)]
+        elif self.current_idx is not None:
+            return self.installs[self.current_idx]
         else:
-            self.root = self.default
+            return None
+
+    @property
+    def default(self) -> Path:
+        return Path.home() / ".esgpull"
+
+    def activate_msg(self, idx: int, commented: bool = False) -> str:
+        install = self.installs[idx]
+        name = install.name or install.path
+        msg = f"""
+To choose {install.path} as the current install location:
+
+$ esgpull self choose {name}
 
 
-RootSolver = _RootSolver()
+To enable {install.path} for the current shell:
+
+$ eval $(esgpull self activate {name})
+""".strip()
+        if commented:
+            lines = msg.splitlines()
+            return "\n".join("# " + line for line in lines)
+        else:
+            return msg
+
+    def activate_needs_eval(self, idx: int) -> str:
+        export = f"export {ROOT_ENV}={idx}"
+        comment = self.activate_msg(idx, commented=True)
+        return "\n".join([export, comment])
+
+    def asdict(self) -> InstallConfigDict:
+        result: InstallConfigDict = {
+            "installs": [inst.asdict() for inst in self.installs]
+        }
+        if self.current_idx is not None:
+            result["current"] = self.current_idx
+        return result
+
+    def add(self, path: Path, name: str | None = None) -> int:
+        install = Install(self.fullpath(path), name)
+        idx_path = self.index(path=install.path)
+        if idx_path > -1:
+            raise PathAlreadyInstalled(
+                path=install.path,
+                msg=self.activate_msg(idx_path),
+            )
+        if name is not None:
+            idx_name = self.index(name=name)
+            if idx_name > -1:
+                raise NameAlreadyInstalled(
+                    name=name,
+                    msg=self.activate_msg(idx_name),
+                )
+        self.installs.append(install)
+        return len(self.installs) - 1
+
+    def choose(
+        self,
+        *,
+        idx: int | None = None,
+        name: str | None = None,
+        path: Path | None = None,
+    ) -> None:
+        if idx is not None:
+            self.current_idx = idx
+        elif name is not None:
+            self.current_idx = self.index(name=name)
+        elif path is not None:
+            self.current_idx = self.index(path=path)
+        else:
+            self.current_idx = None
+        if self.current_idx == -1:
+            self.current_idx = None
+
+    def write(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("w") as f:
+            json.dump(self.asdict(), f)
+
+    def index(
+        self,
+        *,
+        name: str | None = None,
+        path: Path | None = None,
+    ) -> int:
+        if name is not None:
+            return self._index_name(name)
+        elif path is not None:
+            return self._index_path(path)
+        else:
+            raise ValueError("nothing provided")
+
+    def _index_name(self, name: str) -> int:
+        for i, inst in enumerate(self.installs):
+            if inst.name is not None and name == inst.name:
+                return i
+        return -1
+
+    def _index_path(self, path: Path) -> int:
+        path = self.fullpath(path)
+        for i, inst in enumerate(self.installs):
+            if path == inst.path:
+                return i
+        return -1
+
+
+InstallConfig = _InstallConfig()
 
 
 @define
@@ -146,23 +192,43 @@ class Paths:
 
     @auth.default
     def _auth_factory(self) -> Path:
-        return RootSolver.root / "auth"
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "auth"
 
     @data.default
     def _data_factory(self) -> Path:
-        return RootSolver.root / "data"
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "data"
 
     @db.default
     def _db_factory(self) -> Path:
-        return RootSolver.root / "db"
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "db"
 
     @log.default
     def _log_factory(self) -> Path:
-        return RootSolver.root / "log"
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "log"
 
     @tmp.default
     def _tmp_factory(self) -> Path:
-        return RootSolver.root / "tmp"
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "tmp"
 
 
 @define
@@ -200,8 +266,8 @@ class Config:
     _raw: str | None = field(init=False, default=None)
 
     @classmethod
-    def load(cls, root: Path) -> Config:
-        config_file = root / CONFIG_FILENAME
+    def load(cls, path: Path) -> Config:
+        config_file = path / CONFIG_FILENAME
         if config_file.is_file():
             with config_file.open() as fh:
                 raw = fh.read()
@@ -209,14 +275,17 @@ class Config:
         else:
             raw = None
             doc = tomlkit.TOMLDocument()
-        # doc.add(tomlkit.key(["paths", "root"]), tomlkit.string(str(root)))
         config = _converter_defaults.structure(doc, cls)
         config._raw = raw
         return config
 
     @classmethod
     def default(cls) -> Config:
-        return cls.load(RootSolver.root)
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return cls.load(root)
 
     def dumps(self, defaults: bool = True, comments: bool = False) -> str:
         return self.dump(defaults, comments).as_string()
