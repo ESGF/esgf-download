@@ -1,9 +1,10 @@
 # from math import ceil
+from dataclasses import dataclass
 from typing import AsyncIterator
 
 from httpx import AsyncClient
 
-from esgpull.db.models import File
+from esgpull.models import File
 
 # import asyncio
 # from urllib.parse import urlsplit
@@ -11,8 +12,27 @@ from esgpull.db.models import File
 # from esgpull.context import Context
 
 
+@dataclass
+class DownloadCtx:
+    file: File
+    completed: int = 0
+    chunk: bytes | None = None
+
+    @property
+    def finished(self) -> bool:
+        return self.completed == self.file.size
+
+    @property
+    def error(self) -> bool:
+        return self.completed > self.file.size
+
+
 class BaseDownloader:
-    def stream(self, client: AsyncClient, file: File) -> AsyncIterator[bytes]:
+    def stream(
+        self,
+        client: AsyncClient,
+        ctx: DownloadCtx,
+    ) -> AsyncIterator[DownloadCtx]:
         raise NotImplementedError
 
 
@@ -22,12 +42,16 @@ class Simple(BaseDownloader):
     """
 
     async def stream(
-        self, client: AsyncClient, file: File
-    ) -> AsyncIterator[bytes]:
-        async with client.stream("GET", file.url) as resp:
+        self,
+        client: AsyncClient,
+        ctx: DownloadCtx,
+    ) -> AsyncIterator[DownloadCtx]:
+        async with client.stream("GET", ctx.file.url) as resp:
             resp.raise_for_status()
             async for chunk in resp.aiter_bytes():
-                yield chunk
+                ctx.completed += len(chunk)
+                ctx.chunk = chunk
+                yield ctx
 
 
 # class Distributed(BaseDownloader):

@@ -20,7 +20,7 @@ print("Number of CMIP6 datasets:", c.hits)
 
 ## Usage
 
-```sh
+```console
 $ esgpull --help
 Usage: esgpull [OPTIONS] COMMAND [ARGS]...
 

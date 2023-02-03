@@ -1,18 +1,16 @@
-from pathlib import Path
-
 import pytest
+import sqlalchemy as sa
 
 from esgpull import __version__
 from esgpull.config import Config
-from esgpull.db.core import Database
-from esgpull.db.models import FileStatus, Param
-from esgpull.query import Query
+from esgpull.database import Database
+from esgpull.models import Facet, FileStatus, sql
 
 
 @pytest.fixture
 def config(root):
     cfg = Config.load(root)
-    cfg.paths.db.mkdir()
+    cfg.paths.db.mkdir(parents=True)
     return cfg
 
 
@@ -27,83 +25,45 @@ def test_empty(root, db):
 
 
 def test_CRUD(db):
-    with db.select(Param) as select:
-        assert len(select.scalars) == 0
-    param = Param("name", "value")
-    db.add(param)
-    with db.select(Param) as select:
-        results = select.scalars
-    assert results == [param]
-    param.value = "other"
-    db.add(param)  # this is an UPDATE as `param` comes from a SELECT
-    with db.select(Param) as select:
-        results = select.where(Param.name == "name").scalars
-    assert len(results) == 1
-    assert results[0].value == "other"
-    db.delete(param)
-    with db.select(Param) as select:
-        assert len(select.scalars) == 0
+    stmt = sa.select(Facet)
+    facets = db.scalars(stmt)
+    assert len(facets) == 0
+    facet = Facet(name="name", value="value")
+    facet.compute_sha()
+    db.add(facet)
+    facets = db.scalars(stmt)
+    assert facets == [facet]
+    facet.value = "other"
+    facet.compute_sha()
+    db.add(facet)  # this is an UPDATE as `facet` comes from a SELECT
+    facets_with_name = db.scalars(stmt.where(Facet.name == "name"))
+    assert len(facets_with_name) == 1
+    assert facets_with_name[0].value == "other"
+    db.delete(facet)
+    facets = db.scalars(stmt)
+    assert len(facets) == 0
 
 
-def test_scalar(db):
-    params = [Param(f"name{i}", f"value{i}") for i in range(2)]
-    db.add(*params)
-    with db.select(Param) as select:
-        assert select.results == [(params[0],), (params[1],)]
-        with pytest.raises(AssertionError):
-            select.scalar  # `scalar` expects single result
-        assert select.where(Param.name == "name0").scalar == params[0]
+def test_rows(db):
+    facets = [Facet(name=f"name{i}", value=f"value{i}") for i in range(2)]
+    for facet in facets:
+        facet.compute_sha()
+    db.add(*facets)
+    stmt = sa.select(Facet)
+    rows = db.rows(stmt)
+    assert rows == [(facets[0],), (facets[1],)]
+    assert db.scalars(stmt.where(Facet.name == "name0")) == [facets[0]]
 
 
-def test_has(db, file):
-    filepath = Path(file.local_path, file.filename)
-    assert not db.has(file)
-    assert not db.has(filepath=filepath)
+def test_in(db, file):
+    assert file not in db
     db.add(file)
-    assert db.has(file)
-    assert db.has(filepath=filepath)
+    assert file in db
     db.delete(file)
-    assert not db.has(file)
-    assert not db.has(filepath=filepath)
-    with pytest.raises(ValueError):
-        assert db.has()
+    assert file not in db
 
 
-def test_search(db, file):
-    # setup
-    variable_ids = ["a", "b", "c"]
-    files = []
-    for variable_id in variable_ids:
-        f = file.clone()
-        # required for UniqueConstraint on file_id
-        f.file_id += variable_id
-        f.raw = {"project": ["test"], "variable_id": [variable_id]}
-        files.append(f)
-    db.add(*files)
-
-    # test search simple
-    query = Query()
-    query.project = "test"
-    # query variable_ids `b` and `c`
-    for variable_id in variable_ids[1:]:
-        subquery = query.add()
-        subquery.variable_id = variable_id
-    assert db.search(query=query) == files[1:]
-
-    # test search no duplicates
-    query = Query()
-    a = query.add()
-    a.variable_id = "a"
-    test = query.add()
-    test.project = "test"
-    results_query = db.search(query=query)
-    results_a = db.search(query=a)
-    results_test = db.search(query=test)
-    assert len(results_query) < len(results_a) + len(results_test)
-
-
-def test_search_status(db, file):
+def test_sql_status(db, file):
     db.add(file)
-    assert db.search(statuses=[FileStatus.Queued]) == [file]
-    assert db.search(statuses=[FileStatus.Done]) == []
-    assert db.has(file)
+    assert db.scalars(sql.file.with_status(FileStatus.Queued)) == [file]
+    assert db.scalars(sql.file.with_status(FileStatus.Done)) == []

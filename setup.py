@@ -24,6 +24,8 @@ INSTALL_REQUIRES = [
     'attrs>=22.1.0',
     'cattrs>=22.2.0',
     'click-option-group==0.5.3',
+    'platformdirs>=2.6.2',
+    'pyparsing>=3.0.9',
 ]
 ENTRY_POINTS = {
     'console_scripts': [
@@ -33,7 +35,7 @@ ENTRY_POINTS = {
 
 setup_kwargs = {
     'name': 'esgpull',
-    'version': '0.2.0',
+    'version': '0.3.0',
     'description': 'ESGF data discovery, download, replication tool',
     'long_description': long_description,
     'license': 'Public',
@@ -44,7 +46,7 @@ setup_kwargs = {
     'url': '',
     'packages': [
         'esgpull',
-        'esgpull.db',
+        'esgpull.models',
         'esgpull.cli',
     ],
     'package_data': {'': ['*']},

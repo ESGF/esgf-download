@@ -6,7 +6,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.db.models import FileStatus
+from esgpull.models import FileStatus, sql
 from esgpull.tui import Verbosity
 
 
@@ -16,18 +16,18 @@ from esgpull.tui import Verbosity
 @opts.verbosity
 def retry(
     status: Sequence[FileStatus],
-    all_: bool,
+    _all: bool,
     verbosity: Verbosity,
 ):
-    if all_:
+    if _all:
         status = FileStatus.retryable()
     if not status:
         status = [FileStatus.Error, FileStatus.Cancelled]
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("retry", onraise=Abort):
         assert FileStatus.Done not in status
         assert FileStatus.Queued not in status
-        files = esg.db.search(statuses=status)
+        files = list(esg.db.scalars(sql.file.with_status(*status)))
         status_str = "/".join(f"[bold red]{s.value}[/]" for s in status)
         if not files:
             esg.ui.print(f"No {status_str} files found.")

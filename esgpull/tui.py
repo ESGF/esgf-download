@@ -5,8 +5,9 @@ import logging
 from contextlib import contextmanager
 from datetime import datetime
 from enum import IntEnum
+from json import dumps as json_dumps
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import click.exceptions
 from attrs import define, field
@@ -14,8 +15,12 @@ from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.logging import RichHandler
 from rich.progress import Progress, ProgressColumn
+from rich.prompt import Confirm, Prompt
 from rich.status import Status
+from rich.syntax import Syntax
 from rich.text import Text
+from tomlkit import dumps as tomlkit_dumps
+from yaml import dump as yaml_dump
 
 from esgpull.config import Config
 
@@ -53,10 +58,20 @@ class DummyLive:
         ...
 
 
+def yaml_syntax(data: Mapping[str, Any]) -> Syntax:
+    return Syntax(yaml_dump(data, sort_keys=False), "yaml", theme="ansi_dark")
+
+
+def toml_syntax(data: Mapping[str, Any]) -> Syntax:
+    return Syntax(tomlkit_dumps(data), "toml", theme="ansi_dark")
+
+
 @define
 class UI:
     path: Path = field(converter=Path)
     verbosity: Verbosity = Verbosity.Normal
+    logfile: bool = True
+    default_onraise: type[Exception] | Exception | None = None
     # max_size: int = 1 << 30
 
     @staticmethod
@@ -68,8 +83,8 @@ class UI:
     @contextmanager
     def logging(
         self,
-        modulename: str,
-        onraise: type[Exception] | None = None,
+        modulename: str = "",
+        onraise: type[Exception] | Exception | None = None,
     ):
         handler: logging.Handler
         temp_path: Path | None = None
@@ -88,12 +103,14 @@ class UI:
             else:
                 handler = logging.StreamHandler()
             handler.setLevel(self.verbosity.get_level())
-        else:
+        elif self.logfile:
             date = datetime.utcnow().strftime(file_datefmt)
             filename = "-".join(["esgpull", modulename, date]) + ".log"
             temp_path = self.path / filename
             handler = logging.FileHandler(temp_path)
             handler.setLevel(logging.DEBUG)
+        else:
+            handler = logging.NullHandler()
         handler.setFormatter(logging.Formatter(fmt=fmt, datefmt=datefmt))
         logging.root.addHandler(handler)
         try:
@@ -101,6 +118,7 @@ class UI:
         except (click.exceptions.Exit, click.exceptions.Abort):
             if temp_path is not None:
                 atexit.register(temp_path.unlink)
+            raise
         except click.exceptions.ClickException:
             raise
         except BaseException as exc:
@@ -117,15 +135,17 @@ class UI:
                 f_locals = tb.tb_frame.f_locals
             locals_text = self.render(f_locals, highlight=False)
             logging.root.debug(f"Locals:\n{locals_text}")
-            logging.root.exception("Error:")
-            if self.verbosity < Verbosity.Errors:
+            logging.root.exception("")
+            self.print(f"[red]{type(exc).__name__}[/]: {exc}", err=True)
+            if self.verbosity < Verbosity.Errors and self.logfile:
                 self.print(
                     f"See [yellow]{temp_path}[/] for error log.",
                     err=True,
-                    style="red",
                 )
             if onraise is not None:
                 raise onraise
+            elif self.default_onraise is not None:
+                raise self.default_onraise
             else:
                 raise
         else:
@@ -138,19 +158,43 @@ class UI:
         self,
         msg: Any,
         err: bool = False,
+        json: bool = False,
+        yaml: bool = False,
+        toml: bool = False,
         verbosity: Verbosity = Verbosity.Normal,
         **kwargs: Any,
     ) -> None:
         if self.verbosity >= verbosity:
             console = _err_console if err else _console
-            if not console.is_interactive:
-                kwargs.setdefault("crop", False)
-                kwargs.setdefault("overflow", "ignore")
-            console.print(msg, **kwargs)
+            if json:
+                console.print_json(json_dumps(msg), **kwargs)
+            elif yaml:
+                console.print(yaml_syntax(msg), **kwargs)
+            elif toml:
+                console.print(toml_syntax(msg), **kwargs)
+            else:
+                if not console.is_interactive:
+                    kwargs.setdefault("crop", False)
+                    kwargs.setdefault("overflow", "ignore")
+                console.print(msg, **kwargs)
 
-    def render(self, msg: Any, **kwargs: Any) -> str:
+    def render(
+        self,
+        msg: Any,
+        json: bool = False,
+        yaml: bool = False,
+        toml: bool = False,
+        **kwargs: Any,
+    ) -> str:
         with _console.capture() as capture:
-            _console.print(msg, **kwargs)
+            if json:
+                _console.print_json(json_dumps(msg), **kwargs)
+            elif yaml:
+                _console.print(yaml_syntax(msg), **kwargs)
+            elif toml:
+                _console.print(toml_syntax(msg), **kwargs)
+            else:
+                _console.print(msg, **kwargs)
         return capture.get()
 
     def live(
@@ -178,3 +222,34 @@ class UI:
 
     def spinner(self, msg: str) -> Status:
         return _console.status(msg, spinner="earth")
+
+    def ask(self, msg: str, default: bool = False) -> bool:
+        return Confirm.ask(msg, default=default)
+
+    def choice(
+        self,
+        msg: str,
+        choices: list[str],
+        default: str | None = None,
+    ) -> str:
+        if default is not None:
+            return Prompt.ask(msg, choices=choices, default=default)
+        else:
+            return Prompt.ask(msg, choices=choices)
+
+    def prompt(self, msg: str, default: str | None = None) -> str:
+        if default is not None:
+            return Prompt.ask(msg, default=default)
+        else:
+            return Prompt.ask(msg)
+
+    def rule(self, msg: str):
+        _console.rule(msg)
+
+
+TempUI = UI(
+    "/tmp",
+    Verbosity.Errors,
+    logfile=False,
+    default_onraise=click.exceptions.Exit(1),
+)

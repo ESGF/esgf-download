@@ -77,9 +77,9 @@ class Credentials:
 
 @unique
 class AuthStatus(Enum):
-    Valid = "Valid"
-    Expired = "Expired"
-    Missing = "Missing"
+    Valid = "valid"
+    Expired = "expired"
+    Missing = "missing"
 
 
 @define

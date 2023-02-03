@@ -3,8 +3,8 @@ from logging.config import fileConfig
 from alembic import context
 
 from esgpull.config import Config
-from esgpull.db.core import Database
-from esgpull.db.models import Table
+from esgpull.database import Database
+from esgpull.models import Base
 
 # from sqlalchemy import engine_from_config, pool
 
@@ -18,7 +18,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Table.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -63,7 +63,7 @@ def run_migrations_online() -> None:
     if connectable is None:
         _config = Config()
         db = Database.from_config(_config, run_migrations=False)
-        connectable = db.engine
+        connectable = db._engine
 
     with connectable.connect() as connection:
         context.configure(

@@ -1,49 +1,50 @@
 from __future__ import annotations
 
+from dataclasses import InitVar, dataclass, field
 from pathlib import Path
 from typing import Iterator
 
 import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
-from attrs import define, field
 
 from esgpull.config import Config
-from esgpull.db.models import File
+from esgpull.models import File
 from esgpull.tui import logger
 
 
-@define
+@dataclass
 class Filesystem:
-    root: Path
     auth: Path
     data: Path
     db: Path
     log: Path
     tmp: Path
+    install: InitVar[bool] = True
 
     @staticmethod
-    def from_config(config: Config) -> Filesystem:
+    def from_config(config: Config, install: bool = False) -> Filesystem:
         return Filesystem(
-            root=config.paths.root,
             auth=config.paths.auth,
             data=config.paths.data,
             db=config.paths.db,
             log=config.paths.log,
             tmp=config.paths.tmp,
+            install=install,
         )
 
-    def __attrs_post_init__(self) -> None:
-        self.auth.mkdir(exist_ok=True)
-        self.data.mkdir(exist_ok=True)
-        self.db.mkdir(exist_ok=True)
-        self.log.mkdir(exist_ok=True)
-        self.tmp.mkdir(exist_ok=True)
+    def __post_init__(self, install: bool = True) -> None:
+        if install:
+            self.auth.mkdir(parents=True, exist_ok=True)
+            self.data.mkdir(parents=True, exist_ok=True)
+            self.db.mkdir(parents=True, exist_ok=True)
+            self.log.mkdir(parents=True, exist_ok=True)
+            self.tmp.mkdir(parents=True, exist_ok=True)
 
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
 
     def tmp_path_of(self, file: File) -> Path:
-        return self.tmp / f"{file.id}.part"
+        return self.tmp / f"{file.sha}.part"
 
     def glob_netcdf(self) -> Iterator[Path]:
         for path in self.data.glob("**/*.nc"):
@@ -81,18 +82,23 @@ class Filesystem:
                 logger.info(f"Deleted empty folder {subpath}")
 
 
-@define
+@dataclass
 class FileObject:
     tmp_path: Path
     final_path: Path
+    finished: bool = False
     buffer: AsyncBufferedIOBase = field(init=False)
 
-    async def __aenter__(self) -> AsyncBufferedIOBase:
+    async def __aenter__(self) -> FileObject:
         self.buffer = await aiofiles.open(self.tmp_path, "wb")
-        return self.buffer
+        return self
+
+    async def write(self, chunk: bytes) -> None:
+        await self.buffer.write(chunk)
 
     async def __aexit__(self, exc_type, exc_value, exc_traceback) -> None:
         if not self.buffer.closed:
             await self.buffer.close()
-        self.final_path.parent.mkdir(parents=True, exist_ok=True)
-        self.tmp_path.rename(self.final_path)
+        if self.finished:
+            self.final_path.parent.mkdir(parents=True, exist_ok=True)
+            self.tmp_path.rename(self.final_path)

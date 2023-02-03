@@ -1,49 +1,55 @@
+from __future__ import annotations
+
 import click
 from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import filter_docs, load_facets, totable
-from esgpull.db.models import FileStatus
-from esgpull.query import Query
+from esgpull.cli.utils import get_queries, valid_name_tag
+from esgpull.graph import Graph
 from esgpull.tui import Verbosity
 
 
 @click.command()
-@args.facets
-@opts.force
-@opts.selection_file
-@opts.status
+@args.sha_or_name
+@opts.tag
+@opts.children
 @opts.verbosity
 def remove(
-    facets: list[str],
-    force: bool,
-    selection_file: str | None,
-    status: list[FileStatus],
+    sha_or_name: str | None,
+    tag: str | None,
+    children: bool,
     verbosity: Verbosity,
-):
-    esg = Esgpull.with_verbosity(verbosity)
+) -> None:
+    """
+    Remove queries
+    """
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("remove", onraise=Abort):
-        query = Query()
-        load_facets(query, facets, selection_file)
-        if not query.dump() and not status:
-            raise click.UsageError("No search terms or status provided.")
-        files = esg.db.search(query=query, statuses=status)
-        nb = len(files)
-        if not nb:
-            esg.ui.print("No matching file found.")
-            raise Exit(0)
-        if not force:
-            docs = filter_docs([file.raw for file in files])
-            esg.ui.print(totable(docs))
-            s = "s" if nb > 1 else ""
-            esg.ui.print(f"Found {nb} file{s} to remove.")
-            click.confirm("Continue?", default=True, abort=True)
-        removed = esg.remove(*files)
-        esg.ui.print(f"Removed {len(removed)} files.")
-        nb_remain = len(removed) - nb
-        if nb_remain:
-            esg.ui.print(f"{nb_remain} files could not be removed.")
-        if force:
-            docs = filter_docs([file.raw for file in removed])
-            esg.ui.print(totable(docs))
+        if sha_or_name is None and tag is None:
+            raise click.UsageError("No query or tag provided.")
+        if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+            raise Exit(1)
+        queries = get_queries(
+            esg.graph,
+            sha_or_name,
+            tag,
+            children=children,
+        )
+        nb = len(queries)
+        ies = "ies" if nb > 1 else "y"
+        esg.ui.print(Graph(None, *queries))
+        msg = f"Remove {nb} quer{ies}?"
+        if not esg.ui.ask(msg, default=True):
+            raise Abort
+        for query in queries:
+            if not children and esg.graph.get_children(query.sha):
+                esg.ui.print(
+                    ":stop_sign: Some queries block "
+                    f"removal of {query.rich_name}."
+                )
+                if esg.ui.ask("Show blocking queries?", default=False):
+                    esg.ui.print(esg.graph.subgraph(query, children=True))
+                raise Exit(1)
+        esg.db.delete(*queries)
+        esg.ui.print(":+1:")

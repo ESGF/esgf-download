@@ -1,14 +1,14 @@
 import pytest
 
-from esgpull.db.models import File, FileStatus
-from esgpull.utils import Root
+from esgpull.config import InstallConfig
+from esgpull.models import File, FileStatus
 
 
 @pytest.fixture
 def root(tmp_path):
-    Root.root = tmp_path / "esgpull"
-    Root.root.mkdir()
-    return Root.get()
+    idx = InstallConfig.add(tmp_path / "esgpull")
+    InstallConfig.choose(idx=idx)
+    return InstallConfig.installs[idx].path
 
 
 @pytest.fixture
@@ -27,5 +27,5 @@ def file():
         size=0,
         status=FileStatus.Queued,
     )
-    f.id = 1
+    f.compute_sha()
     return f

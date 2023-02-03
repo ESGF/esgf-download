@@ -3,7 +3,7 @@ from click.exceptions import Abort
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.db.models import Param
+from esgpull.models import sql
 from esgpull.tui import Verbosity
 
 
@@ -14,12 +14,10 @@ def facet(
     key: str | None,
     verbosity: Verbosity,
 ):
-    esg = Esgpull.with_verbosity(verbosity)
+    esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("facet", onraise=Abort):
         if key is None:
-            with esg.db.select(Param.name) as stmt:
-                params = stmt.distinct().scalars
+            results = esg.db.scalars(sql.facet.names)
         else:
-            with esg.db.select(Param.value) as stmt:
-                params = stmt.where(Param.name == key).scalars
-        esg.ui.print(sorted(params))
+            results = esg.db.scalars(sql.facet.values(key))
+        esg.ui.print(sorted(results))

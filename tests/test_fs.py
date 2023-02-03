@@ -9,7 +9,7 @@ from esgpull.fs import Filesystem
 @pytest.fixture
 def fs(root):
     config = Config()
-    return Filesystem.from_config(config)
+    return Filesystem.from_config(config, install=True)
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def test_fs(root, fs):
 
 
 def test_file_paths(fs, file):
-    file.id = 1234
+    file.sha = "1234"
     assert fs.path_of(file) == fs.data / "project/folder/file.nc"
     assert fs.tmp_path_of(file) == fs.tmp / "1234.part"
 

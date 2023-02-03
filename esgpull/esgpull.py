@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, AsyncIterator, Iterator
+from typing import AsyncIterator
 
-from attrs import define, field
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -19,71 +18,86 @@ from rich.progress import (
 )
 
 from esgpull.auth import Auth, Credentials
-from esgpull.config import Config
+from esgpull.config import Config, InstallConfig
 from esgpull.context import Context
-from esgpull.db.core import Database
-from esgpull.db.models import File, FileStatus, Param
-from esgpull.exceptions import DownloadCancelled
+from esgpull.database import Database
+from esgpull.exceptions import DownloadCancelled, InvalidInstallDirectory
 from esgpull.fs import Filesystem
+from esgpull.graph import Graph
+from esgpull.models import Facet, File, FileStatus, Options, Query, sql
+from esgpull.models.utils import short_sha
 from esgpull.processor import Processor
-from esgpull.query import Query
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, Verbosity, logger
-from esgpull.utils import Root, format_size
+from esgpull.utils import format_size
 
 
-@define
+@dataclass(repr=False)
 class Esgpull:
-    root: Path = field(converter=Path, factory=Root.get)
-    config: Config = field(init=False)
-    ui: UI = field(init=False)
-    fs: Filesystem = field(init=False)
-    db: Database = field(init=False)
-    auth: Auth = field(init=False)
+    path: Path
+    config: Config
+    ui: UI
+    auth: Auth
+    db: Database
+    context: Context
+    fs: Filesystem
+    graph: Graph
 
-    @classmethod
-    def with_verbosity(
-        cls,
-        verbosity: Verbosity,
-        root: Path | None = None,
-    ) -> Esgpull:
-        with UI("/tmp", Verbosity.Detail).logging("root"):
-            if root is None:
-                root = Root.get()
-        esg = Esgpull(root)
-        esg.ui.verbosity = verbosity
-        return esg
-
-    def __attrs_post_init__(self) -> None:
-        self.config = Config.load(root=self.root)
+    def __init__(
+        self,
+        path: Path | str | None = None,
+        verbosity: Verbosity = Verbosity.Detail,
+        install: bool = False,
+    ) -> None:
+        if path is not None:
+            path = Path(path)
+            InstallConfig.choose(path=path)
+            default = path
+            warning = f"Using unknown location: {path}\n"
+        else:
+            default = InstallConfig.default
+            warning = f"Using default location: {default}\n"
+        if InstallConfig.current is None:
+            self.path = default
+            warning += "To disable this warning, please run:\n"
+            warning += f"$ esgpull self install {self.path}"
+            logger.warning(warning)
+        else:
+            self.path = InstallConfig.current.path
+        if not install and not self.path.is_dir():
+            raise InvalidInstallDirectory(path=self.path)
+        self.config = Config.load(path=self.path)
+        self.fs = Filesystem.from_config(self.config, install=install)
         self.ui = UI.from_config(self.config)
-        self.fs = Filesystem.from_config(self.config)
-        self.db = Database.from_config(self.config)
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
-
-    @contextmanager
-    def context(self, **kwargs: Any) -> Iterator[Context]:
-        ctx = Context(self.config, **kwargs)
-        yield ctx
-        logger.debug(f"Discard {ctx}")
+        self.db = Database.from_config(self.config)
+        self.context = Context(self.config, noraise=True)
+        self.graph = Graph(self.db)
 
     def fetch_index_nodes(self) -> list[str]:
         """
         Returns a list of ESGF index nodes.
 
-        Fetch facet_counts from ESGF search API, using `distrib=True`.
+        Fetch hints from ESGF search API with a distributed query.
         """
 
-        logger.debug(
-            f"Fetching index nodes from {self.config.search.index_node}"
+        default_index = self.config.search.index_node
+        logger.info(f"Fetching index nodes from '{default_index}'")
+        options = Options(distrib=True)
+        query = Query(options=options)
+        facets = ["index_node"]
+        hints = self.context.hints(
+            query,
+            file=False,
+            facets=facets,
+            index_node=default_index,
         )
-        with self.context(distrib=True) as ctx:
-            return list(ctx.options(facets=["index_node"])[0]["index_node"])
+        return list(hints[0]["index_node"])
 
-    def fetch_params(self, update=False) -> bool:
+    def fetch_facets(self, update: bool = False) -> bool:
         """
-        Fill db with all existing params found in ESGF index nodes.
+        Fill db with all existing facets found in ESGF index nodes.
 
         1. Fetch index nodes from `Esgpull.fetch_index_nodes()`
         2. Fetch all facets (names + values) from all index nodes.
@@ -92,208 +106,131 @@ class Esgpull:
         `distrib=True` seems to crash the index node.
         """
 
+        # those facets have (almost) unique values
         IGNORE_NAMES = [
-            "cf_standard_name",
-            "variable_long_name",
+            "version",
+            # "cf_standard_name",
+            # "variable_long_name",
             "creation_date",
-            "datetime_end",
+            # "datetime_end",
         ]
-
-        with self.db.select(Param) as ctx:
-            params = ctx.scalars
-        logger.debug(f"Found {len(params)} params in database")
-        if params and not update:
+        nb_facets = self.db.scalars(sql.count_table(Facet))[0]
+        logger.info(f"Found {nb_facets} facets in database")
+        if nb_facets and not update:
             return False
-        self.db.delete(*params)
         index_nodes = self.fetch_index_nodes()
-        with self.context(distrib=False) as ctx:
-            for index_node in index_nodes:
-                query = ctx.query.add()
-                query.index_node = index_node
-            logger.debug(f"Fetching facet counts using {ctx}")
-            index_facet_counts = ctx.facet_counts()
-        all_facet_counts: dict[str, set[str]] = {}
-        for facet_counts in index_facet_counts:
-            for name, values in facet_counts.items():
-                if name in IGNORE_NAMES or len(values) == 0:
+        options = Options(distrib=False)
+        query = Query(options=options)
+        hints_coros = []
+        for index_node in index_nodes:
+            hints_results = self.context.prepare_hints(
+                query,
+                file=False,
+                facets=["*"],
+                index_node=index_node,
+            )
+            hints_coros.append(self.context._hints(*hints_results))
+        hints = self.context.sync_gather(*hints_coros)
+        new_facets: set[Facet] = set()
+        facets_db = self.db.scalars(sql.facet.all)
+        for index_hints in hints:
+            for name, values in index_hints[0].items():
+                if name in IGNORE_NAMES:
                     continue
-                facet_values = set()
-                for value, count in values.items():
-                    if count and len(value) <= 255:
-                        facet_values.add(value)
-                if facet_values:
-                    all_facet_counts.setdefault(name, set())
-                    all_facet_counts[name] |= facet_values
-        new_params = []
-        for name, values_set in all_facet_counts.items():
-            for value in values_set:
-                new_params.append(Param(name=name, value=value))
-        self.db.add(*new_params)
-        return True
+                for value in values.keys():
+                    facet = Facet(name=name, value=value)
+                    if facet not in facets_db:
+                        facet.compute_sha()
+                        new_facets.add(facet)
+        self.db.add(*new_facets)
+        return len(new_facets) > 0
 
-    def scan_local_files(self, index_node=None) -> None:
-        """
-        Insert into db netcdf files, globbed from `fs.data` directory.
-        Only files whose metadata exists on `index_node` is added.
+    # def add(
+    #     self,
+    #     *queries: Query,
+    #     with_file: bool = False,
+    # ) -> tuple[list[Query], list[Query]]:
+    #     """
+    #     Add new queries to query/options/selection tables.
+    #     Returns two lists: added and discarded queries
+    #     """
+    #     for query in
+    #     self.graph.add()
+    #     return [], []
 
-        FileStatus is `Done` regardless of the file's size (no checks).
-        """
-        with self.context() as ctx:
-            if index_node is not None:
-                ctx.query.index_node = index_node
-                ctx.distrib = False
-            else:
-                ctx.distrib = True
-            filename_version_dict: dict[str, str] = {}
-            for path in self.fs.glob_netcdf():
-                if self.db.has(filepath=path):
-                    continue
-                filename = path.name
-                version = path.parent.name
-                filename_version_dict[filename] = version
-                query = ctx.query.add()
-                query.title = filename
-            if filename_version_dict:
-                search_results = ctx.search(file=True)
-                new_files = []
-                for metadata in search_results:
-                    file = File.from_dict(metadata)
-                    if file.version == filename_version_dict[file.filename]:
-                        new_files.append(file)
-                self.install(*new_files, status=FileStatus.Done)
-                nb_remaining = len(filename_version_dict) - len(new_files)
-                print(f"Installed {len(new_files)} new files.")
-                print(
-                    f"{nb_remaining} files remain installed (another index?)."
-                )
-            else:
-                print("No new files.")
+    # def install(
+    #     self,
+    #     *files: File,
+    #     status: FileStatus = FileStatus.Queued,
+    # ) -> tuple[list[File], list[File]]:
+    #     """
+    #     Insert `files` with specified `status` into db if not already there.
+    #     """
+    #     file_ids = [f.file_id for f in files]
+    #     with self.db.select(File.file_id) as stmt:
+    #         stmt.where(File.file_id.in_(file_ids))
+    #         existing_file_ids = set(stmt.scalars)
+    #     to_install = [f for f in files if f.file_id not in existing_file_ids]
+    #     to_download: list[File] = []
+    #     already_on_disk: list[File] = []
+    #     for file in to_install:
+    #         if status == FileStatus.Done:
+    #             # skip check on status=done
+    #             file.status = status
+    #             to_download.append(file)
+    #             continue
+    #         path = self.fs.path_of(file)
+    #         if path.is_file():
+    #             file.status = FileStatus.Done
+    #             already_on_disk.append(file)
+    #         else:
+    #             file.status = status
+    #             to_download.append(file)
+    #     self.db.add(*to_install)
+    #     return to_download, already_on_disk
 
-    def fetch_updated_files(
-        self,
-        query: Query | None = None,
-        distrib: bool = True,
-        replica: bool | None = None,
-        since: str | None = None,
-    ) -> list[File] | None:
-        max_master_id = 100
-        max_instance_id = 50
-        matching_files = self.db.search(
-            query=query,
-            statuses=[FileStatus.Done],
-        )
-        if not matching_files:
-            return None
-        local_dataset_ids = set([f.dataset_id for f in matching_files])
-        master_ids = [dsid.rsplit(".", 1)[0] for dsid in local_dataset_ids]
-        with self.context(
-            distrib=distrib,
-            latest=True,
-            replica=replica,
-            since=since,
-        ) as ctx:
-            if query:
-                ctx.query = query.clone()
-            for start in range(0, len(master_ids), max_master_id):
-                stop = start + max_master_id
-                subquery = ctx.query.add()
-                subquery.master_id = master_ids[start:stop]
-            options = ctx.options(facets=["instance_id"])
-        new_dataset_ids: set[str] = set()
-        for suboptions in options:
-            new_dataset_ids |= set(suboptions["instance_id"])
-        new_dataset_ids -= local_dataset_ids
-        instance_ids = [dsid + "*" for dsid in new_dataset_ids]
-        if not instance_ids:
-            return []
-        with self.context(
-            distrib=distrib,
-            latest=True,
-            replica=replica,
-            since=since,
-        ) as ctx:
-            if query:
-                ctx.query = query.clone()
-            for start in range(0, len(instance_ids), max_instance_id):
-                stop = start + max_instance_id
-                subquery = ctx.query.add()
-                subquery.instance_id = instance_ids[start:stop]
-            docs = ctx.search(file=True, max_results=None)
-        files = [File.from_dict(doc) for doc in docs]
-        return files
+    # def remove(self, *files: File) -> list[File]:
+    #     """
+    #     Remove `files` from db and delete from filesystem.
+    #     """
+    #     file_ids = [f.file_id for f in files]
+    #     with self.db.select(File) as stmt:
+    #         stmt.where(File.file_id.in_(file_ids))
+    #         deleted = stmt.scalars
+    #     for file in files:
+    #         if file.status == FileStatus.Done:
+    #             self.fs.delete(file)
+    #     self.db.delete(*deleted)
+    #     return deleted
 
-    def install(
-        self,
-        *files: File,
-        status: FileStatus = FileStatus.Queued,
-    ) -> tuple[list[File], list[File]]:
-        """
-        Insert `files` with specified `status` into db if not already there.
-        """
-        file_ids = [f.file_id for f in files]
-        with self.db.select(File.file_id) as stmt:
-            stmt.where(File.file_id.in_(file_ids))
-            existing_file_ids = set(stmt.scalars)
-        to_install = [f for f in files if f.file_id not in existing_file_ids]
-        to_download: list[File] = []
-        already_on_disk: list[File] = []
-        for file in to_install:
-            if status == FileStatus.Done:
-                # skip check on status=done
-                file.status = status
-                to_download.append(file)
-                continue
-            path = self.fs.path_of(file)
-            if path.is_file():
-                file.status = FileStatus.Done
-                already_on_disk.append(file)
-            else:
-                file.status = status
-                to_download.append(file)
-        self.db.add(*to_install)
-        return to_download, already_on_disk
-
-    def remove(self, *files: File) -> list[File]:
-        """
-        Remove `files` from db and delete from filesystem.
-        """
-        file_ids = [f.file_id for f in files]
-        with self.db.select(File) as stmt:
-            stmt.where(File.file_id.in_(file_ids))
-            deleted = stmt.scalars
-        for file in files:
-            if file.status == FileStatus.Done:
-                self.fs.delete(file)
-        self.db.delete(*deleted)
-        return deleted
-
-    def autoremove(self) -> list[File]:
-        """
-        Search duplicate files and keep latest version only.
-        """
-        deprecated = self.db.get_deprecated_files()
-        return self.remove(*deprecated)
+    # def autoremove(self) -> list[File]:
+    #     """
+    #     Search duplicate files and keep latest version only.
+    #     """
+    #     deprecated = self.db.get_deprecated_files()
+    #     return self.remove(*deprecated)
 
     async def iter_results(
         self,
         processor: Processor,
         progress: Progress,
-        task_ids: dict[int, TaskID],
+        task_ids: dict[str, TaskID],
     ) -> AsyncIterator[Result]:
         async for result in processor.process():
-            task_idx = progress.task_ids.index(task_ids[result.file.id])
+            task_idx = progress.task_ids.index(task_ids[result.data.file.sha])
             task = progress.tasks[task_idx]
             progress.update(task.id, visible=True)
             match result:
                 case Ok():
-                    progress.update(task.id, completed=result.completed)
+                    progress.update(task.id, completed=result.data.completed)
                     if task.finished:
                         # TODO: add checksum verif here
                         progress.stop_task(task.id)
                         progress.update(task.id, visible=False)
-                        id = f"[bold cyan]id:{result.file.id}[/]"
+                        sha = short_sha(result.data.file.sha)
+                        sha = f"file: [cyan]{sha}[/]"
                         size = f"[green]{format_size(int(task.completed))}[/]"
-                        items = [id, size]
+                        items = [sha, size]
                         if task.elapsed is not None:
                             final_speed = int(task.completed / task.elapsed)
                             speed = f"[red]{format_size(final_speed)}/s[/]"
@@ -334,15 +271,15 @@ class Esgpull:
         )
         queue_size = len(queue)
         main_task_id = main_progress.add_task("", total=queue_size)
-        file_task_ids = {}
+        file_task_shas = {}
         start_callbacks = {}
         for file in queue:
             task_id = file_progress.add_task(
                 "", total=file.size, visible=False, start=False
             )
             callback = partial(file_progress.start_task, task_id)
-            file_task_ids[file.id] = task_id
-            start_callbacks[file.id] = [callback]
+            file_task_shas[file.sha] = task_id
+            start_callbacks[file.sha] = [callback]
         processor = Processor(
             config=self.config,
             auth=self.auth,
@@ -353,7 +290,7 @@ class Esgpull:
         # TODO: rename ? installed/downloaded/completed/...
         files: list[File] = []
         errors: list[Err] = []
-        remaining_dict = {file.id: file for file in queue}
+        remaining_dict = {file.sha: file for file in queue}
         try:
             with self.ui.live(
                 file_progress,
@@ -361,22 +298,22 @@ class Esgpull:
                 disable=not show_progress,
             ):
                 async for result in self.iter_results(
-                    processor, file_progress, file_task_ids
+                    processor, file_progress, file_task_shas
                 ):
                     match result:
                         case Ok():
                             main_progress.update(main_task_id, advance=1)
-                            result.file.status = FileStatus.Done
-                            files.append(result.file)
+                            result.data.file.status = FileStatus.Done
+                            files.append(result.data.file)
                         case Err():
                             queue_size -= 1
                             main_progress.update(
                                 main_task_id, total=queue_size
                             )
-                            result.file.status = FileStatus.Error
+                            result.data.file.status = FileStatus.Error
                             errors.append(result)
-                    self.db.add(result.file)
-                    remaining_dict.pop(result.file.id)
+                    self.db.add(result.data.file)
+                    remaining_dict.pop(result.data.file.sha)
         finally:
             if remaining_dict:
                 logger.warning(f"Cancelling {len(remaining_dict)} downloads.")
@@ -384,6 +321,6 @@ class Esgpull:
                 for file in remaining_dict.values():
                     file.status = FileStatus.Cancelled
                     cancelled.append(file)
-                    errors.append(Err(file, 0, DownloadCancelled()))
+                    errors.append(Err(file, DownloadCancelled()))
                 self.db.add(*cancelled)
         return files, errors

@@ -1,6 +1,5 @@
 import asyncio
 from functools import partial
-from pathlib import Path
 from typing import AsyncIterator, TypeAlias
 
 from aiostream.stream import merge
@@ -8,11 +7,10 @@ from httpx import AsyncClient, HTTPError
 
 from esgpull.auth import Auth
 from esgpull.config import Config
-from esgpull.context import Context
-from esgpull.db.models import File
-from esgpull.download import Simple
+from esgpull.download import DownloadCtx, Simple
 from esgpull.exceptions import DownloadSizeError
 from esgpull.fs import Filesystem
+from esgpull.models import File
 from esgpull.result import Err, Ok, Result
 
 # Callback: TypeAlias = Callable[[], None] | partial[None]
@@ -25,46 +23,47 @@ class Task:
         config: Config,
         auth: Auth,
         fs: Filesystem,
-        *,
-        url: str | None = None,
-        file: File | None = None,
+        # *,
+        # url: str | None = None,
+        file: File,
         start_callbacks: list[Callback] | None = None,
     ) -> None:
         self.config = config
         self.auth = auth
         self.fs = fs
-        if file is None and url is not None:
-            self.file = self.fetch_file(url)
-        elif file is not None:
-            self.file = file
-        else:
-            raise ValueError("no arguments")
+        self.ctx = DownloadCtx(file)
+        # if file is None and url is not None:
+        #     self.file = self.fetch_file(url)
+        # elif file is not None:
+        #     self.file = file
+        # else:
+        #     raise ValueError("no arguments")
         self.downloader = Simple()
         if start_callbacks is None:
             self.start_callbacks = []
         else:
             self.start_callbacks = start_callbacks
 
-    def fetch_file(self, url: str) -> File:
-        ctx = Context()
-        # [?]TODO: define map data_node->index_node to find url-file
-        # ctx.query.index_node = ...
-        ctx.query.title = Path(url).name
-        results = ctx.search(file=True)
-        for res in results:
-            file = File.from_dict(res)
-            if file.version in url:
-                return file
-        raise ValueError(f"{url} is not valid")
+    # def fetch_file(self, url: str) -> File:
+    #     ctx = Context()
+    #     # [?]TODO: define map data_node->index_node to find url-file
+    #     # ctx.query.index_node = ...
+    #     ctx.query.title = Path(url).name
+    #     results = ctx.search(file=True)
+    #     for res in results:
+    #         file = File.from_dict(res)
+    #         if file.version in url:
+    #             return file
+    #     raise ValueError(f"{url} is not valid")
 
     async def stream(
         self, semaphore: asyncio.Semaphore
     ) -> AsyncIterator[Result]:
-        completed = 0
+
         try:
             async with (
                 semaphore,
-                self.fs.open(self.file) as file_obj,
+                self.fs.open(self.ctx.file) as file_obj,
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
@@ -73,19 +72,21 @@ class Task:
             ):
                 for callback in self.start_callbacks:
                     callback()
-                async for chunk in self.downloader.stream(client, self.file):
-                    await file_obj.write(chunk)
-                    completed += len(chunk)
-                    if completed > self.file.size:
-                        raise DownloadSizeError(completed, self.file.size)
-                    yield Ok(self.file, completed)
+                async for ctx in self.downloader.stream(client, self.ctx):
+                    if ctx.chunk is not None:
+                        await file_obj.write(ctx.chunk)
+                    if ctx.error:
+                        raise DownloadSizeError(ctx.completed, ctx.file.size)
+                    elif ctx.finished:
+                        file_obj.finished = True
+                    yield Ok(ctx)
         except (
             HTTPError,
             DownloadSizeError,
             GeneratorExit,
             # KeyboardInterrupt,
         ) as err:
-            yield Err(self.file, completed, err)
+            yield Err(ctx, err)
 
 
 class Processor:
@@ -95,7 +96,7 @@ class Processor:
         auth: Auth,
         fs: Filesystem,
         files: list[File],
-        start_callbacks: dict[int, list[Callback]],
+        start_callbacks: dict[str, list[Callback]],
     ) -> None:
         self.config = config
         self.files = files
@@ -106,7 +107,7 @@ class Processor:
                 auth=auth,
                 fs=fs,
                 file=file,
-                start_callbacks=start_callbacks[file.id],
+                start_callbacks=start_callbacks[file.sha],
             )
             self.tasks.append(task)
 

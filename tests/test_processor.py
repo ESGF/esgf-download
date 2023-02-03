@@ -4,28 +4,51 @@ import pytest
 
 from esgpull.auth import Auth
 from esgpull.config import Config
-from esgpull.db.models import File
 from esgpull.fs import Filesystem
+from esgpull.models import File
 from esgpull.processor import Task
 
 
-# fmt:off
 @pytest.fixture
 def smallfile():
-    return File(
-        file_id="CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr.v20180803.cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc",
-        dataset_id="CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr.v20180803",
-        master_id="CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr.cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015",
-        url="http://vesg.ipsl.upmc.fr/thredds/fileServer/cmip6/CMIP/IPSL/IPSL-CM6A-LR/historical/r10i1p1f1/Eyr/cLitterLut/gr/v20180803/cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc",
-        version="v20180803",
-        filename="cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc",
-        local_path="CMIP6/CMIP/IPSL/IPSL-CM6A-LR/historical/r10i1p1f1/Eyr/cLitterLut/gr/v20180803",
-        data_node="vesg.ipsl.upmc.fr",
-        checksum="47958756e90cb6afcd20451dcd138b4ced1e1845afdd1ea12c1f962991da2f87",
+    dataset_id = (
+        "CMIP6.CMIP.IPSL.IPSL-CM6A-LR.historical.r10i1p1f1.Eyr.cLitterLut.gr"
+        ".v20180803"
+    )
+    dataset_master, version = dataset_id.rsplit(".", 1)
+    filename = (
+        "cLitterLut_Eyr_IPSL-CM6A-LR_historical_r10i1p1f1_gr_1851-2015.nc"
+    )
+    file_id = ".".join([dataset_id, filename])
+    master_id = ".".join([dataset_master, filename])
+    data_node = "vesg.ipsl.upmc.fr"
+    host = f"https://{data_node}/thredds/fileServer"
+    url = "/".join(
+        [
+            host,
+            "cmip6",
+            *dataset_id.split(".")[1:],
+            filename,
+        ]
+    )
+    checksum = (
+        "47958756e90cb6afcd20451dcd138b4ced1e1845afdd1ea12c1f962991da2f87"
+    )
+    file = File(
+        file_id=file_id,
+        dataset_id=dataset_id,
+        master_id=master_id,
+        url=url,
+        version=version,
+        filename=filename,
+        local_path=dataset_id.replace(".", "/"),
+        data_node=data_node,
+        checksum=checksum,
         checksum_type="SHA256",
         size=6512402,
     )
-# fmt:on
+    file.compute_sha()
+    return file
 
 
 @pytest.fixture
@@ -35,7 +58,7 @@ def config(root):
 
 @pytest.fixture
 def fs(config):
-    return Filesystem.from_config(config)
+    return Filesystem.from_config(config, install=True)
 
 
 @pytest.fixture
@@ -44,25 +67,15 @@ def auth(config):
 
 
 @pytest.fixture
-def from_file(config, auth, fs, smallfile):
+def task(config, auth, fs, smallfile):
     return Task(config, auth, fs, file=smallfile)
-
-
-@pytest.fixture
-def from_url(config, auth, fs, smallfile):
-    return Task(config, auth, fs, url=smallfile.url)
-
-
-@pytest.fixture(params=["from_file", "from_url"])
-def task(request):
-    return request.getfixturevalue(request.param)
 
 
 async def run_task(task_):
     semaphore = asyncio.Semaphore(1)
-    async for chunk in task_.stream(semaphore):
+    async for result in task_.stream(semaphore):
         ...
-    return chunk
+    return result
 
 
 @pytest.mark.slow
@@ -73,11 +86,6 @@ def test_task(auth, fs, smallfile, task):
     with fs.path_of(smallfile).open("rb") as f:
         data = f.read()
     assert len(data) == smallfile.size
-
-
-def test_task_no_file_or_url(auth, fs, config, smallfile):
-    with pytest.raises(ValueError):
-        Task(auth, fs, config)
 
 
 # def test_task_url_multiple_version_correct():

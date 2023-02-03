@@ -1,16 +1,43 @@
-from esgpull.constants import ENV_VARNAME
+from esgpull.constants import ROOT_ENV
 
 
 class EsgpullException(Exception):
     msg: str = NotImplemented
 
-    def __init__(self, *args):
-        self.message = self.msg.format(*args)
-        super().__init__(self.message)
+    def __init__(self, *args, **kwargs):
+        self.message = self.msg.format(*args, **kwargs)
+        super().__init__(self.message.strip())
 
 
 class NoRootError(EsgpullException):
-    msg = f"Environment variable `{ENV_VARNAME}` must be set."
+    msg = f"Environment variable `{ROOT_ENV}` must be set."
+
+
+class InvalidInstallDirectory(EsgpullException):
+    msg = """{path}
+
+To setup a new install directory, please run:
+$ esgpull self install
+
+or to set this location as the install directory:
+$ esgpull self install {path}
+"""
+
+
+class PathAlreadyInstalled(EsgpullException):
+    msg = """{path}
+{msg}
+"""
+
+
+class NameAlreadyInstalled(EsgpullException):
+    msg = """{name}
+{msg}
+"""
+
+
+# class UnknownFacet(EsgpullException):
+#     msg = "{}"
 
 
 class FacetNameError(EsgpullException, AttributeError):
@@ -19,6 +46,22 @@ class FacetNameError(EsgpullException, AttributeError):
     """
 
     msg = "'{}' is not a valid facet."
+
+
+class AlreadySetFacet(EsgpullException):
+    msg = "'{}' is already set to [{}]"
+
+
+class DuplicateFacet(EsgpullException):
+    msg = "'{}:{}'\n{}"
+
+
+class QueryDuplicate(EsgpullException):
+    msg = "{}"
+
+
+class PageIndexError(EsgpullException, IndexError):
+    msg = "Cannot show page {}/{}."
 
 
 # # errors meant for use when validation is implemented
@@ -30,13 +73,25 @@ class FacetNameError(EsgpullException, AttributeError):
 
 
 class SolrUnstableQueryError(EsgpullException):
-    msg = """Solr can not handle this query:
-    {}"""
+    msg = """
+    Solr can not handle this query:
+    {}
+    """
 
 
 class QuerySourceError(EsgpullException):
-    msg = """This source cannot be parsed as a query:
-    {}"""
+    msg = """
+    This source cannot be parsed as a query:
+    {}
+    """
+
+
+class TooShortKeyError(EsgpullException, KeyError):
+    msg = "{}"
+
+
+class GraphWithoutDatabase(EsgpullException):
+    msg = "Graph is not connected to a database."
 
 
 class DownloadKindError(EsgpullException):
@@ -48,12 +103,18 @@ class DownloadKindError(EsgpullException):
 
 
 class DownloadSizeError(EsgpullException):
-    msg = """Downloaded file is larger than expected: {} > {}"""
+    msg = """
+    Downloaded file is larger than expected: {} > {}
+    """
 
 
 class DownloadCancelled(EsgpullException):
-    msg = """Download cancelled by user."""
+    msg = """
+    Download cancelled by user.
+    """
 
 
 class NoClauseError(EsgpullException):
-    msg = """Tried querying the database without clause (query might be empty)."""
+    msg = """
+    No clause provided (query might be empty).
+    """
