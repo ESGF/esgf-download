@@ -1,117 +1,155 @@
+from time import perf_counter
+
 import pytest
 
 from esgpull.context import Context
-from esgpull.esgpull import Esgpull
+from esgpull.models import Query
 
 
 @pytest.fixture
-def base(root):
+def ctx():
     return Context()
 
 
 @pytest.fixture
-def cmip6_ipsl(root):
-    result = Context()
-    result.query.mip_era = "CMIP6"
-    result.query.institution_id = "IPSL"
-    return result
+def empty():
+    return Query()
 
 
-@pytest.fixture(params=["base", "cmip6_ipsl"])
-def context(request):
+@pytest.fixture
+def cmip6_ipsl():
+    query = Query()
+    query.selection.mip_era = "CMIP6"
+    query.selection.institution_id = "IPSL"
+    return query
+
+
+@pytest.fixture(params=["empty", "cmip6_ipsl"])
+def query(request):
     return request.getfixturevalue(request.param)
 
 
-def test_multi_index(base):
+def test_multi_index(ctx, empty):
     index_nodes = ["esgf-node.ipsl.upmc.fr", "esgf-data.dkrz.de"]
+    results = []
     for index_node in index_nodes:
-        query = base.query.add()
-        query.index_node = index_node
-    queries = base._build_queries(file=False)
-    assert len(queries) == 2
-    for query, expected in zip(queries, index_nodes):
-        assert "url" in query and expected in query["url"]
+        query_results = ctx.prepare_hits(
+            empty,
+            file=False,
+            index_node=index_node,
+        )
+        results.extend(query_results)
+    assert len(results) == 2
+    for result, index_node in zip(results, index_nodes):
+        assert index_node in str(result.request.url)
+        assert index_node == result.request.headers["host"]
 
 
-def test_adjust_hits(base):
+def test_adjust_hits(ctx):
     variable_ids = ["tas", "tasmin"]
+    queries = []
     for variable_id in variable_ids:
-        query = base.query.add()
-        query.variable_id = variable_id
-    hits = base.hits
-    batchsize = 5
-    first_30 = base._build_queries_search(
-        hits=hits,
+        query = Query(selection=dict(variable_id=variable_id))
+        queries.append(query)
+    hits = ctx.hits(*queries, file=False)
+    page_limit = 5
+    first_20 = ctx.prepare_search(
+        *queries,
         file=False,
-        batchsize=batchsize,
-        max_results=len(variable_ids) * 10,
+        hits=hits,
+        page_limit=page_limit,
+        max_hits=len(variable_ids) * page_limit * 2,
     )
-    assert len(first_30) == len(variable_ids) * 2
-    for i, variable_id in enumerate(variable_ids):
-        for j in range(2):
-            expected = dict(
-                offset=j * batchsize,
-                limit=batchsize,
-                query=f"variable_id:{variable_id}",
-            )
-            assert expected.items() < first_30[i * 2 + j].items()
-    offset_100 = base._build_queries_search(
-        hits=hits,
+    assert len(first_20) >= len(variable_ids) * 2
+    variable_offsets = {variable_id: 0 for variable_id in variable_ids}
+    for result in first_20:
+        variable_id = result.query.selection.variable_id[0]
+        params = dict(result.request.url.params.items())
+        assert int(params["offset"]) == variable_offsets[variable_id]
+        assert int(params["limit"]) <= page_limit
+        assert params["query"] == f"variable_id:{variable_id}"
+        variable_offsets[variable_id] += page_limit
+    offset_100 = ctx.prepare_search(
+        *queries,
         file=False,
-        batchsize=batchsize,
-        max_results=len(variable_ids) * 10,
+        hits=hits,
         offset=100,
+        page_limit=page_limit,
+        max_hits=len(variable_ids) * page_limit * 2,
     )
-    assert len(offset_100) == len(variable_ids) * 2
-    for i, variable_id in enumerate(variable_ids):
-        for j in range(2):
-            expected = dict(
-                offset=50 + j * batchsize,
-                limit=batchsize,
-                query=f"variable_id:{variable_id}",
-            )
-            assert expected.items() < offset_100[i * 2 + j].items()
+    assert len(offset_100) >= len(variable_ids) * 2
+    hits_distribution = [h / sum(hits) for h in hits]
+    variable_offsets = {
+        variable_id: round(h * 100)
+        for h, variable_id in zip(hits_distribution, variable_ids)
+    }
+    for result in offset_100:
+        variable_id = result.query.selection.variable_id[0]
+        params = dict(result.request.url.params.items())
+        assert int(params["offset"]) == variable_offsets[variable_id]
+        assert int(params["limit"]) <= page_limit
+        assert params["query"] == f"variable_id:{variable_id}"
+        variable_offsets[variable_id] += page_limit
 
 
-def test_adjust_hits_produces_1_result_per_query(base):
-    variable_ids = ["c2h2", "c2h6", "c3h6"]
-    for variable_id in variable_ids:
-        query = base.query.add()
-        query.variable_id = variable_id
-    results = base.search(max_results=len(variable_ids))
-    assert len(results) == len(variable_ids)
-    for result, expected in zip(results, variable_ids):
-        assert result["variable_id"][0] == expected
+class Timer:
+    def __enter__(self):
+        self.start = perf_counter()
+        return self
+
+    def __exit__(self, *excs):
+        self.duration = perf_counter() - self.start
 
 
 @pytest.mark.slow
-def test_better_distrib(base):
-    base.config.search.http_timeout = 60
-    base.distrib = True
+def test_search_distributed(ctx):
+    query = Query()
+    # ctx.config.search.http_timeout = 60
+    query.options.distrib = True
     # configure terms to target ~1000 files across different index nodes
-    base.query.mip_era = "CMIP6"
-    base.query.table_id = "Amon"
-    base.query.variable_id = "tas"
-    base.query.member_id = "r20i1p1f1"
-    regular_results = base.search(file=True, max_results=None)
-    esg = Esgpull()
-    base.index_nodes = esg.fetch_index_nodes()
-    better_results = base.search(file=True, max_results=None)
-    regular_checksums = set(doc["checksum"][0] for doc in regular_results)
-    better_checksums = set(doc["checksum"][0] for doc in better_results)
-    assert regular_checksums == better_checksums
+    query.selection.mip_era = "CMIP6"
+    query.selection.table_id = "Amon"
+    query.selection.variable_id = "tas"
+    query.selection.member_id = "r20i1p1f1"
+    with Timer() as t_regular:
+        datasets_regular = ctx.datasets(
+            query,
+            max_hits=None,
+            keep_duplicates=True,
+        )
+    with Timer() as t_distributed:
+        hints = ctx.hints(query, file=False, facets=["index_node"])
+        results = ctx.prepare_search_distributed(
+            query,
+            file=False,
+            hints=hints,
+            max_hits=None,
+        )
+        coro = ctx._datasets(*results, keep_duplicates=True)
+        datasets_distributed = ctx._sync(coro)
+    dataset_ids_regular = set(d.dataset_id for d in datasets_regular)
+    dataset_ids_distributed = set(d.dataset_id for d in datasets_distributed)
+    assert dataset_ids_regular == dataset_ids_distributed
+    assert t_regular.duration >= t_distributed.duration
 
 
-def test_ipsl_hits_between_1_and_2_million(cmip6_ipsl):
-    assert 1_000_000 < cmip6_ipsl.hits[0] < 2_000_000
+def test_ipsl_hits_between_1_and_2_million(ctx, cmip6_ipsl):
+    assert 1_000_000 < ctx.hits(cmip6_ipsl, file=False)[0] < 2_000_000
 
 
-def test_more_files_than_datasets(context):
-    assert sum(context.hits) < sum(context.file_hits)
+def test_more_files_than_datasets(ctx, query):
+    assert sum(ctx.hits(query, file=False)) < sum(ctx.hits(query, file=True))
 
 
 @pytest.mark.slow
-def test_options_dont_include_already_set_facets(cmip6_ipsl):
-    options = cmip6_ipsl.options()[0]
-    for facet in cmip6_ipsl.query:
-        assert facet.name not in options.keys()
+def test_hints(ctx, cmip6_ipsl):
+    facets = ["institution_id", "variable_id"]
+    hints = ctx.hints(cmip6_ipsl, file=False, facets=facets)[0]
+    assert list(hints["institution_id"]) == cmip6_ipsl.selection.institution_id
+    assert len(hints["variable_id"]) > 1
+
+
+def test_hits_from_hints(ctx):
+    hints = {"facet_name": {"value_a": 1, "value_b": 2, "value_c": 3}}
+    hits = ctx.hits_from_hints(hints)
+    assert hits == [6]
