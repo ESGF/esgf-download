@@ -199,7 +199,11 @@ def translate(
                 "[yellow]--out/--table/--graph[/] is required."
             )
             raise click.exceptions.Exit(1)
-        table = Table(box=MINIMAL_DOUBLE_HEAD, show_lines=True)
+        table = Table(
+            box=MINIMAL_DOUBLE_HEAD,
+            show_edge=False,
+            show_lines=True,
+        )
         table.add_column(Text("path", justify="left"))
         table.add_column(Text("file", justify="center"))
         table.add_column(Text("query", justify="center"))

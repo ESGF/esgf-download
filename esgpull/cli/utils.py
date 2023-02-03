@@ -67,7 +67,7 @@ def filter_keys(
 
 
 def totable(docs: list[OrderedDict[str, Any]]) -> Table:
-    table = Table(box=MINIMAL_DOUBLE_HEAD)
+    table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)
     for key in docs[0].keys():
         justify: Literal["left", "right", "center"]
         if key == "size":
