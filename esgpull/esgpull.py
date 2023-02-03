@@ -48,6 +48,7 @@ class Esgpull:
         path: Path | str | None = None,
         verbosity: Verbosity = Verbosity.Detail,
         install: bool = False,
+        record: bool = False,
     ) -> None:
         if path is not None:
             path = Path(path)
@@ -68,7 +69,7 @@ class Esgpull:
             raise InvalidInstallDirectory(path=self.path)
         self.config = Config.load(path=self.path)
         self.fs = Filesystem.from_config(self.config, install=install)
-        self.ui = UI.from_config(self.config)
+        self.ui = UI.from_config(self.config, record=record)
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
         self.db = Database.from_config(self.config)

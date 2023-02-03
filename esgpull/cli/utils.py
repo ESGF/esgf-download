@@ -1,5 +1,7 @@
+import sys
 from collections import OrderedDict
 from enum import Enum
+from pathlib import Path
 from typing import Any, Literal, Sequence
 
 import click
@@ -195,3 +197,9 @@ def get_queries(
             kids = graph.get_all_children(query.sha)
             queries.extend(kids)
     return queries
+
+
+def get_command() -> str:
+    exe, *args = sys.argv
+    args = [arg for arg in args if arg != "--record"]
+    return " ".join(["$", Path(exe).name, *args])

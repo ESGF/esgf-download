@@ -33,6 +33,7 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 _console = Console(highlight=True)
 _err_console = Console(stderr=True)
+_record_console = Console(highlight=True, record=True)
 
 
 class Verbosity(IntEnum):
@@ -66,35 +67,59 @@ def toml_syntax(data: Mapping[str, Any]) -> Syntax:
     return Syntax(tomlkit_dumps(data), "toml", theme="ansi_dark")
 
 
+LOG_FORMAT = "[%(asctime)s]  %(levelname)-10s%(name)s\n%(message)s\n"
+LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+FILE_DATE_FORMAT = "%Y-%m-%d_%H-%M-%S"
+
+
 @define
 class UI:
     path: Path = field(converter=Path)
     verbosity: Verbosity = Verbosity.Normal
     logfile: bool = True
+    record: bool = False
     default_onraise: type[Exception] | Exception | None = None
     # max_size: int = 1 << 30
 
+    @property
+    def console(self) -> Console:
+        if self.record:
+            return _record_console
+        else:
+            return _console
+
+    @property
+    def err_console(self) -> Console:
+        if self.record:
+            return _record_console
+        else:
+            return _err_console
+
     @staticmethod
     def from_config(
-        config: Config, verbosity: Verbosity = Verbosity.Normal
+        config: Config,
+        verbosity: Verbosity = Verbosity.Normal,
+        record: bool = False,
     ) -> UI:
-        return UI(config.paths.log, verbosity)
+        return UI(config.paths.log, verbosity=verbosity, record=record)
 
     @contextmanager
     def logging(
         self,
         modulename: str = "",
         onraise: type[Exception] | Exception | None = None,
+        record: bool | None = None,
     ):
+        if record is not None:
+            self.record = record
         handler: logging.Handler
         temp_path: Path | None = None
-        fmt = "[%(asctime)s]  %(levelname)-10s%(name)s\n%(message)s\n"
-        datefmt = "%Y-%m-%d %H:%M:%S"
-        file_datefmt = "%Y-%m-%d_%H-%M-%S"
+        fmt = LOG_FORMAT
+        datefmt = LOG_DATE_FORMAT
         if self.verbosity >= Verbosity.Errors:
-            if _err_console.is_terminal or _err_console.is_jupyter:
+            if self.err_console.is_terminal or self.err_console.is_jupyter:
                 handler = RichHandler(
-                    console=_err_console,
+                    console=self.err_console,
                     show_path=False,
                     markup=True,
                 )
@@ -104,7 +129,7 @@ class UI:
                 handler = logging.StreamHandler()
             handler.setLevel(self.verbosity.get_level())
         elif self.logfile:
-            date = datetime.utcnow().strftime(file_datefmt)
+            date = datetime.utcnow().strftime(FILE_DATE_FORMAT)
             filename = "-".join(["esgpull", modulename, date]) + ".log"
             temp_path = self.path / filename
             handler = logging.FileHandler(temp_path)
@@ -165,7 +190,7 @@ class UI:
         **kwargs: Any,
     ) -> None:
         if self.verbosity >= verbosity:
-            console = _err_console if err else _console
+            console = self.err_console if err else self.console
             if json:
                 console.print_json(json_dumps(msg), **kwargs)
             elif yaml:
@@ -186,15 +211,15 @@ class UI:
         toml: bool = False,
         **kwargs: Any,
     ) -> str:
-        with _console.capture() as capture:
+        with self.console.capture() as capture:
             if json:
-                _console.print_json(json_dumps(msg), **kwargs)
+                self.console.print_json(json_dumps(msg), **kwargs)
             elif yaml:
-                _console.print(yaml_syntax(msg), **kwargs)
+                self.console.print(yaml_syntax(msg), **kwargs)
             elif toml:
-                _console.print(toml_syntax(msg), **kwargs)
+                self.console.print(toml_syntax(msg), **kwargs)
             else:
-                _console.print(msg, **kwargs)
+                self.console.print(msg, **kwargs)
         return capture.get()
 
     def live(
@@ -209,22 +234,22 @@ class UI:
             renderables = first
         else:
             renderables = Group(first, *rest)
-        return Live(renderables, console=_console)
+        return Live(renderables, console=self.console)
 
     def make_progress(
         self, *columns: str | ProgressColumn, **kwargs: Any
     ) -> Progress:
         return Progress(
             *columns,
-            console=_console,
+            console=self.console,
             **kwargs,
         )
 
     def spinner(self, msg: str) -> Status:
-        return _console.status(msg, spinner="earth")
+        return self.console.status(msg, spinner="earth")
 
     def ask(self, msg: str, default: bool = False) -> bool:
-        return Confirm.ask(msg, default=default)
+        return Confirm.ask(msg, default=default, console=self.console)
 
     def choice(
         self,
@@ -233,18 +258,37 @@ class UI:
         default: str | None = None,
     ) -> str:
         if default is not None:
-            return Prompt.ask(msg, choices=choices, default=default)
+            return Prompt.ask(
+                msg,
+                choices=choices,
+                default=default,
+                console=self.console,
+            )
         else:
-            return Prompt.ask(msg, choices=choices)
+            return Prompt.ask(msg, choices=choices, console=self.console)
 
     def prompt(self, msg: str, default: str | None = None) -> str:
         if default is not None:
-            return Prompt.ask(msg, default=default)
+            return Prompt.ask(msg, default=default, console=self.console)
         else:
-            return Prompt.ask(msg)
+            return Prompt.ask(msg, console=self.console)
 
     def rule(self, msg: str):
-        _console.rule(msg)
+        self.console.rule(msg)
+
+    def export_svg(self) -> Path:
+        date = datetime.utcnow().strftime(FILE_DATE_FORMAT)
+        filename = "-".join(["record", date]) + ".svg"
+        output_path = self.path / filename
+        with output_path.open("w") as f:
+            f.write(_record_console.export_svg())
+        return output_path
+
+    def raise_maybe_record(self, exc: type[Exception] | Exception) -> None:
+        if self.record:
+            output_path = self.export_svg()
+            self.print(f":+1: Console output exported to {output_path}")
+        raise exc
 
 
 TempUI = UI(

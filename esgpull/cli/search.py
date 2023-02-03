@@ -7,10 +7,10 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import filter_keys, parse_query, totable
+from esgpull.cli.utils import filter_keys, get_command, parse_query, totable
 from esgpull.exceptions import PageIndexError
 from esgpull.models import Query
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -23,10 +23,12 @@ from esgpull.tui import Verbosity
 @opts.dry_run
 @opts.dump
 @opts.file
+@opts.facets_hints
 @opts.hints
 @opts.json
 @opts.show
 @opts.yes
+@opts.record
 @opts.verbosity
 # @opts.selection_file
 def search(
@@ -50,11 +52,13 @@ def search(
     dry_run: bool,
     dump: bool,
     file: bool,
+    facets_hints: bool,
     hints: list[str] | None,
     json: bool,
     show: bool,
     yes: bool,
     # selection_file: str | None,
+    record: bool,
     verbosity: Verbosity,
 ) -> None:
     """
@@ -62,7 +66,10 @@ def search(
 
     More info
     """
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging(record=record):
+        if record:
+            TempUI.print(get_command())
+        esg = Esgpull(verbosity=verbosity, record=record)
     # -> numeric ids are not consistent due to sort by instance_id
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(
@@ -109,19 +116,19 @@ def search(
             )
             for result in search_results:
                 esg.ui.print(result.request.url)
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
+        if facets_hints:
+            not_distrib_query = query << Query(options=dict(distrib=False))
+            facet_counts = esg.context.hints(
+                not_distrib_query,
+                file=file,
+                facets=["*"],
+                date_from=date_from,
+                date_to=date_to,
+            )
+            esg.ui.print(list(facet_counts[0]), json=True)
+            esg.ui.raise_maybe_record(Exit(0))
         if hints is not None:
-            if hints[0] in "/?.":
-                not_distrib_query = query << Query(options=dict(distrib=False))
-                facet_counts = esg.context.hints(
-                    not_distrib_query,
-                    file=file,
-                    facets=["*"],
-                    date_from=date_from,
-                    date_to=date_to,
-                )
-                esg.ui.print(list(facet_counts[0]), json=True)
-                raise Exit(0)
             facet_counts = esg.context.hints(
                 query,
                 file=file,
@@ -130,21 +137,21 @@ def search(
                 date_to=date_to,
             )
             esg.ui.print(facet_counts, json=True)
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         if dump:
             if json:
                 esg.ui.print(query.asdict(), json=True)
             else:
                 esg.ui.print(query.asdict(), yaml=True)
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         if show:
             esg.ui.print(query)
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         if max_hits > 200 and not yes:
             nb_req = max_hits // esg.config.search.page_limit
             message = f"{nb_req} requests will be sent to ESGF. Send anyway?"
             if not esg.ui.ask(message, default=True):
-                raise Abort
+                esg.ui.raise_maybe_record(Abort)
         results = esg.context.search(
             query,
             file=file,
@@ -157,7 +164,7 @@ def search(
         )
         if json:
             esg.ui.print([f.asdict() for f in results], json=True)
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         f_or_d = "file" if file else "dataset"
         s = "s" if nb != 1 else ""
         esg.ui.print(f"Found {nb} {f_or_d}{s}.")
@@ -167,3 +174,4 @@ def search(
             needs_data_node = len(unique_nodes) > len(unique_ids)
             docs = filter_keys(results, data_node=needs_data_node)
             esg.ui.print(totable(docs))
+        esg.ui.raise_maybe_record(Exit(0))

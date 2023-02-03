@@ -99,14 +99,21 @@ class opts:
     )
     dump: Dec = click.option(
         "--dump",
-        "-D",
+        is_flag=True,
+        default=False,
+    )
+    facets_hints: Dec = click.option(
+        "facets_hints",
+        "--facets",
+        "-F",
         is_flag=True,
         default=False,
     )
     file: Dec = click.option(
         "--file",
-        "-F",
+        "-f",
         is_flag=True,
+        default=False,
     )
     files: Dec = click.option(
         "--files",
@@ -115,7 +122,6 @@ class opts:
     )
     force: Dec = click.option(
         "--force",
-        "-f",
         is_flag=True,
         default=False,
     )
@@ -144,6 +150,11 @@ class opts:
     )
     quiet: Dec = click.option(
         "--quiet",
+        is_flag=True,
+        default=False,
+    )
+    record: Dec = click.option(
+        "--record",
         is_flag=True,
         default=False,
     )
