@@ -394,16 +394,11 @@ class Context:
                 fields_param = FileFieldParams
             else:
                 fields_param = DatasetFieldParams
-        hits: list[int] = []
-        for query_hints in hints:
-            if "index_node" not in query_hints:
-                raise NotImplementedError
-            nodes = query_hints["index_node"]
-            query_hits = sum([nodes[node] for node in nodes])
-            hits.append(query_hits)
+        hits = self.hits_from_hints(*hints)
         if max_hits is not None:
             hits = _distribute_hits_impl(hits, max_hits)
         results = []
+        not_distrib = Query(options=dict(distrib=False))
         for query, query_hints, query_max_hits in zip(queries, hints, hits):
             nodes = query_hints["index_node"]
             nodes_hits = [nodes[node] for node in nodes]
@@ -415,7 +410,7 @@ class Context:
             )
             for node, node_slices in zip(nodes, slices):
                 for sl in node_slices:
-                    result = ResultSearch(query, file=file)
+                    result = ResultSearch(query << not_distrib, file=file)
                     result.prepare(
                         index_node=node,
                         offset=sl.start,

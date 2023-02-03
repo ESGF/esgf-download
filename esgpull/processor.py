@@ -31,7 +31,7 @@ class Task:
         self.config = config
         self.auth = auth
         self.fs = fs
-        self.file = file
+        self.ctx = DownloadCtx(file)
         # if file is None and url is not None:
         #     self.file = self.fetch_file(url)
         # elif file is not None:
@@ -59,11 +59,11 @@ class Task:
     async def stream(
         self, semaphore: asyncio.Semaphore
     ) -> AsyncIterator[Result]:
-        ctx = DownloadCtx(self.file)
+
         try:
             async with (
                 semaphore,
-                self.fs.open(self.file) as file_obj,
+                self.fs.open(self.ctx.file) as file_obj,
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
@@ -72,11 +72,13 @@ class Task:
             ):
                 for callback in self.start_callbacks:
                     callback()
-                async for ctx in self.downloader.stream(client, ctx):
+                async for ctx in self.downloader.stream(client, self.ctx):
                     if ctx.chunk is not None:
                         await file_obj.write(ctx.chunk)
-                    if ctx.completed > self.file.size:
-                        raise DownloadSizeError(ctx.completed, self.file.size)
+                    if ctx.error:
+                        raise DownloadSizeError(ctx.completed, ctx.file.size)
+                    elif ctx.finished:
+                        file_obj.finished = True
                     yield Ok(ctx)
         except (
             HTTPError,

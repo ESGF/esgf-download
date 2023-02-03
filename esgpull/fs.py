@@ -34,11 +34,11 @@ class Filesystem:
 
     def __post_init__(self, install: bool = True) -> None:
         if install:
-            self.auth.mkdir(exist_ok=True)
-            self.data.mkdir(exist_ok=True)
-            self.db.mkdir(exist_ok=True)
-            self.log.mkdir(exist_ok=True)
-            self.tmp.mkdir(exist_ok=True)
+            self.auth.mkdir(parents=True, exist_ok=True)
+            self.data.mkdir(parents=True, exist_ok=True)
+            self.db.mkdir(parents=True, exist_ok=True)
+            self.log.mkdir(parents=True, exist_ok=True)
+            self.tmp.mkdir(parents=True, exist_ok=True)
 
     def path_of(self, file: File) -> Path:
         return self.data / file.local_path / file.filename
@@ -86,14 +86,19 @@ class Filesystem:
 class FileObject:
     tmp_path: Path
     final_path: Path
+    finished: bool = False
     buffer: AsyncBufferedIOBase = field(init=False)
 
-    async def __aenter__(self) -> AsyncBufferedIOBase:
+    async def __aenter__(self) -> FileObject:
         self.buffer = await aiofiles.open(self.tmp_path, "wb")
-        return self.buffer
+        return self
+
+    async def write(self, chunk: bytes) -> None:
+        await self.buffer.write(chunk)
 
     async def __aexit__(self, exc_type, exc_value, exc_traceback) -> None:
         if not self.buffer.closed:
             await self.buffer.close()
-        self.final_path.parent.mkdir(parents=True, exist_ok=True)
-        self.tmp_path.rename(self.final_path)
+        if self.finished:
+            self.final_path.parent.mkdir(parents=True, exist_ok=True)
+            self.tmp_path.rename(self.final_path)

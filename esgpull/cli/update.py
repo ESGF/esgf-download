@@ -82,7 +82,6 @@ def update(
                 file=True,
                 hints=[qf.hints],
                 max_hits=None,
-                fields_param=["*"],
             )
             nb_req = len(qf_results)
             if nb_req > 50:

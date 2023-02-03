@@ -1,7 +1,7 @@
 import pytest
 
 from esgpull.config import InstallConfig
-from esgpull.db.models import File, FileStatus
+from esgpull.models import File, FileStatus
 
 
 @pytest.fixture
@@ -27,5 +27,5 @@ def file():
         size=0,
         status=FileStatus.Queued,
     )
-    f.id = 1
+    f.compute_sha()
     return f

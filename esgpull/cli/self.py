@@ -51,7 +51,6 @@ def install(
             TempUI.print(f"Using existing install at {path}")
         else:
             TempUI.print(f"Creating install directory and files at {path}")
-            path.mkdir(parents=True)
         InstallConfig.write()
         TempUI.print(f"Install config added to {InstallConfig.path}")
         esg = Esgpull(verbosity=verbosity, install=True)

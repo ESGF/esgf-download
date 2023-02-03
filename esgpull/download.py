@@ -22,6 +22,10 @@ class DownloadCtx:
     def finished(self) -> bool:
         return self.completed == self.file.size
 
+    @property
+    def error(self) -> bool:
+        return self.completed > self.file.size
+
 
 class BaseDownloader:
     def stream(
