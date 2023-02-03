@@ -17,6 +17,7 @@ theme:
     - navigation.top
     - navigation.instant
     - content.tabs.link
+    - content.code.copy
     - content.code.annotate
   language: en
   # extra:

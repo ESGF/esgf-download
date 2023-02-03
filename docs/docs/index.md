@@ -1,111 +1,65 @@
-# esgpull
+# Introduction
 
-`esgpull` is a tool that simplifies usage of the [ESGF Search API] for data discovery, and manages procedures related to downloading and storing files from ESGF.
+`esgpull` is a modern ESGF data management tool, bundled with a custom asynchronous interface with the [ESGF Search API].
+It handles scanning, downloading and updating **datasets**, **files** and *queries* from ESGF.
 
-## Features
+<!-- Its simple data model makes `esgpull` easy to use, it is completely possible to never download a single file and still find a use for it. -->
+
+## Feature highlight
+
+- Simple syntax for fast data exploration
+- Asynchronous download
+- Highly configurable
 
 !!! tip "Search datasets"
     
-    `esgpull` includes many ways of searching for data, with **facet** and **free-text** terms together with **options**.
+    `esgpull` allows multiple ways for searching ESGF data, with **facet** and **free-text** terms together with **options**.
 
     === "Facet terms"
 
-        Specify exact facet terms with `<name>:<value>` syntax:
-
-        ```sh title="All CMIP6 datasets"
+        ```sh title="Query every CMIP6 dataset using facet syntax"
         esgpull search project:CMIP6
         ```
-        ```{.markdown .result}
-        Found 1539146 datasets.
-             ╷          ╷                                                                      
-           # │     size │ id                                                                   
-        ╶────┼──────────┼─────────────────────────────────────────────────────────────────────╴
-           0 │  10.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.hfls.gr.v2018…  
-           1 │   7.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.clt.gr.v20181…  
-           2 │  11.1 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.cfadLidars…  
-           3 │   1.6 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.clmisr.gr.…  
-           4 │ 170.5 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.cllcalipso…  
-           5 │  86.5 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.clhcalipso…  
-           6 │  99.3 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.clmcalipso…  
-           7 │   1.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.clcalipso.…  
-           8 │ 142.7 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.cltcalipso…  
-           9 │   1.1 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.clisccp.gr…  
-          10 │ 683.2 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.jpdftaurel…  
-          11 │ 452.1 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.jpdftaurei…  
-          12 │   1.0 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.parasolRef…  
-          13 │ 845.6 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.hus.gr.v20…  
-          14 │ 409.1 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.CFsubhr.hfss.gn.v…  
-          15 │ 398.2 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.CFsubhr.hfls.gn.v…  
-          16 │   4.2 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.CFsubhr.mc.gn.v20…  
-          17 │ 418.1 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.CFsubhr.prc.gn.v2…  
-          18 │ 379.3 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.CFsubhr.huss.gn.v…  
-          19 │ 364.8 MB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.CFsubhr.hurs.gn.v…  
-             ╵          ╵
+        ![esgpull search](images/esgpull_search_intro_1.svg)
+
+    === "Free-text terms"
+
+        ```sh title="Narrow down the results with free-text term 'temperature'"
+        esgpull search project:CMIP6 temperature
         ```
+        ![esgpull search](images/esgpull_search_intro_2.svg)
 
-    === "Options"
+    === "Facets hints"
 
-        Discover possible facet values with `--options <facet name>`:
-
-        ```sh title="All variables for CMIP6 datasets"
-        esgpull search project:CMIP6 --options variable_id
+        ```sh title="Find out which facets remain to be set with --facets"
+        esgpull search project:CMIP6 temperature --facets
         ```
-        ```{.sh .markdown .result}
-        [
-            {
-                'variable_id': {
-                    'abs550aer': 3398,
-                    'agesno': 3084,
-                    ...
-                    'zsatcalc': 106,
-                    'ztp': 4825
-                }
-            }
-        ]
+        ![esgpull search](images/esgpull_search_intro_3.svg)
+
+    === "Hints"
+
+        ```sh title="Get every potential facet value for the current query with --hints"
+        esgpull search project:CMIP6 temperature --hints variable_id
         ```
+        ![esgpull search](images/esgpull_search_intro_4.svg)
 
-    === "Free-text search"
+    === "Finer grain query"
 
-        Narrow down the search (or options search) with free-text terms:
-
-        ```sh title="CMIP6 variables for which both 'ocean' and 'temperature' appear in the metadata"
-        esgpull search project:CMIP6 --options variable_id "ocean AND temperature"
+        ```sh title="Query all CMIP6 datasets with variable 'tas'"
+        esgpull search project:CMIP6 variable_id:tas
         ```
-        ```{.sh .markdown .result}
-        [
-            {
-                'variable_id': {
-                    'bigthetao': 1668,
-                    'bigthetaoga': 1692,
-                    ...
-                    'tosga': 434,
-                    'tossq': 388
-                }
-            }
-        ]
-        ```
+        ![esgpull search](images/esgpull_search_intro_5.svg)
 
-    === "Complete search"
+    === "Date filter"
 
-        Show the first 3 datasets from CMIP6 with variable `bigthetao`:
-
-        ```sh title="First 3 CMIP6 datasets with variable 'bigthetao'"
-        esgpull search project:CMIP6 variable_id:bigthetao --slice 0:3
+        ```sh title="Query CMIP6 datasets with variable 'tas' published since Jan 1st, 2023"
+        esgpull search project:CMIP6 variable_id:tas --from 2023-01-01
         ```
-        ```{.markdown .result}
-        Found 1801 datasets.
-            ╷         ╷                                                                        
-          # │    size │ id                                                                     
-        ╶───┼─────────┼───────────────────────────────────────────────────────────────────────╴
-          0 │ 22.8 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.historical.r2i1p1f2.Omon.bigtheta…  
-          1 │ 61.6 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.piControl.r1i1p1f2.Omon.bigthetao…  
-          2 │ 13.7 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-ESM2-1.piControl-spinup.r1i1p1f2.Omon.b…  
-            ╵         ╵
-        ```
+        ![esgpull search](images/esgpull_search_intro_6.svg)
 
 !!! tip "Asynchronous downloads"
     
-    Downloads are done concurrently (up to a maximum), maximizing retrieval speed.
+    Downloads are done concurrently (up to a maximum) such that retrieval speed is maximized.
 
 !!! tip "SQLite database"
 
