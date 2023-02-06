@@ -118,3 +118,9 @@ class NoClauseError(EsgpullException):
     msg = """
     No clause provided (query might be empty).
     """
+
+
+class VirtualConfigError(EsgpullException):
+    msg = """
+    This config was not loaded from a file.
+    """

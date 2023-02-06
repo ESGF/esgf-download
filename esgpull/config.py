@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Container
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,11 @@ from cattrs.gen import make_dict_unstructure_fn, override
 from typing_extensions import NotRequired, TypedDict
 
 from esgpull.constants import CONFIG_FILENAME, ROOT_ENV
-from esgpull.exceptions import NameAlreadyInstalled, PathAlreadyInstalled
+from esgpull.exceptions import (
+    NameAlreadyInstalled,
+    PathAlreadyInstalled,
+    VirtualConfigError,
+)
 
 
 @dataclass(init=False)
@@ -51,7 +56,7 @@ class _InstallConfig:
 
     def __init__(self) -> None:
         user_config_dir = platformdirs.user_config_path("esgpull")
-        self.path = user_config_dir / "config.json"
+        self.path = user_config_dir / "installs.json"
         if self.path.is_file():
             with self.path.open() as f:
                 content = json.load(f)
@@ -263,20 +268,22 @@ class Config:
     db: Db = Factory(Db)
     search: Search = Factory(Search)
     download: Download = Factory(Download)
-    _raw: str | None = field(init=False, default=None)
+    _raw: tomlkit.TOMLDocument | None = field(init=False, default=None)
+    _config_file: Path | None = field(init=False, default=None)
 
     @classmethod
     def load(cls, path: Path) -> Config:
         config_file = path / CONFIG_FILENAME
         if config_file.is_file():
             with config_file.open() as fh:
-                raw = fh.read()
-            doc = tomlkit.loads(raw)
+                doc = tomlkit.load(fh)
+                raw = doc
         else:
-            raw = None
             doc = tomlkit.TOMLDocument()
+            raw = None
         config = _converter_defaults.structure(doc, cls)
         config._raw = raw
+        config._config_file = config_file
         return config
 
     @classmethod
@@ -306,13 +313,47 @@ class Config:
         #     original = tomlkit.loads(self._raw)
         return doc
 
+    def update_item(self, key: str, value: int | str) -> int | str | None:
+        if self._config_file is None or self._raw is None:
+            raise VirtualConfigError
+        doc: dict = self._raw
+        obj = self
+        *parts, last = key.split(".")
+        for part in parts:
+            doc.setdefault(part, {})
+            doc = doc[part]
+            obj = getattr(self, part)
+        old_value = doc.get(last)
+        if isinstance(doc[last], str):
+            ...
+        elif isinstance(doc[last], Container):
+            raise KeyError(key)
+        try:
+            value = int(value)
+        except ValueError:
+            ...
+        setattr(obj, last, value)
+        doc[last] = value
+        return old_value
+
+    def write(self) -> None:
+        if self._raw is None or self._config_file is None:
+            raise VirtualConfigError
+        with self._config_file.open("w") as f:
+            tomlkit.dump(self._raw, f)
+
 
 def _make_converter(omit_default: bool) -> Converter:
     conv = Converter(omit_if_default=omit_default, forbid_extra_keys=True)
     conv.register_unstructure_hook(Path, str)
     conv.register_unstructure_hook(
         Config,
-        make_dict_unstructure_fn(Config, conv, _raw=override(omit=True)),
+        make_dict_unstructure_fn(
+            Config,
+            conv,
+            _raw=override(omit=True),
+            _config_file=override(omit=True),
+        ),
     )
     return conv
 

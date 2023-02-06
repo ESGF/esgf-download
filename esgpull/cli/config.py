@@ -3,20 +3,22 @@ from click.exceptions import Abort
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.constants import CONFIG_FILENAME
 from esgpull.tui import Verbosity
 
 
-def extract_command(info: dict, command: str | None) -> dict:
-    if command is None:
-        return info
-    keys = command.split(".")
-    assert all(len(key) > 0 for key in keys)
-    for key in keys:
-        info = info[key]
-    for key in keys[::-1]:
-        info = {key: info}
-    return info
+def extract_command(doc: dict, key: str | None) -> dict:
+    if key is None:
+        return doc
+    for part in key.split("."):
+        if not part:
+            raise KeyError(key)
+        elif part in doc:
+            doc = doc[part]
+        else:
+            raise KeyError(part)
+    for part in key.split(".")[::-1]:
+        doc = {part: doc}
+    return doc
 
 
 @click.command()
@@ -25,11 +27,20 @@ def extract_command(info: dict, command: str | None) -> dict:
 @opts.verbosity
 def config(
     key: str | None,
-    value: str | None,
+    value: int | str | None,
     verbosity: Verbosity,
 ):
     esg = Esgpull(verbosity=verbosity)
     with esg.ui.logging("config", onraise=Abort):
-        info = extract_command(esg.config.dump(), key)
-        esg.ui.rule(str(esg.path / CONFIG_FILENAME))
-        esg.ui.print(info, toml=True)
+        if key is not None and value is not None:
+            old_value = esg.config.update_item(key, value)
+            info = extract_command(esg.config.dump(), key)
+            esg.config.write()
+            esg.ui.print(info, toml=True)
+            esg.ui.print(f"Previous value: {old_value}")
+        elif key is not None:
+            info = extract_command(esg.config.dump(), key)
+            esg.ui.print(info, toml=True)
+        else:
+            esg.ui.rule(str(esg.config._config_file))
+            esg.ui.print(esg.config.dump(), toml=True)
