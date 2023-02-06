@@ -124,3 +124,11 @@ class VirtualConfigError(EsgpullException):
     msg = """
     This config was not loaded from a file.
     """
+
+
+class UnregisteredInstallPath(EsgpullException):
+    msg = "{}"
+
+
+class UnknownInstallName(EsgpullException):
+    msg = "{!r}"

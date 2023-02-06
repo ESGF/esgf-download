@@ -8,7 +8,11 @@ from rich.table import Table
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.config import InstallConfig
-from esgpull.exceptions import InvalidInstallDirectory
+from esgpull.exceptions import (
+    InvalidInstallDirectory,
+    UnknownInstallName,
+    UnregisteredInstallPath,
+)
 from esgpull.tui import TempUI, Verbosity
 
 
@@ -126,11 +130,9 @@ def choose(
         InstallConfig.choose(path=path, name=name)
         if InstallConfig.current is None:
             if name is not None:
-                raise ValueError(f"unknown name: {name!r}")
+                raise UnknownInstallName(name)
             elif path is not None:
-                raise ValueError(
-                    f"unknown path: {InstallConfig.fullpath(path)}"
-                )
+                raise UnregisteredInstallPath(path)
         else:
             InstallConfig.write()
 
