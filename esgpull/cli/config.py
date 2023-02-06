@@ -1,5 +1,5 @@
 import click
-from click.exceptions import Abort
+from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
@@ -24,10 +24,12 @@ def extract_command(doc: dict, key: str | None) -> dict:
 @click.command()
 @args.key
 @args.value
+@opts.generate
 @opts.verbosity
 def config(
     key: str | None,
-    value: int | str | None,
+    value: str | None,
+    generate: bool,
     verbosity: Verbosity,
 ):
     esg = Esgpull(verbosity=verbosity)
@@ -44,3 +46,8 @@ def config(
         else:
             esg.ui.rule(str(esg.config._config_file))
             esg.ui.print(esg.config.dump(), toml=True)
+            if generate:
+                esg.config.generate()
+                msg = f":+1: Config generated at {esg.config._config_file}"
+                esg.ui.print(msg)
+                raise Exit(0)

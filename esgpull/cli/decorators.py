@@ -125,6 +125,11 @@ class opts:
         is_flag=True,
         default=False,
     )
+    generate: Dec = click.option(
+        "--generate",
+        is_flag=True,
+        default=False,
+    )
     hints: Dec = click.option(
         "--hints",
         "-H",

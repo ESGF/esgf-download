@@ -336,6 +336,15 @@ class Config:
         doc[last] = value
         return old_value
 
+    def generate(self) -> None:
+        if self._config_file is None:
+            raise VirtualConfigError
+        elif self._config_file.is_file():
+            raise FileExistsError(self._config_file)
+        with self._config_file.open("w") as f:
+            self._raw = self.dump()
+            tomlkit.dump(self._raw, f)
+
     def write(self) -> None:
         if self._raw is None or self._config_file is None:
             raise VirtualConfigError
