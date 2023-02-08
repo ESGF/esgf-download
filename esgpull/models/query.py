@@ -250,7 +250,9 @@ class Query(Base):
     def clone(self, compute_sha: bool = True) -> Query:
         instance = Query(**self.asdict())
         instance.files = list(self.files)
-        if compute_sha:
+        if self.sha == "LEGACY":
+            instance.sha = "LEGACY"
+        elif compute_sha:
             instance.compute_sha()
         return instance
 
@@ -387,3 +389,9 @@ class Query(Base):
         opts: ConsoleOptions,
     ) -> Iterator[Tree]:
         yield self._rich_tree()
+
+
+LegacyQuery = Query()
+LegacyQuery.compute_sha()  # compute shas for empty selection/options/...
+LegacyQuery.sha = "LEGACY"
+LegacyQuery.compute_sha = lambda: None  # type: ignore [assignment]
