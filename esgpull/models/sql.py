@@ -99,6 +99,12 @@ class file:
         )
 
     @staticmethod
+    def shas_from_query(query_sha: str) -> sa.Select[tuple[str]]:
+        return sa.select(query_file_proxy.c.file_sha).filter_by(
+            query_sha=query_sha
+        )
+
+    @staticmethod
     def with_status(*status: FileStatus) -> sa.Select[tuple[File]]:
         return sa.select(File).where(File.status.in_(status))
 
@@ -216,3 +222,7 @@ class synda_file:
     @functools.cache
     def ids() -> sa.Select[tuple[int]]:
         return sa.select(SyndaFile.file_id)
+
+    @staticmethod
+    def with_ids(*ids: int) -> sa.Select[tuple[SyndaFile]]:
+        return sa.select(SyndaFile).where(SyndaFile.file_id.in_(ids))

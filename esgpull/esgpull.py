@@ -28,7 +28,15 @@ from esgpull.exceptions import (
 )
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
-from esgpull.models import Facet, File, FileStatus, Options, Query, sql
+from esgpull.models import (
+    Facet,
+    File,
+    FileStatus,
+    LegacyQuery,
+    Options,
+    Query,
+    sql,
+)
 from esgpull.models.utils import short_sha
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
@@ -158,6 +166,49 @@ class Esgpull:
                         new_facets.add(facet)
         self.db.add(*new_facets)
         return len(new_facets) > 0
+
+    def import_synda(
+        self,
+        url: Path,
+        track: bool = False,
+        size: int = 5000,
+        ask: bool = False,
+    ) -> None:
+        assert url.is_file()
+        legacy = LegacyQuery
+        if (
+            legacy_db := self.db.get(Query, "LEGACY")
+        ) and legacy_db is not None:
+            legacy = legacy_db
+        else:
+            self.db.add(legacy)
+            self.graph.add(legacy, clone=False)
+            self.graph.merge(commit=True)
+        synda = Database(f"sqlite:///{url}", run_migrations=False)
+        synda_ids = synda.scalars(sql.synda_file.ids())
+        shas = set(self.db.scalars(sql.file.shas_from_query("LEGACY")))
+        msg = f"Found {len(synda_ids)} files to import, proceed?"
+        if ask and not self.ui.ask(msg):
+            return
+        synda_shas: set[str] = set()
+        idx_range = range(0, len(synda_ids), size)
+        if track:
+            iter_idx_range = self.ui.track(idx_range)
+        else:
+            iter_idx_range = iter(idx_range)
+        for start in iter_idx_range:
+            stop = min(len(synda_ids), start + size)
+            ids = synda_ids[start:stop]
+            synda_files = synda.scalars(sql.synda_file.with_ids(*ids))
+            files: list[File] = []
+            for synda_file in synda_files:
+                file = synda_file.to_file()
+                if file.sha not in shas:
+                    file.queries.append(legacy)
+                    files.append(file)
+                    synda_shas.add(file.sha)
+            if files:
+                self.db.add(*files)
 
     # def add(
     #     self,
