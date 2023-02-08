@@ -5,7 +5,7 @@ import os
 from collections.abc import Container
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import platformdirs
 import tomlkit
@@ -234,6 +234,13 @@ class Paths:
         else:
             root = InstallConfig.default
         return root / "tmp"
+
+    def __iter__(self) -> Iterator[Path]:
+        yield self.auth
+        yield self.data
+        yield self.db
+        yield self.log
+        yield self.tmp
 
 
 @define
