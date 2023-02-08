@@ -2,7 +2,7 @@
 
 Revision ID: 0.3.0
 Revises:
-Create Date: 2022-12-23 11:36:56.670368
+Create Date: 2023-02-08 14:35:52.386481
 
 """
 import sqlalchemy as sa
@@ -55,7 +55,6 @@ def upgrade() -> None:
         ),
         sa.Column("sha", sa.String(length=40), nullable=False),
         sa.PrimaryKeyConstraint("sha"),
-        sa.UniqueConstraint("checksum"),
         sa.UniqueConstraint("file_id"),
     )
     op.create_table(
