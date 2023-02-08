@@ -7,7 +7,7 @@ from rich.console import Console, ConsoleOptions
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 from typing_extensions import NotRequired, TypedDict
 
 from esgpull.models.base import Base, Sha
@@ -161,6 +161,36 @@ class Query(Base):
         default_factory=list,
         back_populates="queries",
     )
+
+    @property
+    def has_files(self) -> bool:
+        stmt: sa.Select[tuple[int]] = (
+            sa.select(sa.func.count("*"))
+            .join_from(query_file_proxy, File)
+            .where(query_file_proxy.c.query_sha == self.sha)
+        )
+        session = object_session(self)
+        if session is None:
+            return bool(self.files)
+        else:
+            nb_files = session.scalar(stmt)
+            return nb_files is not None and nb_files > 0
+
+    def files_count_size(self, *status: FileStatus) -> tuple[int, int]:
+        stmt: sa.Select[tuple[int, int | None]] = (
+            sa.select(sa.func.count("*"), sa.func.sum(File.size))
+            .join_from(query_file_proxy, File)
+            .where(query_file_proxy.c.query_sha == self.sha)
+        )
+        if status:
+            stmt = stmt.where(File.status.in_(status))
+        session = object_session(self)
+        if session is None:
+            count: int = len(self.files)
+            size: int | None = sum([file.size for file in self.files])
+        else:
+            count, size = session.execute(stmt).all()[0]
+        return count, size or 0
 
     def _as_bytes(self) -> bytes:
         self_tuple = (self.require, self.options.sha, self.selection.sha)
@@ -369,12 +399,11 @@ class Query(Base):
             else:
                 values_str = ", ".join(values)
             contents.add_row(text, values_str)
-        if self.files:
-            ondisk = [f for f in self.files if f.status == FileStatus.Done]
-            size_ondisk = format_size(sum([f.size for f in ondisk]))
-            size_total = format_size(sum([f.size for f in self.files]))
-            sizes = f"{size_ondisk} / {size_total}"
-            lens = f"{len(ondisk)}/{len(self.files)}"
+        if self.has_files:
+            count_ondisk, size_ondisk = self.files_count_size(FileStatus.Done)
+            count_total, size_total = self.files_count_size()
+            sizes = f"{format_size(size_ondisk)} / {format_size(size_total)}"
+            lens = f"{count_ondisk}/{count_total}"
             contents.add_row(
                 "files:", Text(f"{sizes} [{lens}]", style="magenta")
             )
