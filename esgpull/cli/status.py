@@ -21,7 +21,7 @@ def status(
     with TempUI.logging():
         esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("status", onraise=Abort):
-        status_count_size = list(esg.db.rows(sql.file.status_count_size))
+        status_count_size = list(esg.db.rows(sql.file.status_count_size()))
         table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)
         table.add_column("status", justify="right", style="bold blue")
         table.add_column("files", justify="center")

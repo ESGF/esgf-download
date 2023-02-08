@@ -191,7 +191,7 @@ class Graph:
         if self.db is None:
             raise GraphWithoutDatabase()
         else:
-            return list(self.db.scalars(sql.tag.all))
+            return list(self.db.scalars(sql.tag.all()))
 
     def get_tag(self, name: str) -> Tag | None:
         result: Tag | None = None
@@ -239,15 +239,15 @@ class Graph:
         if self.db is None:
             raise GraphWithoutDatabase()
         name_sha: dict[str, str] = {}
-        self._shas = set(self.db.scalars(sql.query.shas))
-        for name, sha in self.db.rows(sql.query.name_sha):
+        self._shas = set(self.db.scalars(sql.query.shas()))
+        for name, sha in self.db.rows(sql.query.name_sha()):
             name_sha[name] = sha
         self._name_sha = name_sha
 
     def load_db(self) -> None:
         if self.db is None:
             raise GraphWithoutDatabase()
-        queries = self.db.scalars(sql.query.all)
+        queries = self.db.scalars(sql.query.all())
         self.add(*queries, clone=False, force=True)
 
     def validate(self, *queries: Query, noraise: bool = False) -> set[str]:

@@ -146,7 +146,7 @@ class Esgpull:
             hints_coros.append(self.context._hints(*hints_results))
         hints = self.context.sync_gather(*hints_coros)
         new_facets: set[Facet] = set()
-        facets_db = self.db.scalars(sql.facet.all)
+        facets_db = self.db.scalars(sql.facet.all())
         for index_hints in hints:
             for name, values in index_hints[0].items():
                 if name in IGNORE_NAMES:

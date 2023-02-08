@@ -18,7 +18,7 @@ def facet(
         esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("facet", onraise=Abort):
         if key is None:
-            results = esg.db.scalars(sql.facet.names)
+            results = esg.db.scalars(sql.facet.names())
         else:
             results = esg.db.scalars(sql.facet.values(key))
         esg.ui.print(sorted(results))

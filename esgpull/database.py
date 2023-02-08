@@ -142,7 +142,7 @@ class Database:
         return result
 
     def get_deprecated_files(self) -> list[File]:
-        duplicates = self.scalars(sql.file.duplicates)
+        duplicates = self.scalars(sql.file.duplicates())
         duplicates_dict: dict[str, list[File]] = {}
         for file in duplicates:
             duplicates_dict.setdefault(file.master_id, [])
