@@ -17,7 +17,7 @@ Sha = sa.String(40)
 
 class Base(MappedAsDataclass, DeclarativeBase):
     __dataclass_fields__: ClassVar[dict[str, Field]]
-    __sql_attrs__ = ("id", "sha", "_sa_instance_state")
+    __sql_attrs__ = ("id", "sha", "_sa_instance_state", "__dataclass_fields__")
 
     sha: Mapped[str] = mapped_column(
         Sha,
