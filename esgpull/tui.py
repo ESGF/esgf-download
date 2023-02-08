@@ -7,14 +7,14 @@ from datetime import datetime
 from enum import IntEnum
 from json import dumps as json_dumps
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping, TypeVar
 
 import click.exceptions
 from attrs import define, field
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.logging import RichHandler
-from rich.progress import Progress, ProgressColumn
+from rich.progress import Progress, ProgressColumn, track
 from rich.prompt import Confirm, Prompt
 from rich.status import Status
 from rich.syntax import Syntax
@@ -34,6 +34,8 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 _console = Console(highlight=True)
 _err_console = Console(stderr=True)
 _record_console = Console(highlight=True, record=True)
+
+T = TypeVar("T")
 
 
 class Verbosity(IntEnum):
@@ -236,6 +238,9 @@ class UI:
             renderables = Group(first, *rest)
         return Live(renderables, console=self.console)
 
+    def track(self, iterable: Iterable[T]) -> Iterable[T]:
+        return track(iterable, console=self.console)
+
     def make_progress(
         self, *columns: str | ProgressColumn, **kwargs: Any
     ) -> Progress:
@@ -248,8 +253,11 @@ class UI:
     def spinner(self, msg: str) -> Status:
         return self.console.status(msg, spinner="earth")
 
-    def ask(self, msg: str, default: bool = False) -> bool:
-        return Confirm.ask(msg, default=default, console=self.console)
+    def ask(self, msg: str, default: bool | None = None) -> bool:
+        if default is not None:
+            return Confirm.ask(msg, default=default, console=self.console)
+        else:
+            return Confirm.ask(msg, console=self.console)
 
     def choice(
         self,
