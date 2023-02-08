@@ -1,3 +1,4 @@
+import logging
 from time import perf_counter
 
 import pytest
@@ -131,6 +132,8 @@ def test_search_distributed(ctx):
     dataset_ids_distributed = set(d.dataset_id for d in datasets_distributed)
     assert dataset_ids_regular == dataset_ids_distributed
     # assert t_regular.duration >= t_distributed.duration
+    logging.info(f"{t_regular.duration}")
+    logging.info(f"{t_distributed.duration}")
 
 
 def test_ipsl_hits_between_1_and_2_million(ctx, cmip6_ipsl):

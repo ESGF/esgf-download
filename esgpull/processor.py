@@ -59,7 +59,6 @@ class Task:
     async def stream(
         self, semaphore: asyncio.Semaphore
     ) -> AsyncIterator[Result]:
-
         try:
             async with (
                 semaphore,
