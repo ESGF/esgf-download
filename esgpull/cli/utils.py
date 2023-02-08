@@ -44,18 +44,20 @@ class EnumParam(click.Choice):
 
 def filter_keys(
     docs: Sequence[File | Dataset],
+    ids: range,
     size: bool = True,
     data_node: bool = False,
     # date: bool = False,
 ) -> list[OrderedDict[str, Any]]:
     result: list[OrderedDict[str, Any]] = []
-    for i, doc in enumerate(docs):
+    for i, doc in zip(ids, docs):
         od: OrderedDict[str, Any] = OrderedDict()
+        od["id"] = str(i)
         if isinstance(doc, File):
             od["file"] = doc.file_id
         else:
             od["dataset"] = doc.dataset_id
-            od["files"] = doc.number_of_files
+            od["#"] = str(doc.number_of_files)
         if size:
             od["size"] = doc.size
         if data_node:
@@ -70,12 +72,10 @@ def totable(docs: list[OrderedDict[str, Any]]) -> Table:
     table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)
     for key in docs[0].keys():
         justify: Literal["left", "right", "center"]
-        if key == "size":
-            justify = "right"
-        elif key == "files":
-            justify = "center"
-        else:
+        if key in ["file", "dataset"]:
             justify = "left"
+        else:
+            justify = "right"
         table.add_column(
             Text(key, justify="center"),
             justify=justify,
@@ -85,7 +85,7 @@ def totable(docs: list[OrderedDict[str, Any]]) -> Table:
         for key, value in doc.items():
             if key == "size":
                 value = format_size(value)
-            row.append(str(value))
+            row.append(value)
         table.add_row(*row)
     return table
 

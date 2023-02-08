@@ -91,14 +91,14 @@ class opts:
         is_flag=True,
         default=False,
     )
+    detail: Dec = click.option(
+        "--detail",
+        type=int,
+        default=None,
+    )
     dry_run: Dec = click.option(
         "--dry-run",
         "-z",
-        is_flag=True,
-        default=False,
-    )
-    dump: Dec = click.option(
-        "--dump",
         is_flag=True,
         default=False,
     )
@@ -135,11 +135,6 @@ class opts:
         "-H",
         type=StringListParamType(","),
         default=None,
-    )
-    json: Dec = click.option(
-        "--json",
-        is_flag=True,
-        default=False,
     )
     name: Dec = click.option(
         "--name",
@@ -206,11 +201,6 @@ class opts:
         is_flag=True,
         default=False,
     )
-    yaml: Dec = click.option(
-        "--yaml",
-        is_flag=True,
-        default=False,
-    )
     yes: Dec = click.option(
         "--yes",
         "-y",
@@ -226,7 +216,6 @@ class opts:
 
 
 # Display group
-
 _display_group: Dec = optgroup.group(
     "Display options",
     cls=MutuallyExclusiveOptionGroup,
@@ -247,6 +236,22 @@ _all: Dec = optgroup.option(
     "_all",
     "--all",
     "-a",
+    is_flag=True,
+    default=False,
+)
+
+# Json/Yaml exclusive group
+_json_yaml_group: Dec = optgroup.group(
+    "Json/Yaml",
+    cls=MutuallyExclusiveOptionGroup,
+)
+_json: Dec = optgroup.option(
+    "--json",
+    is_flag=True,
+    default=False,
+)
+_yaml: Dec = optgroup.option(
+    "--yaml",
     is_flag=True,
     default=False,
 )
@@ -328,6 +333,11 @@ class groups:
         _page,
         _zero,
         _all,
+    )
+    json_yaml: Dec = compose(
+        _json_yaml_group,
+        _json,
+        _yaml,
     )
     query_def: Dec = compose(
         _query_def,

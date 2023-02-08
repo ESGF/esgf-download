@@ -132,9 +132,9 @@ class ResultHits(Result):
     def process(self) -> None:
         if self.success:
             self.data = self.json["response"]["numFound"]
+            self.processed = True
         else:
             self.data = 0
-        self.processed = True
 
 
 @dataclass
@@ -151,17 +151,18 @@ class ResultHints(Result):
                 values: list[str] = value_count[::2]
                 counts: list[int] = value_count[1::2]
                 self.data[name] = dict(zip(values, counts))
-        self.processed = True
+            self.processed = True
 
 
+@dataclass
 class ResultSearch(Result):
     data: Sequence[File | Dataset] = field(init=False, repr=False)
-    instance_id: str = field(init=False, repr=False)
 
     def process(self) -> None:
         raise NotImplementedError
 
 
+@dataclass
 class ResultDatasets(Result):
     data: Sequence[Dataset] = field(init=False, repr=False)
 
@@ -169,15 +170,15 @@ class ResultDatasets(Result):
         self.data = []
         if self.success:
             for doc in self.json["response"]["docs"]:
-                self.instance_id = doc["instance_id"]
                 try:
                     dataset = Dataset.serialize(doc)
                     self.data.append(dataset)
                 except KeyError as exc:
                     logger.exception(exc)
-        self.processed = True
+            self.processed = True
 
 
+@dataclass
 class ResultFiles(Result):
     data: Sequence[File] = field(init=False, repr=False)
 
@@ -185,16 +186,30 @@ class ResultFiles(Result):
         self.data = []
         if self.success:
             for doc in self.json["response"]["docs"]:
-                self.instance_id = doc["instance_id"]
                 try:
-                    f = File.serialize(doc)
-                    self.data.append(f)
+                    file = File.serialize(doc)
+                    self.data.append(file)
                 except KeyError as exc:
                     logger.exception(exc)
-                    fid = self.instance_id
+                    fid = doc["instance_id"]
                     logger.warning(f"File {fid} has invalid metadata")
                     logger.debug(pretty_repr(doc))
-        self.processed = True
+            self.processed = True
+
+
+@dataclass
+class ResultSearchAsQueries(Result):
+    data: Sequence[Query] = field(init=False, repr=False)
+
+    def process(self) -> None:
+        self.data = []
+        sha = "FILE" if self.file else "DATASET"
+        if self.success:
+            for doc in self.json["response"]["docs"]:
+                query = Query._from_detailed_dict(doc)
+                query.sha = f"{sha}:{query.sha}"
+                self.data.append(query)
+            self.processed = True
 
 
 def _distribute_hits_impl(hits: list[int], max_hits: int) -> list[int]:
@@ -501,18 +516,30 @@ class Context:
         files: list[File] = []
         shas: set[str] = set()
         async for result in self._fetch(*results):
-            file_result = result.to(ResultFiles)
-            file_result.process()
-            if file_result.processed:
-                for f in file_result.data:
-                    if not keep_duplicates and f.sha in shas:
-                        logger.warning(f"Duplicate file {f.file_id}")
+            files_result = result.to(ResultFiles)
+            files_result.process()
+            if files_result.processed:
+                for file in files_result.data:
+                    if not keep_duplicates and file.sha in shas:
+                        logger.warning(f"Duplicate file {file.file_id}")
                     else:
-                        files.append(f)
-                        shas.add(f.sha)
-            else:
-                logger.warning(f"Bad metadata for {result.instance_id}.")
+                        files.append(file)
+                        shas.add(file.sha)
         return files
+
+    async def _search_as_queries(
+        self,
+        *results: ResultSearch,
+        keep_duplicates: bool,
+    ) -> list[Query]:
+        queries: list[Query] = []
+        async for result in self._fetch(*results):
+            queries_result = result.to(ResultSearchAsQueries)
+            queries_result.process()
+            if queries_result.processed:
+                for query in queries_result.data:
+                    queries.append(query)
+        return queries
 
     async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
         """
@@ -637,6 +664,37 @@ class Context:
             date_to=date_to,
         )
         coro = self._files(*results, keep_duplicates=keep_duplicates)
+        return self._sync(coro)
+
+    def search_as_queries(
+        self,
+        *queries: Query,
+        file: bool,
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 1,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[Query]:
+        if hits is None:
+            hits = self.hits(*queries, file=file)
+        results = self.prepare_search(
+            *queries,
+            file=file,
+            hits=hits,
+            offset=offset,
+            page_limit=page_limit,
+            max_hits=max_hits,
+            date_from=date_from,
+            date_to=date_to,
+            fields_param=["*"],
+        )
+        coro = self._search_as_queries(
+            *results,
+            keep_duplicates=keep_duplicates,
+        )
         return self._sync(coro)
 
     def search(

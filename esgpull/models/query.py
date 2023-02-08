@@ -206,6 +206,8 @@ class Query(Base):
         # TODO: make these 2 lines useless
         if self.sha is None:
             self.compute_sha()
+        elif ":" in self.sha:
+            return self.sha.split(":")[0]
         return short_sha(self.sha)
 
     @property
@@ -308,6 +310,17 @@ class Query(Base):
         for file in other.files:
             if file.sha not in files_shas:
                 result.files.append(file)
+        return result
+
+    @classmethod
+    def _from_detailed_dict(cls, source: dict) -> Query:
+        result = cls(tracked=True)
+        for name, values in source.items():
+            try:
+                result.selection[name] = values
+            except KeyError:
+                ...
+        result.compute_sha()
         return result
 
     def __rich_repr__(self) -> Iterator:

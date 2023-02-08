@@ -9,6 +9,7 @@ from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
 from esgpull.cli.utils import filter_keys, get_command, parse_query, totable
 from esgpull.exceptions import PageIndexError
+from esgpull.graph import Graph
 from esgpull.models import Query
 from esgpull.tui import TempUI, Verbosity
 
@@ -21,11 +22,11 @@ from esgpull.tui import TempUI, Verbosity
 # @opts.date
 # @opts.data_node
 @opts.dry_run
-@opts.dump
 @opts.file
 @opts.facets_hints
 @opts.hints
-@opts.json
+@groups.json_yaml
+@opts.detail
 @opts.show
 @opts.yes
 @opts.record
@@ -46,16 +47,18 @@ def search(
     _all: bool,
     zero: bool,
     page: int,
+    ## json_yaml
+    json: bool,
+    yaml: bool,
     ## ungrouped
+    show: bool,
+    detail: int | None,
     # date: bool,
     # data_node: bool,
     dry_run: bool,
-    dump: bool,
     file: bool,
     facets_hints: bool,
     hints: list[str] | None,
-    json: bool,
-    show: bool,
     yes: bool,
     # selection_file: str | None,
     record: bool,
@@ -82,27 +85,42 @@ def search(
         )
         query.compute_sha()
         esg.graph.resolve_require(query)
+        if show:
+            if json:
+                esg.ui.print(query.asdict(), json=True)
+            elif yaml:
+                esg.ui.print(query.asdict(), yaml=True)
+            else:
+                try:
+                    graph = esg.graph.subgraph(query, parents=True)
+                    esg.ui.print(graph)
+                except KeyError:
+                    esg.ui.print(query)
+            esg.ui.raise_maybe_record(Exit(0))
         esg.graph.add(query, force=True)
-        if not dump and not show:
-            query = esg.graph.expand(query.sha)
-            hits = esg.context.hits(
-                query,
-                file=file,
-                date_from=date_from,
-                date_to=date_to,
-            )
-            nb = sum(hits)
-            page_size = esg.config.cli.page_size
-            nb_pages = (nb // page_size) or 1
-            offset = page * page_size
-            max_hits = min(page_size, nb - offset)
-            if page > nb_pages:
-                raise PageIndexError(page, nb_pages)
-            elif zero:
-                max_hits = 0
-            elif _all:
-                offset = 0
-                max_hits = nb
+        query = esg.graph.expand(query.sha)
+        hits = esg.context.hits(
+            query,
+            file=file,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        nb = sum(hits)
+        page_size = esg.config.cli.page_size
+        if detail is not None:
+            page_size = 1
+            page = detail
+        nb_pages = (nb // page_size) or 1
+        offset = page * page_size
+        max_hits = min(page_size, nb - offset)
+        if page > nb_pages:
+            raise PageIndexError(page, nb_pages)
+        elif zero:
+            max_hits = 0
+        elif _all:
+            offset = 0
+            max_hits = nb
+        ids = range(offset, offset + max_hits)
         if dry_run:
             search_results = esg.context.prepare_search(
                 query,
@@ -137,20 +155,33 @@ def search(
             )
             esg.ui.print(facet_counts, json=True)
             esg.ui.raise_maybe_record(Exit(0))
-        if dump:
-            if json:
-                esg.ui.print(query.asdict(), json=True)
-            else:
-                esg.ui.print(query.asdict(), yaml=True)
-            esg.ui.raise_maybe_record(Exit(0))
-        if show:
-            esg.ui.print(query)
-            esg.ui.raise_maybe_record(Exit(0))
         if max_hits > 200 and not yes:
             nb_req = max_hits // esg.config.search.page_limit
             message = f"{nb_req} requests will be sent to ESGF. Send anyway?"
             if not esg.ui.ask(message, default=True):
                 esg.ui.raise_maybe_record(Abort)
+        if detail is not None:
+            queries = esg.context.search_as_queries(
+                query,
+                file=file,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                keep_duplicates=True,
+                date_from=date_from,
+                date_to=date_to,
+            )
+            if json:
+                selections = [q.selection.asdict() for q in queries]
+                esg.ui.print(selections, json=True)
+            elif yaml:
+                selections = [q.selection.asdict() for q in queries]
+                esg.ui.print(selections, yaml=True)
+            else:
+                graph = Graph(None)
+                graph.add(*queries, clone=False)
+                esg.ui.print(graph)
+            esg.ui.raise_maybe_record(Exit(0))
         results = esg.context.search(
             query,
             file=file,
@@ -163,14 +194,16 @@ def search(
         )
         if json:
             esg.ui.print([f.asdict() for f in results], json=True)
-            esg.ui.raise_maybe_record(Exit(0))
-        f_or_d = "file" if file else "dataset"
-        s = "s" if nb != 1 else ""
-        esg.ui.print(f"Found {nb} {f_or_d}{s}.")
-        if results:
-            unique_ids = {r.master_id for r in results}
-            unique_nodes = {(r.master_id, r.data_node) for r in results}
-            needs_data_node = len(unique_nodes) > len(unique_ids)
-            docs = filter_keys(results, data_node=needs_data_node)
-            esg.ui.print(totable(docs))
+        elif yaml:
+            esg.ui.print([f.asdict() for f in results], yaml=True)
+        else:
+            f_or_d = "file" if file else "dataset"
+            s = "s" if nb != 1 else ""
+            esg.ui.print(f"Found {nb} {f_or_d}{s}.")
+            if results:
+                unique_ids = {r.master_id for r in results}
+                unique_nodes = {(r.master_id, r.data_node) for r in results}
+                needs_data_node = len(unique_nodes) > len(unique_ids)
+                docs = filter_keys(results, ids=ids, data_node=needs_data_node)
+                esg.ui.print(totable(docs))
         esg.ui.raise_maybe_record(Exit(0))
