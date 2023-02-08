@@ -13,9 +13,8 @@ from esgpull.tui import TempUI, Verbosity
 @args.sha_or_name
 @opts.tag
 @groups.show
+@groups.json_yaml
 @opts.files
-@opts.json
-@opts.yaml
 @opts.shas
 @opts.verbosity
 def show(
