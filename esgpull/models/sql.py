@@ -156,6 +156,12 @@ class query:
         )
 
     @staticmethod
+    def with_shas(*shas: str) -> sa.Select[tuple[Query]]:
+        if not shas:
+            raise ValueError(shas)
+        return sa.select(Query).where(Query.sha.in_(shas))
+
+    @staticmethod
     def with_tag(tag: str) -> sa.Select[tuple[Query]]:
         return (
             sa.select(Query)

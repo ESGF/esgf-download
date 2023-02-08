@@ -247,8 +247,12 @@ class Graph:
     def load_db(self) -> None:
         if self.db is None:
             raise GraphWithoutDatabase()
-        queries = self.db.scalars(sql.query.all())
-        self.add(*queries, clone=False, force=True)
+        # self._load_db_shas()
+        unloaded_shas = set(self._shas) - set(self.queries.keys())
+        if unloaded_shas:
+            queries = self.db.scalars(sql.query.with_shas(*unloaded_shas))
+            for query in queries:
+                self.queries[query.sha] = query
 
     def validate(self, *queries: Query, noraise: bool = False) -> set[str]:
         names = set(self._name_sha.keys())
