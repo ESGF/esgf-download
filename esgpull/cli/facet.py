@@ -4,7 +4,7 @@ from click.exceptions import Abort
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.models import sql
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -14,7 +14,8 @@ def facet(
     key: str | None,
     verbosity: Verbosity,
 ):
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("facet", onraise=Abort):
         if key is None:
             results = esg.db.scalars(sql.facet.names)

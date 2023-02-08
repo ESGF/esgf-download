@@ -1,4 +1,4 @@
-from esgpull.constants import ROOT_ENV
+# from esgpull.constants import ROOT_ENV
 
 
 class EsgpullException(Exception):
@@ -9,31 +9,8 @@ class EsgpullException(Exception):
         super().__init__(self.message.strip())
 
 
-class NoRootError(EsgpullException):
-    msg = f"Environment variable `{ROOT_ENV}` must be set."
-
-
-class InvalidInstallDirectory(EsgpullException):
-    msg = """{path}
-
-To setup a new install directory, please run:
-$ esgpull self install
-
-or to set this location as the install directory:
-$ esgpull self install {path}
-"""
-
-
-class PathAlreadyInstalled(EsgpullException):
-    msg = """{path}
-{msg}
-"""
-
-
-class NameAlreadyInstalled(EsgpullException):
-    msg = """{name}
-{msg}
-"""
+# class NoRootError(EsgpullException):
+#     msg = f"Environment variable `{ROOT_ENV}` must be set."
 
 
 # class UnknownFacet(EsgpullException):
@@ -120,15 +97,53 @@ class NoClauseError(EsgpullException):
     """
 
 
-class VirtualConfigError(EsgpullException):
+class InstallException(EsgpullException):
+    ...
+
+
+class VirtualConfigError(InstallException):
     msg = """
     This config was not loaded from a file.
     """
 
 
-class UnregisteredInstallPath(EsgpullException):
+class UnregisteredInstallPath(InstallException):
     msg = "{}"
 
 
-class UnknownInstallName(EsgpullException):
+class UnknownInstallName(InstallException):
     msg = "{!r}"
+
+
+class NoInstallPath(InstallException):
+    msg = """Choose or install one
+
+Show existing install locations with:
+$ esgpull self choose
+
+Install a new location with:
+$ esgpull self install
+"""
+
+
+class InvalidInstallPath(InstallException):
+    msg = """{path}
+
+Choose this install location with:
+$ esgpull self choose {path}
+
+Install a new location with:
+$ esgpull self install
+"""
+
+
+class AlreadyInstalledPath(InstallException):
+    msg = """{path}
+{msg}
+"""
+
+
+class AlreadyInstalledName(InstallException):
+    msg = """{name}
+{msg}
+"""

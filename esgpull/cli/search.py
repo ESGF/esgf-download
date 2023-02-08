@@ -69,8 +69,7 @@ def search(
     with TempUI.logging(record=record):
         if record:
             TempUI.print(get_command())
-        esg = Esgpull(verbosity=verbosity, record=record)
-    # -> numeric ids are not consistent due to sort by instance_id
+        esg = Esgpull(verbosity=verbosity, record=record, safe=True)
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(
             facets=facets,

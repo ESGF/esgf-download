@@ -7,7 +7,7 @@ from rich.text import Text
 from esgpull import Esgpull
 from esgpull.cli.decorators import opts
 from esgpull.models import sql
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 from esgpull.utils import format_size
 
 
@@ -18,7 +18,8 @@ def status(
     simple: bool,
     verbosity: Verbosity,
 ):
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("status", onraise=Abort):
         status_count_size = list(esg.db.rows(sql.file.status_count_size))
         table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)

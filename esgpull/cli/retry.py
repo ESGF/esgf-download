@@ -7,7 +7,7 @@ from click.exceptions import Abort, Exit
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.models import FileStatus, sql
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -23,7 +23,8 @@ def retry(
         status = FileStatus.retryable()
     if not status:
         status = [FileStatus.Error, FileStatus.Cancelled]
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("retry", onraise=Abort):
         assert FileStatus.Done not in status
         assert FileStatus.Queued not in status

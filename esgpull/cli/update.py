@@ -10,7 +10,7 @@ from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.models import File, FileStatus, Query
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 from esgpull.utils import format_size
 
 
@@ -36,7 +36,8 @@ def update(
     yes: bool,
     verbosity: Verbosity,
 ) -> None:
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("update", onraise=Abort):
         # Select which queries to update + setup
         if sha_or_name is None and tag is None:

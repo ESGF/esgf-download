@@ -21,7 +21,11 @@ from esgpull.auth import Auth, Credentials
 from esgpull.config import Config, InstallConfig
 from esgpull.context import Context
 from esgpull.database import Database
-from esgpull.exceptions import DownloadCancelled, InvalidInstallDirectory
+from esgpull.exceptions import (
+    DownloadCancelled,
+    InvalidInstallPath,
+    NoInstallPath,
+)
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
 from esgpull.models import Facet, File, FileStatus, Options, Query, sql
@@ -49,6 +53,7 @@ class Esgpull:
         verbosity: Verbosity = Verbosity.Detail,
         install: bool = False,
         record: bool = False,
+        safe: bool = False,
     ) -> None:
         if path is not None:
             path = Path(path)
@@ -59,17 +64,25 @@ class Esgpull:
             default = InstallConfig.default
             warning = f"Using default location: {default}\n"
         if InstallConfig.current is None:
-            self.path = default
+            if safe:
+                raise NoInstallPath
+            idx = InstallConfig.add(default)
+            InstallConfig.current_idx = idx
+            self.path = InstallConfig.installs[idx].path
             warning += "To disable this warning, please run:\n"
             warning += f"$ esgpull self install {self.path}"
             logger.warning(warning)
         else:
             self.path = InstallConfig.current.path
         if not install and not self.path.is_dir():
-            raise InvalidInstallDirectory(path=self.path)
+            raise InvalidInstallPath(path=self.path)
         self.config = Config.load(path=self.path)
         self.fs = Filesystem.from_config(self.config, install=install)
-        self.ui = UI.from_config(self.config, record=record)
+        self.ui = UI.from_config(
+            self.config,
+            verbosity=verbosity,
+            record=record,
+        )
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
         self.db = Database.from_config(self.config)

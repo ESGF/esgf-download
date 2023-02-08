@@ -3,7 +3,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 def extract_command(doc: dict, key: str | None) -> dict:
@@ -32,7 +32,8 @@ def config(
     generate: bool,
     verbosity: Verbosity,
 ):
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("config", onraise=Abort):
         if key is not None and value is not None:
             old_value = esg.config.update_item(key, value)

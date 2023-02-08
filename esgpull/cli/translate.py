@@ -16,7 +16,7 @@ from esgpull.cli.decorators import opts
 from esgpull.graph import Graph
 from esgpull.models import Options, Query
 from esgpull.models.selection import FacetValues, Selection
-from esgpull.tui import Verbosity, logger
+from esgpull.tui import TempUI, Verbosity, logger
 
 SKIP = {"priority", "protocol"}
 options_names = Options()._names
@@ -181,7 +181,8 @@ def translate(
     """
     Translates each selection file
     """
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("translate", onraise=Abort):
         if len(paths) == 0:
             esg.ui.print("No file provided")

@@ -34,7 +34,7 @@ def show(
     Show recorded query data
     """
     with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity)
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("show", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
             raise Exit(1)

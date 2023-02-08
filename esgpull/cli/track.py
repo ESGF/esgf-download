@@ -6,7 +6,7 @@ from click.exceptions import Abort, Exit
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import valid_name_tag
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -19,7 +19,8 @@ def track(
     """
     Remove queries
     """
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("track", onraise=Abort):
         for sha in sha_or_name:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):
@@ -47,7 +48,8 @@ def untrack(
     """
     Remove queries
     """
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("track", onraise=Abort):
         for sha in sha_or_name:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):

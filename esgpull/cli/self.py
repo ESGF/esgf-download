@@ -9,7 +9,7 @@ from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.config import InstallConfig
 from esgpull.exceptions import (
-    InvalidInstallDirectory,
+    InvalidInstallPath,
     UnknownInstallName,
     UnregisteredInstallPath,
 )
@@ -31,8 +31,8 @@ def install(
     verbosity: Verbosity,
 ):
     with TempUI.logging():
+        TempUI.rule("[b green]esgpull[/] installation")
         if path is None:
-            TempUI.rule("[b green]esgpull[/] installation")
             default = str(InstallConfig.default)
             path = Path(TempUI.prompt("Install location", default=default))
             idx = InstallConfig.index(path=path)
@@ -91,7 +91,7 @@ def activate(
                     "did you mean this?\n\n"
                     f"$ esgpull self activate --name {path}"
                 )
-            raise InvalidInstallDirectory(path=path)
+            raise InvalidInstallPath(path=path)
         TempUI.print(InstallConfig.activate_needs_eval(idx))
 
 

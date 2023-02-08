@@ -11,7 +11,7 @@ from esgpull.cli.decorators import args, groups, opts
 from esgpull.cli.utils import parse_query
 from esgpull.graph import Graph
 from esgpull.models import Query
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -40,7 +40,8 @@ def add(
     Adding a query will mark it as `untracked` by default.
     To associate files to this query, run the update command.
     """
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("add", onraise=Abort):
         if query_file is not None:
             with query_file.open() as f:

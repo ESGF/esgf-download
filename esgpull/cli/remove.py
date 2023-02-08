@@ -7,7 +7,7 @@ from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, valid_name_tag
 from esgpull.graph import Graph
-from esgpull.tui import Verbosity
+from esgpull.tui import TempUI, Verbosity
 
 
 @click.command()
@@ -24,7 +24,8 @@ def remove(
     """
     Remove queries
     """
-    esg = Esgpull(verbosity=verbosity)
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("remove", onraise=Abort):
         if sha_or_name is None and tag is None:
             raise click.UsageError("No query or tag provided.")
