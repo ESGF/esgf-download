@@ -16,8 +16,8 @@ from typing_extensions import NotRequired, TypedDict
 
 from esgpull.constants import CONFIG_FILENAME, ROOT_ENV
 from esgpull.exceptions import (
-    NameAlreadyInstalled,
-    PathAlreadyInstalled,
+    AlreadyInstalledName,
+    AlreadyInstalledPath,
     VirtualConfigError,
 )
 
@@ -120,14 +120,14 @@ $ eval $(esgpull self activate {name})
         install = Install(self.fullpath(path), name)
         idx_path = self.index(path=install.path)
         if idx_path > -1:
-            raise PathAlreadyInstalled(
+            raise AlreadyInstalledPath(
                 path=install.path,
                 msg=self.activate_msg(idx_path),
             )
         if name is not None:
             idx_name = self.index(name=name)
             if idx_name > -1:
-                raise NameAlreadyInstalled(
+                raise AlreadyInstalledName(
                     name=name,
                     msg=self.activate_msg(idx_name),
                 )
