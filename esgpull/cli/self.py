@@ -1,4 +1,5 @@
-# import os
+import os
+from configparser import ConfigParser
 from pathlib import Path
 
 import click
@@ -14,6 +15,24 @@ from esgpull.exceptions import (
     UnregisteredInstallPath,
 )
 from esgpull.tui import TempUI, Verbosity
+
+
+def get_synda_db_path(sdt_home: str | None = None) -> Path | None:
+    if sdt_home is None:
+        sdt_home = os.getenv("SDT_HOME")
+    if sdt_home is not None:
+        sdt_path = Path(sdt_home).expanduser().resolve()
+        conf_path = sdt_path / "conf" / "sdt.conf"
+        conf = ConfigParser()
+        conf.read(conf_path)
+        path = Path(conf["core"]["db_path"]) / "sdt.db"
+        if path.is_file():
+            db_path = path
+        else:
+            db_path = None
+    else:
+        db_path = None
+    return db_path
 
 
 @click.group()
@@ -64,23 +83,23 @@ def install(
                 esg.ui.print(":+1: Facets are initialised.")
             else:
                 esg.ui.print(":+1: Facets were already initialised.")
-    # sdt_home = os.getenv("SDT_HOME")
-    # if sdt_home:
-    #     msg = (
-    #         f"Found existing synda installation at {sdt_home}\n"
-    #         "Do you want to incorporate synda database into new"
-    #         "esgpull installation?"
-    #     )
+        sdt_home = os.getenv("SDT_HOME")
+        if sdt_home is not None:
+            db_name = get_synda_db_path(sdt_home) or ""
+            msg = (
+                f"Found existing synda installation at {sdt_home}\n"
+                "You can import its database by running:\n"
+                f"$ esgpull self import_synda {db_name}"
+            )
+            esg.ui.print(msg)
 
 
 @self.command()
 @args.path
 @opts.name
-@opts.verbosity
 def activate(
     path: Path | None,
     name: str | None,
-    verbosity: Verbosity,
 ):
     with TempUI.logging():
         idx = InstallConfig.index(path=path, name=name)
@@ -98,11 +117,9 @@ def activate(
 @self.command()
 @args.path
 @opts.name
-@opts.verbosity
 def choose(
     path: Path | None,
     name: str | None,
-    verbosity: Verbosity,
 ):
     with TempUI.logging():
         if path is None and name is None:
@@ -185,3 +202,30 @@ def delete():
                 InstallConfig.write()
             else:
                 raise Abort
+
+
+@self.command()
+@args.path
+@opts.verbosity
+def import_synda(
+    path: Path | None,
+    verbosity: Verbosity,
+):
+    with TempUI.logging():
+        esg = Esgpull(verbosity=verbosity, safe=True)
+    with esg.ui.logging("import_synda"):
+        if path is None:
+            sdt_home = os.getenv("SDT_HOME")
+            prompt_title = "Enter synda database location"
+            if sdt_home is not None:
+                esg.ui.print(
+                    "Found existing synda installation at "
+                    f"SDT_HOME={sdt_home}"
+                )
+                default = str(get_synda_db_path(sdt_home))
+                path = Path(esg.ui.prompt(prompt_title, default=str(default)))
+            else:
+                path = Path(esg.ui.prompt(prompt_title))
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        esg.import_synda(url=path, track=True, ask=True)
