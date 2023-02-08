@@ -109,6 +109,22 @@ class file:
         return sa.select(File).where(File.status.in_(status))
 
     @staticmethod
+    def total_size_with_status(
+        *status: FileStatus,
+        query_sha: str | None = None,
+    ) -> sa.Select[tuple[int]]:
+        """
+        This is re-implemented in Query.files_count_size because
+        of cyclic import between query.py and the current file.
+        """
+        stmt = sa.select(sa.func.sum(File.size).where(File.status.in_(status)))
+        if query_sha is not None:
+            stmt = stmt.join_from(query_file_proxy, File).where(
+                query_file_proxy.c.query_sha == query_sha
+            )
+        return stmt
+
+    @staticmethod
     @functools.cache
     def status_count_size() -> sa.Select[tuple[FileStatus, int, int]]:
         return (
