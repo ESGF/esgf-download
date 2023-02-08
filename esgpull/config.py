@@ -134,6 +134,14 @@ $ eval $(esgpull self activate {name})
         self.installs.append(install)
         return len(self.installs) - 1
 
+    def remove_current(self) -> bool:
+        if self.current_idx is None:
+            return False
+        else:
+            self.installs.pop(self.current_idx)
+            self.current_idx = None
+            return True
+
     def choose(
         self,
         *,

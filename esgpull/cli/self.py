@@ -7,7 +7,7 @@ from rich.table import Table
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
-from esgpull.config import InstallConfig
+from esgpull.config import Config, InstallConfig
 from esgpull.exceptions import (
     InvalidInstallPath,
     UnknownInstallName,
@@ -157,3 +157,31 @@ def reset():
             TempUI.print("To install esgpull, run:\n")
             TempUI.print("$ esgpull self install")
             raise Exit(1)
+
+
+@self.command()
+def delete():
+    with TempUI.logging():
+        if InstallConfig.current is None:
+            msg = (
+                "None\n"
+                "Please choose an existing install before trying to delete it."
+                "\n\n$ esgpull self choose ..."
+            )
+            raise UnregisteredInstallPath(msg)
+        else:
+            path = InstallConfig.current.path
+            TempUI.print(f"You are going to delete: {path}")
+            choice = TempUI.prompt(f"Please enter {path.name!r} to continue")
+            if choice == path.name:
+                TempUI.print(f"Deleting {path} from config...")
+                TempUI.print("To remove all files from this install, run:\n")
+                config = Config.load(path=path)
+                for p in config.paths:
+                    if not p.is_relative_to(path):
+                        TempUI.print(f"$ rm -rf {p}")
+                TempUI.print(f"$ rm -rf {path}")
+                InstallConfig.remove_current()
+                InstallConfig.write()
+            else:
+                raise Abort
