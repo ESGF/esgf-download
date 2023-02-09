@@ -67,10 +67,11 @@ class Task:
     async def stream(
         self, semaphore: asyncio.Semaphore
     ) -> AsyncIterator[Result]:
+        ctx = self.ctx
         try:
             async with (
                 semaphore,
-                self.fs.open(self.ctx.file) as file_obj,
+                self.fs.open(ctx.file) as file_obj,
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
@@ -80,7 +81,7 @@ class Task:
             ):
                 for callback in self.start_callbacks:
                     callback()
-                async for ctx in self.downloader.stream(client, self.ctx):
+                async for ctx in self.downloader.stream(client, ctx):
                     if ctx.chunk is not None:
                         await file_obj.write(ctx.chunk)
                     if ctx.error:
