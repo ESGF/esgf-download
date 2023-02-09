@@ -83,6 +83,11 @@ class file:
             .filter_by(file_sha=None)
         )
 
+    @staticmethod
+    @functools.cache
+    def linked() -> sa.Select[tuple[File]]:
+        return sa.select(query_file_proxy.c.file_sha).distinct()
+
     __dups_cte: sa.CTE = (
         sa.select(File.master_id)
         .group_by(File.master_id)

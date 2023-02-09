@@ -190,7 +190,7 @@ class Esgpull:
         assert url.is_file()
         synda = Database(f"sqlite:///{url}", run_migrations=False)
         synda_ids = synda.scalars(sql.synda_file.ids())
-        shas = set(self.db.scalars(sql.file.shas_from_query("LEGACY")))
+        shas = set(self.db.scalars(sql.file.linked()))
         msg = f"Found {len(synda_ids)} files to import, proceed?"
         if ask and not self.ui.ask(msg):
             return
