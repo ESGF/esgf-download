@@ -3,12 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-import yaml
 from click.exceptions import Abort, Exit
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import parse_query
+from esgpull.cli.utils import parse_query, serialize_queries_from_file
 from esgpull.graph import Graph
 from esgpull.models import Query
 from esgpull.tui import TempUI, Verbosity
@@ -44,12 +43,7 @@ def add(
         esg = Esgpull(verbosity=verbosity, safe=True)
     with esg.ui.logging("add", onraise=Abort):
         if query_file is not None:
-            with query_file.open() as f:
-                content = yaml.safe_load(f)
-            if isinstance(content, list):
-                queries = [Query(**item) for item in content]
-            else:
-                queries = [Query(**content)]
+            queries = serialize_queries_from_file(query_file)
         else:
             query = parse_query(
                 facets=facets,

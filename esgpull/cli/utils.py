@@ -2,9 +2,10 @@ import sys
 from collections import OrderedDict
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal, Sequence
+from typing import Any, Literal, Mapping, Sequence
 
 import click
+import yaml
 from click.exceptions import BadArgumentUsage
 from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.table import Table
@@ -152,6 +153,27 @@ def parse_query(
         options=options,
         selection=selection,
     )
+
+
+def is_list_of_maps(seq: Sequence) -> bool:
+    return all(isinstance(item, Mapping) for item in seq)
+
+
+def serialize_queries_from_file(path: Path) -> list[Query]:
+    with path.open() as f:
+        content = yaml.safe_load(f)
+    queries: list[Mapping]
+    if isinstance(content, list):
+        queries = content
+    elif isinstance(content, Mapping):
+        values = list(content.values())
+        if is_list_of_maps(values):
+            queries = values
+        else:
+            queries = [content]
+    else:
+        raise ValueError(content)
+    return [Query(**query) for query in queries]
 
 
 def valid_name_tag(
