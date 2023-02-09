@@ -7,7 +7,9 @@ from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, valid_name_tag
 from esgpull.graph import Graph
+from esgpull.models import FileStatus
 from esgpull.tui import TempUI, Verbosity
+from esgpull.utils import format_size
 
 
 @click.command()
@@ -44,10 +46,19 @@ def remove(
         if not esg.ui.ask(msg, default=True):
             raise Abort
         for query in queries:
+            if query.has_files:
+                nb, size = query.files_count_size(FileStatus.Done)
+                if nb:
+                    esg.ui.print(
+                        f":stop_sign: {query.rich_name} is linked"
+                        f" to {nb} downloaded files ({format_size(size)})."
+                    )
+                    if not esg.ui.ask("Delete anyway?", default=False):
+                        raise Abort
             if not children and esg.graph.get_children(query.sha):
                 esg.ui.print(
-                    ":stop_sign: Some queries block "
-                    f"removal of {query.rich_name}."
+                    ":stop_sign: Some queries block"
+                    f" removal of {query.rich_name}."
                 )
                 if esg.ui.ask("Show blocking queries?", default=False):
                     esg.ui.print(esg.graph.subgraph(query, children=True))
