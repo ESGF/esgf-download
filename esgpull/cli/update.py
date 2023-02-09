@@ -131,11 +131,14 @@ def update(
             size = sum([file.size for file in new_files])
             esg.ui.print(f"{nb_files} new files ({format_size(size)}).")
             if esg.ui.ask("Download new files?", default=True):
+                legacy = esg.legacy_query
+                has_legacy = legacy.state.persistent
                 for file in new_files:
                     file_db = esg.db.get(File, file.sha)
                     if file_db is None:
                         file.status = FileStatus.Queued
                         file_db = esg.db.merge(file)
+                    elif has_legacy and legacy in file_db.queries:
+                        file_db.queries.remove(legacy)
                     file_db.queries.append(qf.query)
                     esg.db.add(file_db)
-                # esg.db.merge(qf.query, commit=True)
