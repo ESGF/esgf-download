@@ -219,13 +219,16 @@ def import_synda(
             prompt_title = "Enter synda database location"
             if sdt_home is not None:
                 esg.ui.print(
-                    "Found existing synda installation at "
-                    f"SDT_HOME={sdt_home}"
+                    "Found existing synda installation at"
+                    f" SDT_HOME={sdt_home}"
                 )
                 default = str(get_synda_db_path(sdt_home))
                 path = Path(esg.ui.prompt(prompt_title, default=str(default)))
             else:
                 path = Path(esg.ui.prompt(prompt_title))
+        else:
+            path = path.expanduser().resolve()
         if not path.is_file():
             raise FileNotFoundError(path)
-        esg.import_synda(url=path, track=True, ask=True)
+        nb_imported = esg.import_synda(url=path, track=True, ask=True)
+        esg.ui.print(f"Imported {nb_imported} new files from {path}")

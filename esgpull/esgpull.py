@@ -186,20 +186,21 @@ class Esgpull:
         track: bool = False,
         size: int = 5000,
         ask: bool = False,
-    ) -> None:
+    ) -> int:
         assert url.is_file()
         synda = Database(f"sqlite:///{url}", run_migrations=False)
         synda_ids = synda.scalars(sql.synda_file.ids())
         shas = set(self.db.scalars(sql.file.linked()))
         msg = f"Found {len(synda_ids)} files to import, proceed?"
         if ask and not self.ui.ask(msg):
-            return
+            return 0
         synda_shas: set[str] = set()
         idx_range = range(0, len(synda_ids), size)
         if track:
             iter_idx_range = self.ui.track(idx_range)
         else:
             iter_idx_range = iter(idx_range)
+        nb_imported = 0
         for start in iter_idx_range:
             stop = min(len(synda_ids), start + size)
             ids = synda_ids[start:stop]
@@ -212,7 +213,9 @@ class Esgpull:
                     files.append(file)
                     synda_shas.add(file.sha)
             if files:
+                nb_imported += len(files)
                 self.db.add(*files)
+        return nb_imported
 
     # def add(
     #     self,
