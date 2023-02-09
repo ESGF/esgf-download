@@ -56,7 +56,11 @@ def update(
         for query in queries:
             if query.tracked:
                 qfs.append(QueryFiles(query, esg.graph.expand(query.sha)))
-        queries = [query for query in queries if query.tracked]
+        queries = [
+            query
+            for query in queries
+            if query.tracked and query.sha != "LEGACY"
+        ]
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             raise Exit(0)
