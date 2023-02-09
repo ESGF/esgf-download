@@ -182,13 +182,17 @@ class Query(Base):
             .join_from(query_file_proxy, File)
             .where(query_file_proxy.c.query_sha == self.sha)
         )
-        if status:
-            stmt = stmt.where(File.status.in_(status))
         session = object_session(self)
         if session is None:
-            count: int = len(self.files)
-            size: int | None = sum([file.size for file in self.files])
+            if status:
+                files = [file for file in self.files if file.status in status]
+            else:
+                files = [file for file in self.files]
+            count: int = len(files)
+            size: int | None = sum([file.size for file in files])
         else:
+            if status:
+                stmt = stmt.where(File.status.in_(status))
             count, size = session.execute(stmt).all()[0]
         return count, size or 0
 
