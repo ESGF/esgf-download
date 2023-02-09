@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 from functools import partial
 from typing import AsyncIterator, TypeAlias
 
@@ -15,6 +16,13 @@ from esgpull.result import Err, Ok, Result
 
 # Callback: TypeAlias = Callable[[], None] | partial[None]
 Callback: TypeAlias = partial[None]
+
+ssl_context: ssl.SSLContext | bool
+if ssl.OPENSSL_VERSION_INFO[0] >= 3:
+    ssl_context = ssl.create_default_context()
+    ssl_context.options |= 0x4
+else:
+    ssl_context = True
 
 
 class Task:
@@ -66,6 +74,7 @@ class Task:
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
+                    verify=ssl_context,
                     timeout=self.config.download.http_timeout,
                 ) as client,
             ):
