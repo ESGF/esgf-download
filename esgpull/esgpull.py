@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import partial
+from functools import cached_property, partial
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -167,6 +167,19 @@ class Esgpull:
         self.db.add(*new_facets)
         return len(new_facets) > 0
 
+    @cached_property
+    def legacy_query(self) -> Query:
+        legacy = LegacyQuery
+        if (
+            legacy_db := self.db.get(Query, "LEGACY")
+        ) and legacy_db is not None:
+            legacy = legacy_db
+        # else:
+        # self.db.add(legacy)
+        # self.graph.add(legacy, clone=False)
+        # self.graph.merge(commit=True)
+        return legacy
+
     def import_synda(
         self,
         url: Path,
@@ -175,15 +188,6 @@ class Esgpull:
         ask: bool = False,
     ) -> None:
         assert url.is_file()
-        legacy = LegacyQuery
-        if (
-            legacy_db := self.db.get(Query, "LEGACY")
-        ) and legacy_db is not None:
-            legacy = legacy_db
-        else:
-            self.db.add(legacy)
-            self.graph.add(legacy, clone=False)
-            self.graph.merge(commit=True)
         synda = Database(f"sqlite:///{url}", run_migrations=False)
         synda_ids = synda.scalars(sql.synda_file.ids())
         shas = set(self.db.scalars(sql.file.shas_from_query("LEGACY")))
@@ -204,7 +208,7 @@ class Esgpull:
             for synda_file in synda_files:
                 file = synda_file.to_file()
                 if file.sha not in shas:
-                    file.queries.append(legacy)
+                    file.queries.append(self.legacy_query)
                     files.append(file)
                     synda_shas.add(file.sha)
             if files:
