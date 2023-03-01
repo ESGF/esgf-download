@@ -328,10 +328,18 @@ class Config:
         #     original = tomlkit.loads(self._raw)
         return doc
 
-    def update_item(self, key: str, value: int | str) -> int | str | None:
-        if self._config_file is None or self._raw is None:
+    def update_item(
+        self,
+        key: str,
+        value: int | str,
+        empty_ok: bool = False,
+    ) -> int | str | None:
+        if self._config_file is not None and self._raw is None and empty_ok:
+            self.generate(key)
+        if self._raw is None:
             raise VirtualConfigError
-        doc: dict = self._raw
+        else:
+            doc: dict = self._raw
         obj = self
         *parts, last = key.split(".")
         for part in parts:
@@ -351,13 +359,21 @@ class Config:
         doc[last] = value
         return old_value
 
-    def generate(self) -> None:
+    def generate(self, key: str | None = None) -> None:
         if self._config_file is None:
             raise VirtualConfigError
         elif self._config_file.is_file():
             raise FileExistsError(self._config_file)
         with self._config_file.open("w") as f:
-            self._raw = self.dump()
+            if key is None:
+                self._raw = self.dump()
+            else:
+                self._raw = tomlkit.TOMLDocument()
+                *parts, last = key.split(".")
+                doc: dict = {last: "NOT_SET"}
+                for part in parts[::-1]:
+                    doc = {part: doc}
+                self._raw.update(doc)
             tomlkit.dump(self._raw, f)
 
     def write(self) -> None:

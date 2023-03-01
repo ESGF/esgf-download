@@ -35,7 +35,7 @@ def config(
     esg = init_esgpull(verbosity=verbosity, load_db=False)
     with esg.ui.logging("config", onraise=Abort):
         if key is not None and value is not None:
-            old_value = esg.config.update_item(key, value)
+            old_value = esg.config.update_item(key, value, empty_ok=True)
             info = extract_command(esg.config.dump(), key)
             esg.config.write()
             esg.ui.print(info, toml=True)
