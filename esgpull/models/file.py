@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from esgpull.models.base import Base
 from esgpull.models.utils import find_str
@@ -37,6 +37,7 @@ class FileDict(TypedDict):
     checksum: str
     checksum_type: str
     size: int
+    status: NotRequired[str]
 
 
 @dataclass(init=False)

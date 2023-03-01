@@ -116,6 +116,7 @@ class File(Base):
             checksum=self.checksum,
             checksum_type=self.checksum_type,
             size=self.size,
+            status=self.status.name,
         )
 
     def clone(self, compute_sha: bool = True) -> File:
