@@ -4,10 +4,9 @@ from dataclasses import dataclass, field
 
 import click
 from click.exceptions import Abort, Exit
-from espgull.cli.utils import init_esgpull
 
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import get_queries, valid_name_tag
+from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.models import File, FileStatus, Query
 from esgpull.tui import Verbosity

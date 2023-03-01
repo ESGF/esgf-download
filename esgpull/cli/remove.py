@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import click
 from click.exceptions import Abort, Exit
-from espgull.cli.utils import init_esgpull
 
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import get_queries, valid_name_tag
+from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.graph import Graph
 from esgpull.models import FileStatus
 from esgpull.tui import Verbosity

@@ -3,11 +3,10 @@ import asyncio
 import click
 import rich
 from click.exceptions import Abort, Exit
-from espgull.cli.utils import init_esgpull
 from exceptiongroup import BaseExceptionGroup
 
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import get_queries, valid_name_tag
+from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.models import File, FileStatus
 from esgpull.tui import Verbosity, logger
 from esgpull.utils import format_size

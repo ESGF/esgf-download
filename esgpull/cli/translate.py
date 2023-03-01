@@ -6,13 +6,13 @@ import click
 import pyparsing as pp
 import yaml
 from click.exceptions import Abort  # , Exit
-from espgull.cli.utils import init_esgpull
 from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.prompt import Confirm
 from rich.table import Table
 from rich.text import Text
 
 from esgpull.cli.decorators import opts
+from esgpull.cli.utils import init_esgpull
 from esgpull.graph import Graph
 from esgpull.models import Options, Query
 from esgpull.models.selection import FacetValues, Selection

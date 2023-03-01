@@ -1,8 +1,8 @@
 import click
 from click.exceptions import Abort
-from espgull.cli.utils import init_esgpull
 
 from esgpull.cli.decorators import args, opts
+from esgpull.cli.utils import init_esgpull
 from esgpull.models import sql
 from esgpull.tui import Verbosity
 
