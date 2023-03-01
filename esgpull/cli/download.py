@@ -3,13 +3,13 @@ import asyncio
 import click
 import rich
 from click.exceptions import Abort, Exit
+from espgull.cli.utils import init_esgpull
 from exceptiongroup import BaseExceptionGroup
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, valid_name_tag
 from esgpull.models import File, FileStatus
-from esgpull.tui import TempUI, Verbosity, logger
+from esgpull.tui import Verbosity, logger
 from esgpull.utils import format_size
 
 
@@ -24,8 +24,7 @@ def download(
     quiet: bool,
     verbosity: Verbosity,
 ):
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("download", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
             raise Exit(1)

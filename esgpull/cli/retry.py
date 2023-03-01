@@ -3,11 +3,11 @@ from typing import Sequence
 
 import click
 from click.exceptions import Abort, Exit
+from espgull.cli.utils import init_esgpull
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.models import FileStatus, sql
-from esgpull.tui import TempUI, Verbosity
+from esgpull.tui import Verbosity
 
 
 @click.command()
@@ -23,8 +23,7 @@ def retry(
         status = FileStatus.retryable()
     if not status:
         status = [FileStatus.Error, FileStatus.Cancelled]
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("retry", onraise=Abort):
         assert FileStatus.Done not in status
         assert FileStatus.Queued not in status

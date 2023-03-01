@@ -4,13 +4,13 @@ from dataclasses import dataclass, field
 
 import click
 from click.exceptions import Abort, Exit
+from espgull.cli.utils import init_esgpull
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.models import File, FileStatus, Query
-from esgpull.tui import TempUI, Verbosity
+from esgpull.tui import Verbosity
 from esgpull.utils import format_size
 
 
@@ -36,8 +36,7 @@ def update(
     yes: bool,
     verbosity: Verbosity,
 ) -> None:
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("update", onraise=Abort):
         # Select which queries to update + setup
         if sha_or_name is None and tag is None:

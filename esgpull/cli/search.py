@@ -5,13 +5,12 @@ from datetime import datetime
 import click
 from click.exceptions import Abort, Exit
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import filter_keys, get_command, parse_query, totable
+from esgpull.cli.utils import filter_keys, init_esgpull, parse_query, totable
 from esgpull.exceptions import PageIndexError
 from esgpull.graph import Graph
 from esgpull.models import Query
-from esgpull.tui import TempUI, Verbosity
+from esgpull.tui import Verbosity
 
 
 @click.command()
@@ -69,10 +68,7 @@ def search(
 
     More info
     """
-    with TempUI.logging(record=record):
-        if record:
-            TempUI.print(get_command())
-        esg = Esgpull(verbosity=verbosity, record=record, safe=True)
+    esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(
             facets=facets,

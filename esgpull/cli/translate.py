@@ -6,17 +6,17 @@ import click
 import pyparsing as pp
 import yaml
 from click.exceptions import Abort  # , Exit
+from espgull.cli.utils import init_esgpull
 from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.prompt import Confirm
 from rich.table import Table
 from rich.text import Text
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import opts
 from esgpull.graph import Graph
 from esgpull.models import Options, Query
 from esgpull.models.selection import FacetValues, Selection
-from esgpull.tui import TempUI, Verbosity, logger
+from esgpull.tui import Verbosity, logger
 
 SKIP = {"priority", "protocol"}
 options_names = Options()._names
@@ -181,8 +181,7 @@ def translate(
     """
     Translates each selection file
     """
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("translate", onraise=Abort):
         if len(paths) == 0:
             esg.ui.print("No file provided")

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import click
 from click.exceptions import Abort, Exit
+from espgull.cli.utils import init_esgpull
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import valid_name_tag
-from esgpull.tui import TempUI, Verbosity
+from esgpull.tui import Verbosity
 
 
 @click.command()
@@ -19,8 +19,7 @@ def track(
     """
     Remove queries
     """
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("track", onraise=Abort):
         for sha in sha_or_name:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):
@@ -48,8 +47,7 @@ def untrack(
     """
     Remove queries
     """
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("track", onraise=Abort):
         for sha in sha_or_name:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):

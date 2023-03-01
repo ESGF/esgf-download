@@ -3,10 +3,9 @@ from __future__ import annotations
 import click
 from click.exceptions import Abort, BadArgumentUsage, Exit
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import get_queries, valid_name_tag
-from esgpull.tui import TempUI, Verbosity
+from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
+from esgpull.tui import Verbosity
 
 
 @click.command()
@@ -32,8 +31,7 @@ def show(
     """
     Show recorded query data
     """
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("show", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
             raise Exit(1)

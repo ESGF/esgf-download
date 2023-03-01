@@ -5,12 +5,15 @@ from pathlib import Path
 import click
 from click.exceptions import Abort, Exit
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import parse_query, serialize_queries_from_file
+from esgpull.cli.utils import (
+    init_esgpull,
+    parse_query,
+    serialize_queries_from_file,
+)
 from esgpull.graph import Graph
 from esgpull.models import Query
-from esgpull.tui import TempUI, Verbosity
+from esgpull.tui import Verbosity
 
 
 @click.command()
@@ -39,8 +42,7 @@ def add(
     Adding a query will mark it as `untracked` by default.
     To associate files to this query, run the update command.
     """
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("add", onraise=Abort):
         if query_file is not None:
             queries = serialize_queries_from_file(query_file)

@@ -1,13 +1,13 @@
 import click
 from click.exceptions import Abort, Exit
+from espgull.cli.utils import init_esgpull
 from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.table import Table
 from rich.text import Text
 
-from esgpull import Esgpull
 from esgpull.cli.decorators import opts
 from esgpull.models import sql
-from esgpull.tui import TempUI, Verbosity
+from esgpull.tui import Verbosity
 from esgpull.utils import format_size
 
 
@@ -18,8 +18,7 @@ def status(
     simple: bool,
     verbosity: Verbosity,
 ):
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("status", onraise=Abort):
         status_count_size = list(esg.db.rows(sql.file.status_count_size()))
         table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)

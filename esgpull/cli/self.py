@@ -8,6 +8,7 @@ from rich.table import Table
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
+from esgpull.cli.utils import init_esgpull
 from esgpull.config import Config, InstallConfig
 from esgpull.exceptions import (
     InvalidInstallPath,
@@ -211,8 +212,7 @@ def import_synda(
     path: Path | None,
     verbosity: Verbosity,
 ):
-    with TempUI.logging():
-        esg = Esgpull(verbosity=verbosity, safe=True)
+    esg = init_esgpull(verbosity)
     with esg.ui.logging("import_synda"):
         if path is None:
             sdt_home = os.getenv("SDT_HOME")
