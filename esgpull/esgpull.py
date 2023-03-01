@@ -62,6 +62,7 @@ class Esgpull:
         install: bool = False,
         record: bool = False,
         safe: bool = False,
+        load_db: bool = True,
     ) -> None:
         if path is not None:
             path = Path(path)
@@ -93,9 +94,10 @@ class Esgpull:
         )
         credentials = Credentials()  # TODO: load file
         self.auth = Auth.from_config(self.config, credentials)
-        self.db = Database.from_config(self.config)
         self.context = Context(self.config, noraise=True)
-        self.graph = Graph(self.db)
+        if load_db:
+            self.db = Database.from_config(self.config)
+            self.graph = Graph(self.db)
 
     def fetch_index_nodes(self) -> list[str]:
         """
