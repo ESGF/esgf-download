@@ -11,10 +11,34 @@ from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.table import Table
 from rich.text import Text
 
+from esgpull import Esgpull
 from esgpull.graph import Graph
 from esgpull.models import Dataset, File, Option, Options, Query, Selection
-from esgpull.tui import UI
+from esgpull.tui import UI, TempUI, Verbosity
 from esgpull.utils import format_size
+
+
+def get_command() -> str:
+    exe, *args = sys.argv
+    args = [arg for arg in args if arg != "--record"]
+    return " ".join(["$", Path(exe).name, *args])
+
+
+def init_esgpull(
+    verbosity: Verbosity,
+    safe: bool = True,
+    record: bool = False,
+    load_db: bool = True,
+) -> Esgpull:
+    with TempUI.logging():
+        if record:
+            TempUI.print(get_command())
+        return Esgpull(
+            verbosity=verbosity,
+            safe=safe,
+            record=record,
+            load_db=load_db,
+        )
 
 
 class Messages:
@@ -219,9 +243,3 @@ def get_queries(
             kids = graph.get_all_children(query.sha)
             queries.extend(kids)
     return queries
-
-
-def get_command() -> str:
-    exe, *args = sys.argv
-    args = [arg for arg in args if arg != "--record"]
-    return " ".join(["$", Path(exe).name, *args])
