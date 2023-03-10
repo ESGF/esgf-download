@@ -9,12 +9,13 @@ from rich.table import Table
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import init_esgpull
-from esgpull.config import Config, InstallConfig
+from esgpull.config import Config
 from esgpull.exceptions import (
     InvalidInstallPath,
     UnknownInstallName,
     UnregisteredInstallPath,
 )
+from esgpull.install_config import InstallConfig
 from esgpull.tui import TempUI, Verbosity
 
 

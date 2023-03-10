@@ -1,6 +1,6 @@
 import pytest
 
-from esgpull.config import InstallConfig
+from esgpull.install_config import InstallConfig
 from esgpull.models import File, FileStatus
 
 

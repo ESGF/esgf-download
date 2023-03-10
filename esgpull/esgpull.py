@@ -18,7 +18,7 @@ from rich.progress import (
 )
 
 from esgpull.auth import Auth, Credentials
-from esgpull.config import Config, InstallConfig
+from esgpull.config import Config
 from esgpull.context import Context
 from esgpull.database import Database
 from esgpull.exceptions import (
@@ -28,6 +28,7 @@ from esgpull.exceptions import (
 )
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
+from esgpull.install_config import InstallConfig
 from esgpull.models import (
     Facet,
     File,
