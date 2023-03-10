@@ -214,7 +214,7 @@ def import_synda(
     verbosity: Verbosity,
 ):
     esg = init_esgpull(verbosity)
-    with esg.ui.logging("import_synda"):
+    with esg.ui.logging("import_synda", onraise=Abort):
         if path is None:
             sdt_home = os.getenv("SDT_HOME")
             prompt_title = "Enter synda database location"

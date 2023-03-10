@@ -108,7 +108,7 @@ class Esgpull:
         """
 
         default_index = self.config.search.index_node
-        logger.info(f"Fetching index nodes from '{default_index}'")
+        logger.info(f"Fetching index nodes from {default_index!r}")
         options = Options(distrib=True)
         query = Query(options=options)
         facets = ["index_node"]

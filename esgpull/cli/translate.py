@@ -118,7 +118,7 @@ def translate_file(path: Path) -> Graph:
                 logger.debug(f"FACET {d}")
                 query.selection[name] = list(set(values))
             else:
-                raise ValueError(f"'{name}' undefined\n{path.read_text()}")
+                raise ValueError(f"{name!r} undefined\n{path.read_text()}")
         elif line.variable_cmip5:
             selection = line.variable_cmip5.as_dict()
             logger.debug(f"SUBQUERY {selection}")

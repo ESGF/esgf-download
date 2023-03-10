@@ -306,7 +306,7 @@ class Query(Base):
         compute_sha: bool = True,
     ) -> None:
         if self.get_tag(name) is not None:
-            raise ValueError(f"Tag '{name}' already exists.")
+            raise ValueError(f"Tag {name!r} already exists.")
         tag = Tag(name=name, description=description)
         if compute_sha:
             tag.compute_sha()
@@ -315,7 +315,7 @@ class Query(Base):
     def update_tag(self, name: str, description: str | None) -> None:
         tag = self.get_tag(name)
         if tag is None:
-            raise ValueError(f"Tag '{name}' does not exist.")
+            raise ValueError(f"Tag {name!r} does not exist.")
         else:
             tag.description = description
 

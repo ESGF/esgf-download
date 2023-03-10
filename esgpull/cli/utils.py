@@ -125,7 +125,7 @@ def parse_facets(facets: list[str]) -> Selection:
             case [name, value] if name and value:
                 ...
             case _:
-                raise BadArgumentUsage(f"'{facet}' is not valid syntax.")
+                raise BadArgumentUsage(f"{facet!r} is not valid syntax.")
         if value.startswith("/"):
             if exact_terms is not None:
                 raise BadArgumentUsage("Nested exact string is forbidden.")
