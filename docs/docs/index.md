@@ -12,7 +12,7 @@ It handles scanning, downloading and updating **datasets**, **files** and *queri
 - Highly configurable
 
 !!! tip "Search datasets"
-    
+
     `esgpull` allows multiple ways for searching ESGF data, with **facet** and **free-text** terms together with **options**.
 
     === "Facet terms"
@@ -57,13 +57,13 @@ It handles scanning, downloading and updating **datasets**, **files** and *queri
         ```
         ![esgpull search](images/esgpull_search_intro_6.svg)
 
-!!! tip "Asynchronous downloads"
-    
-    Downloads are done concurrently (up to a maximum) such that retrieval speed is maximized.
-
-!!! tip "SQLite database"
-
-    Each download is recorded in a SQLite database
+<!-- !!! tip "Asynchronous downloads" -->
+<!---->
+<!--     Concurrent download to maximise -->
+<!---->
+<!-- !!! tip "SQLite database" -->
+<!---->
+<!--     Each download is recorded in a SQLite database -->
 
 ## Setup
 

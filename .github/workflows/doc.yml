@@ -18,7 +18,7 @@ jobs:
       - uses: pdm-project/setup-pdm@main
         name: setup pdm
         with:
-          python-version: 3.10.0  # Version range or exact version of a Python version to use, the same as actions/setup-python
+          python-version: "3.10"  # Version range or exact version of a Python version to use, the same as actions/setup-python
           architecture: x64    # The target architecture (x86, x64) of the Python interpreter. the same as actions/setup-python
           version: 2.1.5       # The version of PDM to install. Leave it as empty to use the latest version from PyPI
           prerelease: false     # Allow prerelease versions to be installed

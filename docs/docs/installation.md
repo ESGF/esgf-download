@@ -1,8 +1,17 @@
 This document covers a few ways to install `esgpull`, a necessary first step into being able search and download ESGF datasets.
 
-## conda
+!!! warning "Python version `>= 3.10`"
 
-The recommended way to install using `conda` is to create a fresh environment using `python >= 3.10`, then install the package with both `conda-forge` and `ipsl` channels:
+    `esgpull` requires python `>= 3.10` to run properly.
+
+    This requirement could be relaxed with future releases if requested.
+
+
+## Using conda
+
+`conda` is the recommended way to install `esgpull`.
+
+ is to create a fresh environment using `python >= 3.10`, then install the package with both `conda-forge` and `ipsl` channels:
 
 ```shell title="Install esgpull on a fresh conda environment"
 conda create -n esgpull python=3.10
@@ -11,7 +20,7 @@ conda install esgpull -c conda-forge -c ipsl
 ```
 
 
-## pip
+## Using pip
 
 Run this command:
 
@@ -19,7 +28,7 @@ Run this command:
 pip install https://github.com/svenrdz/esg-pull.git
 ```
 
-!!! warning "Initialize the database and working directories"
+!!! tip "Initialize the database and working directories"
 
     The `self install` command sets up the directories and files required for `esgpull` to work correctly.
 

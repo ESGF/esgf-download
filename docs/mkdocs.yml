@@ -3,9 +3,10 @@ nav:
   - esgpull: index.md
   - Installation: installation.md
   - Quickstart: quickstart.md
-  - Queries: queries.md
+  # - Queries: queries.md
   - Data discovery: search.md
   - Download: download.md
+  - Glossary: glossary.md
   # - Usage guide: usage.md
   # - API Reference: reference.md
 theme:
