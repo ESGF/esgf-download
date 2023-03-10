@@ -252,15 +252,12 @@ class Paths:
 
 
 @define
-class Search:
-    index_node: str = "esgf-node.ipsl.upmc.fr"
-    http_timeout: int = 20
-    max_concurrent: int = 5
-    page_limit: int = 50
+class Credentials:
+    filename: str = "credentials.toml"
 
 
 @define
-class CLI:
+class Cli:
     page_size: int = 20
 
 
@@ -277,12 +274,21 @@ class Download:
 
 
 @define
+class Search:
+    index_node: str = "esgf-node.ipsl.upmc.fr"
+    http_timeout: int = 20
+    max_concurrent: int = 5
+    page_limit: int = 50
+
+
+@define
 class Config:
     paths: Paths = Factory(Paths)
-    cli: CLI = Factory(CLI)
+    credentials: Credentials = Factory(Credentials)
+    cli: Cli = Factory(Cli)
     db: Db = Factory(Db)
-    search: Search = Factory(Search)
     download: Download = Factory(Download)
+    search: Search = Factory(Search)
     _raw: tomlkit.TOMLDocument | None = field(init=False, default=None)
     _config_file: Path | None = field(init=False, default=None)
 

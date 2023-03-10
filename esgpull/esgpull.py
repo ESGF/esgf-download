@@ -92,7 +92,7 @@ class Esgpull:
             verbosity=verbosity,
             record=record,
         )
-        credentials = Credentials()  # TODO: load file
+        credentials = Credentials.from_config(self.config)
         self.auth = Auth.from_config(self.config, credentials)
         self.context = Context(self.config, noraise=True)
         if load_db:

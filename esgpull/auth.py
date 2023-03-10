@@ -14,6 +14,7 @@ from urllib.parse import (
 from xml.etree import ElementTree
 
 import httpx
+import tomlkit
 from attrs import Factory, define, field
 from myproxy.client import MyProxyClient
 from OpenSSL import crypto
@@ -30,11 +31,10 @@ class Secret:
         return self._value
 
     def __str__(self) -> str:
-        value = self.get_value()
-        if value is None:
+        if self.get_value() is None:
             return str(None)
         else:
-            return "*" * 10 if value else ""
+            return "*" * 10
 
     def __repr__(self) -> str:
         return str(self)
@@ -44,7 +44,32 @@ class Secret:
 class Credentials:
     provider: str | None = None
     user: str | None = None
-    password: Secret = Factory(Secret)
+    password: Secret = field(default=None, converter=Secret)
+
+    @staticmethod
+    def from_config(config: Config) -> Credentials:
+        path = config.paths.auth / config.credentials.filename
+        return Credentials.from_path(path)
+
+    @staticmethod
+    def from_path(path: Path) -> Credentials:
+        if path.is_file():
+            with path.open() as fh:
+                doc = tomlkit.load(fh)
+            return Credentials(**doc)
+        else:
+            return Credentials()
+
+    def write(self, path: Path) -> None:
+        if path.is_file():
+            raise FileExistsError(path)
+        with path.open("w") as f:
+            cred_dict = dict(
+                provider=self.provider,
+                user=self.user,
+                password=self.password.get_value(),
+            )
+            tomlkit.dump(cred_dict, f)
 
     def parse_openid(self) -> ParseResult | ParseResultBytes | Any:
         if self.provider not in PROVIDERS:
@@ -77,9 +102,9 @@ class Credentials:
 
 @unique
 class AuthStatus(Enum):
-    Valid = "valid"
-    Expired = "expired"
-    Missing = "missing"
+    Valid = ("valid", "green")
+    Expired = ("expired", "orange")
+    Missing = ("missing", "red")
 
 
 @define

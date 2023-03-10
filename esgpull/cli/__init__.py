@@ -8,6 +8,7 @@ from esgpull.cli.add import add
 from esgpull.cli.config import config
 from esgpull.cli.download import download
 from esgpull.cli.facet import facet
+from esgpull.cli.login import login
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
 from esgpull.cli.search import search
@@ -22,7 +23,6 @@ from esgpull.tui import UI
 # from esgpull.cli.autoremove import autoremove
 # from esgpull.cli.get import get
 # from esgpull.cli.install import install
-# from esgpull.cli.login import login
 
 # [-]TODO: stats
 #   - speed per index/data node
@@ -38,7 +38,7 @@ SUBCOMMANDS: list[click.Command] = [
     # get,
     self,
     # install,
-    # login,
+    login,
     remove,
     retry,
     search,

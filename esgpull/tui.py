@@ -264,22 +264,36 @@ class UI:
         msg: str,
         choices: list[str],
         default: str | None = None,
+        show_choices: bool = True,
     ) -> str:
         if default is not None:
             return Prompt.ask(
                 msg,
                 choices=choices,
                 default=default,
+                show_choices=show_choices,
                 console=self.console,
             )
         else:
-            return Prompt.ask(msg, choices=choices, console=self.console)
+            return Prompt.ask(
+                msg,
+                choices=choices,
+                show_choices=show_choices,
+                console=self.console,
+            )
 
-    def prompt(self, msg: str, default: str | None = None) -> str:
+    def prompt(
+        self, msg: str, default: str | None = None, password: bool = False
+    ) -> str:
         if default is not None:
-            return Prompt.ask(msg, default=default, console=self.console)
+            return Prompt.ask(
+                msg,
+                default=default,
+                password=password,
+                console=self.console,
+            )
         else:
-            return Prompt.ask(msg, console=self.console)
+            return Prompt.ask(msg, password=password, console=self.console)
 
     def rule(self, msg: str):
         self.console.rule(msg)
