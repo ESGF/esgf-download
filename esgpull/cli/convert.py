@@ -5,7 +5,7 @@ from typing import Mapping
 import click
 import pyparsing as pp
 import yaml
-from click.exceptions import Abort  # , Exit
+from click.exceptions import Abort, Exit
 from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.prompt import Confirm
 from rich.table import Table
@@ -94,14 +94,14 @@ def remove_duplicates(
     return result
 
 
-def translate_file(path: Path) -> Graph:
+def convert_file(path: Path) -> Graph:
     logger.info(path)
     query = Query()
     kids: list[Query] = []
     result = selection_file.parse_file(path)
     if result.name:
-        name = result.name[0].split("@", 1)[0]
-        query.tags = name
+        # name = result.name[0].split("@", 1)[0]
+        query.tags = result.name[0]
     for line in result.rest:
         if line.facet:
             name, values = line.facet.as_list()
@@ -133,7 +133,7 @@ def translate_file(path: Path) -> Graph:
                 if "table_id" in selection:
                     selection["time_frequency"] = selection.pop("table_id")
             logger.debug(f"SUBQUERY {selection}")
-            kid = Query(selection=remove_duplicates(selection))
+            kid = Query(selection=remove_duplicates(selection), tracked=True)
             kids.append(kid)
         elif line.variable_no_sqbr:
             logger.error(line.as_dict())
@@ -170,19 +170,21 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.option("print_table", "--table", is_flag=True, default=False)
 @click.option("print_graph", "--graph", is_flag=True, default=False)
+@opts.record
 @opts.verbosity
-def translate(
+def convert(
     paths: list[Path],
     out: Path | None,
     print_table: bool,
     print_graph: bool,
+    record: bool,
     verbosity: Verbosity,
 ):
     """
-    Translates each selection file
+    Convert synda selection files to esgpull queries.
     """
-    esg = init_esgpull(verbosity)
-    with esg.ui.logging("translate", onraise=Abort):
+    esg = init_esgpull(verbosity, safe=False, record=record)
+    with esg.ui.logging("convert", onraise=Abort):
         if len(paths) == 0:
             esg.ui.print("No file provided")
             raise click.exceptions.Exit(0)
@@ -211,7 +213,7 @@ def translate(
         for path in paths:
             extension = path.name.rsplit(".", 1)[-1]
             if path.is_file() and extension == "txt":
-                graph = translate_file(path)
+                graph = convert_file(path)
                 path_text = Text(str(path).replace("/", "/\n"), style="yellow")
                 file_text = Text(path.read_text())
                 table.add_row(path_text, file_text, graph)
@@ -231,3 +233,4 @@ def translate(
             except Exception:
                 out.unlink()
                 raise
+        esg.ui.raise_maybe_record(Exit(0))

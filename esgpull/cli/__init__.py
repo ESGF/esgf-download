@@ -6,6 +6,7 @@ import click
 from esgpull import __version__
 from esgpull.cli.add import add
 from esgpull.cli.config import config
+from esgpull.cli.convert import convert
 from esgpull.cli.download import download
 from esgpull.cli.facet import facet
 from esgpull.cli.login import login
@@ -16,7 +17,6 @@ from esgpull.cli.self import self
 from esgpull.cli.show import show
 from esgpull.cli.status import status
 from esgpull.cli.track import track, untrack
-from esgpull.cli.translate import translate
 from esgpull.cli.update import update
 from esgpull.tui import UI
 
@@ -33,6 +33,7 @@ SUBCOMMANDS: list[click.Command] = [
     add,
     # autoremove,
     config,
+    convert,
     download,
     facet,
     # get,
@@ -44,7 +45,6 @@ SUBCOMMANDS: list[click.Command] = [
     search,
     show,
     track,
-    translate,
     untrack,
     status,
     # # stats,
