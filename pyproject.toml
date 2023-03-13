@@ -1,3 +1,7 @@
+[build-system]
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
+
 [project]
 name = "esgpull"
 dynamic = ["version"]
@@ -59,12 +63,15 @@ profile = [
     "vprof>=0.38",
 ]
 
+[tool.pdm.build]
+includes = ["esgpull/"]
+excludes = [
+    "**/.mypy_cache/",
+    "**/.ruff_cache/",
+]
+
 [project.scripts]
 esgpull = "esgpull.cli:main"
-
-[build-system]
-requires = ["pdm-pep517>=1.0.0"]
-build-backend = "pdm.pep517.api"
 
 [tool.pdm.version]
 source = "file"
