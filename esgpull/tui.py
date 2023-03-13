@@ -45,9 +45,13 @@ class Verbosity(IntEnum):
     Debug = 3
 
     def get_level(self) -> int:
-        return [logging.WARNING, logging.WARNING, logging.INFO, logging.DEBUG][
-            self
+        levels = [
+            logging.WARNING,
+            logging.WARNING,
+            logging.INFO,
+            logging.DEBUG,
         ]
+        return levels[self]
 
     def render(self) -> Text:
         return Text(self.name.upper(), style=f"logging.level.{self.name}")
@@ -112,6 +116,8 @@ class UI:
         onraise: type[Exception] | Exception | None = None,
         record: bool | None = None,
     ):
+        if self.verbosity > Verbosity.Normal:
+            logger.setLevel(logging.INFO)
         if record is not None:
             self.record = record
         handler: logging.Handler

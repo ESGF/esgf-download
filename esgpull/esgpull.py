@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from functools import cached_property, partial
 from pathlib import Path
 from typing import AsyncIterator
+from warnings import warn
 
 from rich.progress import (
     BarColumn,
@@ -76,12 +78,24 @@ class Esgpull:
         if InstallConfig.current is None:
             if safe:
                 raise NoInstallPath
-            idx = InstallConfig.add(default)
-            InstallConfig.current_idx = idx
+            InstallConfig.choose(path=default)
+            if InstallConfig.current_idx is None:
+                idx = InstallConfig.add(default)
+                InstallConfig.choose(idx=idx)
+                needs_install = True
+            else:
+                idx = InstallConfig.current_idx
+                needs_install = False
             self.path = InstallConfig.installs[idx].path
             warning += "To disable this warning, please run:\n"
-            warning += f"$ esgpull self install {self.path}"
-            logger.warning(warning)
+            if needs_install:
+                warning += f"$ esgpull self install {self.path}"
+            else:
+                warning += f"$ esgpull self choose {self.path}"
+            if logger.level == logging.NOTSET:
+                warn(warning)
+            else:
+                logger.warning(warning)
         else:
             self.path = InstallConfig.current.path
         if not install and not self.path.is_dir():
