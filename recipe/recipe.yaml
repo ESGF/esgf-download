@@ -1,23 +1,21 @@
-{% set version = "0.3.0" %}
+context:
+  version: 0.3.0
 
 package:
   name: esgpull
-  version: {{ version }}
-
-channels:
-  - conda-forge
-  - ipsl
+  version: '{{ version }}'
 
 source:
   # - path: ../
   - git_url: https://github.com/svenrdz/esg-pull.git
-    git_rev: {{ version }}
+    git_rev: '{{ version }}'
     git_depth: 1
 
 build:
   noarch: python
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 1) }}
-  script: {{ PYTHON }} -m pip install --ignore-installed .
+  number: 1
+  script: python -m pip install --ignore-installed .
+  # script: pdm install --no-isolation
   include_recipe: false
   entry_points:
     - esgpull = esgpull.cli:main
@@ -28,7 +26,6 @@ requirements:
     - setuptools
     - pdm
     - pdm-pep517
-
 
   run:
     - python >=3.10
