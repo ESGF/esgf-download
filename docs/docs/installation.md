@@ -11,8 +11,6 @@ This document covers a few ways to install `esgpull`, a necessary first step int
 
 `conda` is the recommended way to install `esgpull`.
 
- is to create a fresh environment using `python >= 3.10`, then install the package with both `conda-forge` and `ipsl` channels:
-
 ```shell title="Install esgpull on a fresh conda environment"
 conda create -n esgpull python=3.10
 conda activate esgpull
