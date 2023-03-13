@@ -1,14 +1,14 @@
 repos:
-  - repo: https://github.com/pdm-project/pdm
-    rev: 2.2.1
-    hooks:
-      - id: pdm-export
-        args: ['-f', 'setuppy', '-o', 'setup.py']
-        files: |
-          (?x)^(
-            pdm.lock|
-            esgpull/version.py
-          )$
+  # - repo: https://github.com/pdm-project/pdm
+  #   rev: 2.2.1
+  #   hooks:
+  #     - id: pdm-export
+  #       args: ['-f', 'setuppy', '-o', 'setup.py']
+  #       files: |
+  #         (?x)^(
+  #           pdm.lock|
+  #           esgpull/version.py
+  #         )$
   - repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:
@@ -35,8 +35,8 @@ repos:
           - sqlalchemy==2.0.0b2
           - types-pyopenssl==22.1.0.1
           - types-aiofiles==22.1.0
-          - types-python-dateutil==2.8.19.2 
-          - types-pymysql==1.0.19.1 
-          - types-pyyaml==6.0.12 
+          - types-python-dateutil==2.8.19.2
+          - types-pymysql==1.0.19.1
+          - types-pyyaml==6.0.12
           - types-cryptography==3.3.23.1
-          - types-setuptools==65.5.0.1 
+          - types-setuptools==65.5.0.1
