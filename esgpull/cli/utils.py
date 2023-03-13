@@ -30,6 +30,7 @@ def init_esgpull(
     record: bool = False,
     load_db: bool = True,
 ) -> Esgpull:
+    TempUI.verbosity = verbosity
     with TempUI.logging():
         if record:
             TempUI.print(get_command())
