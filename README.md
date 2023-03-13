@@ -5,12 +5,19 @@
 `esgpull` is a tool that simplifies usage of the [ESGF Search API](https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html) for data discovery, and manages procedures related to downloading and storing files from ESGF.
 
 ```py
-import esgpull
+from esgpull import Esgpull, Query
 
-ctx = esgpull.Context()
-ctx.query.project = "CMIP6"
-print(ctx.query)
-print("Number of CMIP6 datasets:", c.hits)
+query = Query()
+query.selection.project = "CMIP6"
+query.options.distrib = True  # default=False
+esg = Esgpull()
+nb_datasets = esg.context.hits(query, file=False)[0]
+nb_files = esg.context.hits(query, file=True)[0]
+datasets = esg.context.datasets(query, max_hits=5)
+print(f"Number of CMIP6 datasets: {nb_datasets}")
+print(f"Number of CMIP6 files: {nb_files}")
+for dataset in datasets:
+    print(dataset)
 ```
 
 ## Features
@@ -21,7 +28,6 @@ print("Number of CMIP6 datasets:", c.hits)
 ## Usage
 
 ```console
-$ esgpull --help
 Usage: esgpull [OPTIONS] COMMAND [ARGS]...
 
   esgpull is a management utility for files and datasets from ESGF.
@@ -31,16 +37,19 @@ Options:
   -h, --help     Show this message and exit.
 
 Commands:
-  autoremove
+  add       Add one or more queries to the database.
   config
+  convert   Convert synda selection files to esgpull queries.
   download
   facet
-  init
-  install
   login
-  remove
+  remove    Remove queries
   retry
-  search      Search datasets/files on ESGF
+  search    Search datasets and files on ESGF
+  self
+  show      Show recorded query data
   status
-  upgrade
+  track     Remove queries
+  untrack   Remove queries
+  update
 ```
