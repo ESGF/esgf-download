@@ -68,7 +68,7 @@ def search(
 
     More info
     """
-    esg = init_esgpull(verbosity, record=record)
+    esg = init_esgpull(verbosity, safe=False, record=record)
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(
             facets=facets,
