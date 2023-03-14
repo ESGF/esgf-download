@@ -32,14 +32,15 @@ def init_esgpull(
 ) -> Esgpull:
     TempUI.verbosity = verbosity
     with TempUI.logging():
-        if record:
-            TempUI.print(get_command())
-        return Esgpull(
+        esg = Esgpull(
             verbosity=verbosity,
             safe=safe,
             record=record,
             load_db=load_db,
         )
+        if record:
+            esg.ui.print(get_command())
+    return esg
 
 
 class Messages:
