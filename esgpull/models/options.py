@@ -10,15 +10,22 @@ from esgpull.models.base import Base
 
 
 class Option(Enum):
-    false = False
-    true = True
-    none = None
-    notset = auto()
+    false = auto(), False
+    true = auto(), True
+    none = auto(), None
+    notset = auto(), None
 
     @classmethod
     def _missing_(cls, value):
         if isinstance(value, str) and value in cls._member_map_:
             return cls[value]
+        elif isinstance(value, bool):
+            if value:
+                return cls.true
+            else:
+                return cls.false
+        elif value is None:
+            return cls.none
         else:
             raise ValueError(value)
 
@@ -89,7 +96,7 @@ class Options(Base):
                 yield name, option
 
     def asdict(self) -> Mapping[str, bool | None]:
-        return {name: option.value for name, option in self.items()}
+        return {name: option.value[1] for name, option in self.items()}
 
     def __bool__(self) -> bool:
         return next(self.items(), None) is not None

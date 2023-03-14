@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import (
@@ -13,7 +14,9 @@ from typing import (
     TypeVar,
 )
 
-from exceptiongroup import BaseExceptionGroup
+if sys.version_info < (3, 11):
+    from exceptiongroup import BaseExceptionGroup
+
 from httpx import AsyncClient, HTTPError, Request
 from rich.pretty import pretty_repr
 

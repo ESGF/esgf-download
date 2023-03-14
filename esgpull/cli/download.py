@@ -1,9 +1,12 @@
 import asyncio
+import sys
 
 import click
 import rich
 from click.exceptions import Abort, Exit
-from exceptiongroup import BaseExceptionGroup
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import BaseExceptionGroup
 
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
