@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, auto
+from enum import Enum
 from typing import Iterator, Mapping
 
 import sqlalchemy as sa
@@ -10,10 +10,10 @@ from esgpull.models.base import Base
 
 
 class Option(Enum):
-    false = auto(), False
-    true = auto(), True
-    none = auto(), None
-    notset = auto(), None
+    false = 0, False
+    true = 1, True
+    none = 2, None
+    notset = 3, None
 
     @classmethod
     def _missing_(cls, value):
