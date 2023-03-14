@@ -105,9 +105,15 @@ def isnot_CMIP6(q: Query) -> bool:
 
 
 def fix_CMIP5(q: Query) -> Query:
-    qd = dict(q.items())
+    new_selection = dict(q.selection.items())
     if q.selection["frequency"]:
-        qd["selection"]["time_frequency"] = qd["selection"].pop("frequency")
+        new_selection["time_frequency"] = new_selection.pop("frequency")
+    qd = dict()
+    for k, v in q.items():
+        if k == "selection":
+            qd[k] = new_selection
+        else:
+            qd[k] = v
     return Query(**qd)
 
 
