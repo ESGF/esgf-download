@@ -94,6 +94,23 @@ def remove_duplicates(
     return result
 
 
+def is_CMIP6(q: Query) -> bool:
+    project = set(q.selection["project"] + q.selection["mip_era"])
+    return "CMIP6" in project
+
+
+def isnot_CMIP6(q: Query) -> bool:
+    project = set(q.selection["project"] + q.selection["mip_era"])
+    return any({"CMIP5", "CORDEX"} & project)
+
+
+def fix_CMIP5(q: Query) -> Query:
+    qd = dict(q.items())
+    if q.selection["frequency"]:
+        qd["selection"]["time_frequency"] = qd["selection"].pop("frequency")
+    return Query(**qd)
+
+
 def convert_file(path: Path) -> Graph:
     logger.info(path)
     query = Query()
@@ -145,8 +162,12 @@ def convert_file(path: Path) -> Graph:
         query = query << kids.pop()
     else:
         query.tracked = True
+    if isnot_CMIP6(query):
+        query = fix_CMIP5(query)
     query.compute_sha()
     for kid in kids:
+        if isnot_CMIP6(query) or isnot_CMIP6(kid):
+            kid = fix_CMIP5(kid)
         kid.require = query.sha
         kid.compute_sha()
     return Graph(None, query, *kids, force=True)
