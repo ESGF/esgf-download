@@ -19,17 +19,19 @@ from esgpull.utils import format_size
 @args.sha_or_name
 @opts.tag
 @opts.quiet
+@opts.record
 @opts.verbosity
 def download(
     sha_or_name: str | None,
     tag: str | None,
     quiet: bool,
+    record: bool,
     verbosity: Verbosity,
 ):
-    esg = init_esgpull(verbosity)
+    esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("download", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
-            raise Exit(1)
+            esg.ui.raise_maybe_record(Exit(1))
         if sha_or_name is None and tag is None:
             esg.graph.load_db()
             graph = esg.graph
@@ -50,7 +52,7 @@ def download(
                     queue.append(file)
         if not queue:
             rich.print("Download queue is empty.")
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         coro = esg.download(queue, show_progress=not quiet)
         files, errors = asyncio.run(coro)
         if files:
@@ -60,4 +62,6 @@ def download(
             )
         if errors:
             logger.error(f"{len(errors)} files could not be installed.")
-            raise BaseExceptionGroup("Download", [e.err for e in errors])
+            exc_group = BaseExceptionGroup("Download", [e.err for e in errors])
+            esg.ui.raise_maybe_record(exc_group)
+        esg.ui.raise_maybe_record(Exit(0))

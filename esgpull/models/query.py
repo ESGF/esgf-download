@@ -249,10 +249,7 @@ class Query(Base):
     def rich_name(self) -> str:
         return f"[b green]{self.name}[/]"
 
-    def items(
-        self,
-        include_name: bool = False,
-    ) -> Iterator[tuple[str, Any]]:
+    def items(self, include_name: bool = False) -> Iterator[tuple[str, Any]]:
         if include_name:
             yield "name", self.name
         if self.tags:
@@ -393,7 +390,7 @@ class Query(Base):
             text = Text()
             text.append(name, style="yellow")
             text.append(":")
-            contents.add_row(text, str(option.value))
+            contents.add_row(text, str(option.value[1]))
         for name, values in self.selection.items():
             text = Text()
             if name != "query":

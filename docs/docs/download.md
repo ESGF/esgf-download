@@ -1,109 +1,86 @@
-With `esgpull`, downloading files is done as a two-step process:
+With `esgpull`, downloading files is done after a few steps gradually altering the state of the *query* that is to be downloaded.
 
-* `install` to fetch the files' metadata and add them to the queue, and discard those that have already been queued or downloaded previously.
-* `download start` to fire a *blocking* shell process that downloads all queued files asynchronously.
+!!! note "Datasets or files?"
 
-!!! tip "Example selection file"
-        
-        To ease on the readability, each command throughout this page uses the following selection files.
+    In the [search page](../search.md), we only talked about datasets, whereas this document mentions files.
 
-        They can be found in the `examples/selection_files` directory.
+    For searching, datasets are used by default, since each file in a single dataset holds the same metadata.
+    Then it makes sense to show datasets when exploring data.
 
-        ```yaml title="download_example_small.yaml"
-        mip_era: CMIP6
-        experiment_id: piControl
-        table_id: Ofx
-        member_id: r1i1p1f1
-        ```
+    `esgpull` only uses files in the database and for everything related to download.
 
-        ```yaml title="download_example_large.yaml"
-        experiment_id: historical
-        member_id: r1i1p1f1
-        mip_era: CMIP6
-        table_id: Eday
-        variable_id: ts
-        ```
-
-## Install
-
-Once a `search` command yields satisfying results — ideally the smallest set of files that meets needs — then downloading is trivial using an `install` command, since the `install` syntax is exactly the same as for a `search` command.
-
-```sh title="Example search command"
-esgpull search --selection-file download_example_small.yaml
-```
-```{.markdown .result}
-Found 13 datasets.
-     ╷          ╷                                                           
-   # │     size │ id                                                        
-╶────┼──────────┼──────────────────────────────────────────────────────────╴
-   0 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.bas…  
-   1 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.bas…  
-   2 │   1.7 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.hfg…  
-   3 │   1.7 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.hfg…  
-   4 │   1.7 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.hfg…  
-   5 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.are…  
-   6 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.are…  
-   7 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.are…  
-   8 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.bas…  
-   9 │   1.6 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.are…  
-  10 │   1.5 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.bas…  
-  11 │   1.7 MB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.Ofx.hfg…  
-  12 │ 329.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.piControl.r1i1p1f1.Ofx.…  
-     ╵          ╵ 
-```
-
-```sh title="Replace search by install"
-esgpull install --selection-file download_example_small.yaml
-```
-```{.markdown .result}
-Found 16 files.
-Dropped 3 duplicates.
-Total size: 19.0 MB
-Continue? [Y/n]: 
-Installed 13 new files.
-```
-
-!!! warning "Search options"
-
-        Some `search` options do not work with the `install` command.
-
-        That includes the `--file` to display files instead of datasets, since `install` assumes only **files** can be downloaded.
-
-        ```sh title="Failing install command"
-        esgpull install --selection-file download_example_small.yaml --file
-        ```
-        ```{.markdown .result}
-        Error: No such option: --file
-        ```
-
-## Download process
-
-After *installing* any number of files, downloading is simple:
+To make things easier to explain, we will use the following example query in this document:
 
 ```sh
-# Using the following example install command:
-esgpull install --selection-file download_example_small.yaml
+esgpull search project:CMIP6 experiment_id:historical institution_id:IPSL variable_id:tas table_id:Amon member_id:r1i1p1f1 --distrib true --show
+```
+![esgpull download](images/download_1.svg)
 
-# Download files with:
+Our query, named `<7fd1f2>`, corresponds to the following 15 datasets:
+![esgpull download](images/download_2.svg)
+
+
+## Adding a query
+
+The first necessary step is to add `<7fd1f2>` to the database.
+Simply replace `search` with `add` and remove any flags specific to the search command, in our case we need to remove `--show`.
+
+```sh
+esgpull add project:CMIP6 experiment_id:historical institution_id:IPSL variable_id:tas table_id:Amon member_id:r1i1p1f1 --distrib true
+```
+![esgpull download](images/download_3.svg)
+
+!!! note "Option flags"
+
+    Notice how we keep the `--distrib true` option flag. This is due to the fact that options (`distrib`, `latest`, `replicas`, `retracted`) are part of the query, since different values on these optoins yield different sets of files.
+
+`<7fd1f2>` is now stored in the database, but it remains **untracked**.
+
+
+## Tracking a query
+
+A query is untracked by default, to prevent downloading too much data by mistake.
+When a query is tracked, it will always be checked for new files on later usage of the `update` command, if it is provided no arguments.
+
+There are 2 ways to track a query:
+
+- use the `track` command with the query id as an argument,
+- use the `--track` flag on the `add` command to have it tracked directly.
+
+```sh
+esgpull track 7fd1f2
+```
+![esgpull download](images/download_4.svg)
+
+
+## Updating a query
+
+To associate a query with actual files, it needs to be **updated**.
+
+Updating a query will send requests to the ESGF search api to fetch metadata for each file corresponding to the query. Any file that is not already in the database is added and **linked** to the query. Files already in the database are simply linked to the query. This would happen for example if a file was previously fetched with another query.
+
+For those familiar with package managers such as `apt`, the `update` command should feel familiar with how those require update *lists* to fetch latest versions of packages before actually downloading (and installing in this case).
+
+```sh
+esgpull update 7fd1f2
+```
+![esgpull download](images/download_5.svg)
+
+!!! note "Replicas"
+
+    For this update, only 3 files were found from the initial 15, this is due to most of them being replicas.
+
+    Currently the choice of data node from which to download the files is simply whichever comes first.
+
+
+## Downloading
+
+All that remains after these steps is to download the files:
+
+```sh
 esgpull download
 ```
-```{.markdown .result}
-[15:18:37] ✓ id:1767 · 329.9 kB · 5.4 MB/s                    esgpull.py:202
-           ✓ id:1768 · 1.5 MB · 11.4 MB/s                     esgpull.py:202
-           ✓ id:1769 · 1.5 MB · 9.3 MB/s                      esgpull.py:202
-[15:18:38] ✓ id:1770 · 1.5 MB · 8.1 MB/s                      esgpull.py:202
-           ✓ id:1771 · 1.6 MB · 6.6 MB/s                      esgpull.py:202
-           ✓ id:1772 · 1.5 MB · 7.1 MB/s                      esgpull.py:202
-           ✓ id:1773 · 1.5 MB · 7.2 MB/s                      esgpull.py:202
-           ✓ id:1774 · 1.5 MB · 7.0 MB/s                      esgpull.py:202
-           ✓ id:1775 · 1.5 MB · 6.9 MB/s                      esgpull.py:202
-           ✓ id:1776 · 1.7 MB · 7.8 MB/s                      esgpull.py:202
-           ✓ id:1777 · 1.7 MB · 8.1 MB/s                      esgpull.py:202
-           ✓ id:1778 · 1.7 MB · 9.9 MB/s                      esgpull.py:202
-           ✓ id:1779 · 1.7 MB · 11.7 MB/s                     esgpull.py:202
-  13/13 00:00
-Downloaded 13 new files for a total size of 19.0 MB
-```
+![esgpull download](images/download_6.svg)
 
 ### Configuration
 
@@ -123,8 +100,13 @@ Those can be put back to the download queue, by using the `retry` command.
 esgpull retry --help
 ```
 ```{.sh .markdown .result}
-Usage: esgpull retry [OPTIONS] [[new|queued|starting|started|pausing|paused|
-                     error|cancelled|done]]...
+Usage: esgpull retry [OPTIONS] [[new|queued|starting|started|pausing|paused|er
+                     ror|cancelled|done]]...
+
+Options:
+  -a, --all
+  -v
+  -h, --help  Show this message and exit.
 ```
 
 !!! tip "Cancelled download"

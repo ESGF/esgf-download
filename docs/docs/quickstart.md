@@ -54,7 +54,7 @@ Running the `convert` command with `--graph` will print the graph of queries the
 ```sh title="Convert example"
 esgpull convert example_cmip5.txt example_cmip6.txt --graph
 ```
-![esgpull convert](images/esgpull_convert_quickstart.svg)
+![esgpull convert](images/quickstart_1.svg)
 
 Notice how the "root" query from `example_cmip6.txt` is shown as `untracked`. This is done such that the root query's corresponding datasets are not installed.
 

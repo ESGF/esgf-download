@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import atexit
 import logging
+import sys
 from contextlib import contextmanager
 from datetime import datetime
 from enum import IntEnum
 from json import dumps as json_dumps
 from pathlib import Path
 from typing import Any, Iterable, Mapping, TypeVar
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import BaseExceptionGroup
 
 import click.exceptions
 from attrs import define, field
@@ -242,22 +246,24 @@ class UI:
             renderables = first
         else:
             renderables = Group(first, *rest)
-        return Live(renderables, console=self.console)
+        # use _console to avoid recording the progress bar
+        return Live(renderables, console=_console)
 
     def track(self, iterable: Iterable[T]) -> Iterable[T]:
-        return track(iterable, console=self.console)
+        # use _console to avoid recording the progress bar
+        return track(iterable, console=_console)
 
     def make_progress(
-        self, *columns: str | ProgressColumn, **kwargs: Any
+        self,
+        *columns: str | ProgressColumn,
+        **kwargs: Any,
     ) -> Progress:
-        return Progress(
-            *columns,
-            console=self.console,
-            **kwargs,
-        )
+        # use _console to avoid recording the progress bar
+        return Progress(*columns, console=_console, **kwargs)
 
     def spinner(self, msg: str) -> Status:
-        return self.console.status(msg, spinner="earth")
+        # use _console to avoid recording the spinner
+        return _console.status(msg, spinner="earth")
 
     def ask(self, msg: str, default: bool | None = None) -> bool:
         if default is not None:
@@ -312,7 +318,10 @@ class UI:
             f.write(_record_console.export_svg())
         return output_path
 
-    def raise_maybe_record(self, exc: type[Exception] | Exception) -> None:
+    def raise_maybe_record(
+        self,
+        exc: type[Exception] | Exception | BaseExceptionGroup,
+    ) -> None:
         if self.record:
             output_path = self.export_svg()
             self.print(f":+1: Console output exported to {output_path}")

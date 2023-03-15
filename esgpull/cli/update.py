@@ -27,15 +27,17 @@ class QueryFiles:
 @opts.tag
 @opts.children
 @opts.yes
+@opts.record
 @opts.verbosity
 def update(
     sha_or_name: str | None,
     tag: str | None,
     children: bool,
     yes: bool,
+    record: bool,
     verbosity: Verbosity,
 ) -> None:
-    esg = init_esgpull(verbosity)
+    esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("update", onraise=Abort):
         # Select which queries to update + setup
         if sha_or_name is None and tag is None:
@@ -43,7 +45,7 @@ def update(
             queries = list(esg.graph.queries.values())
         else:
             if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
-                raise Exit(1)
+                esg.ui.raise_maybe_record(Exit(1))
             queries = get_queries(
                 esg.graph,
                 sha_or_name,
@@ -61,7 +63,7 @@ def update(
         ]
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         hints = esg.context.hints(
             *[qf.expanded for qf in qfs],
             file=True,
@@ -72,7 +74,7 @@ def update(
         nb = sum(esg.context.hits_from_hints(*hints))
         if not nb:
             esg.ui.print("No files found.")
-            raise Exit(0)
+            esg.ui.raise_maybe_record(Exit(0))
         else:
             esg.ui.print(f"Found {nb} files.")
         # Prepare optimally distributed requests to ESGF
@@ -128,7 +130,7 @@ def update(
             esg.ui.print(esg.graph.subgraph(qf.query, parents=True))
             size = sum([file.size for file in new_files])
             esg.ui.print(f"{nb_files} new files ({format_size(size)}).")
-            if esg.ui.ask("Download new files?", default=True):
+            if esg.ui.ask("Send to download queue?", default=True):
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
                 for file in new_files:
@@ -140,3 +142,4 @@ def update(
                         file_db.queries.remove(legacy)
                     file_db.queries.append(qf.query)
                     esg.db.add(file_db)
+        esg.ui.raise_maybe_record(Exit(0))

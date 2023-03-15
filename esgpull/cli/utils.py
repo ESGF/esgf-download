@@ -18,10 +18,10 @@ from esgpull.tui import UI, TempUI, Verbosity
 from esgpull.utils import format_size
 
 
-def get_command() -> str:
+def get_command() -> Text:
     exe, *args = sys.argv
     args = [arg for arg in args if arg != "--record"]
-    return " ".join(["$", Path(exe).name, *args])
+    return Text(" ".join(["$", Path(exe).name, *args]))
 
 
 def init_esgpull(

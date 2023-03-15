@@ -1,75 +1,46 @@
-There are two ways to search for one or more datasets: **facet** and **free-text** search.
-Both are done through the `esgpull search` command.
+There are two ways to search for datasets with `esgpull`: **facet** and **free-text** search.
+Both are done through the `search` command.
 
 ## Facet search
 
 *Facet search* is performed with all terms using the facet syntax `<name>:<value>`, for which both name and value are matched exactly.
 
 ```sh title="Search CMIP6 datasets"
-esgpull search project:CMIP6 --slice 3
+esgpull search project:CMIP6
 ```
-```{.markdown .result}
-Found 1539146 datasets.
-    ╷         ╷
-  # │    size │ id
-╶───┼─────────┼────────────────────────────────────────────────────────────╴
-  0 │ 10.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.hfls…
-  1 │  7.9 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.3hr.clt.…
-  2 │ 11.1 GB │ CMIP6.CMIP.CNRM-CERFACS.CNRM-CM6-1.amip.r1i1p1f2.E3hrPt.c…
-    ╵         ╵
-```
+![esgpull search](images/search_1.svg)
 
 ### Multiple values for a facet
 
-Multiples values can be used, either by specifying the facet name for every value, or by separating each value with a `,` comma.
+Multiples values can be used by separating each value with a `,` comma.
 
-<div class="grid">
-    <div>
-        ```sh title="Single variable c2h2"
-        esgpull search variable_id:c2h2 -0
-        ```
-        ```{.markdown .result}
-        Found 5 datasets.
-        ```
-    </div>
-    <div>
-        ```sh title="Single variable c2h6"
-        esgpull search variable_id:c2h6 -0
-        ```
-        ```{.markdown .result}
-        Found 5 datasets.
-        ```
-    </div>
-</div>
-
-```sh title="Both variables c2h2 and c2h6"
-esgpull search variable_id:c2h2 variable_id:c2h6 -0
+```sh title="Single variable search"
+esgpull search variable_id:c2h2 -0
+esgpull search variable_id:c2h6 -0
 ```
-```{.markdown .result}
-Found 10 datasets.
+![esgpull search](images/search_2.svg)
+![esgpull search](images/search_3.svg)
+
+```sh title="Combine both variables in a single search"
+esgpull search variable_id:c2h2,c2h6 -0
 ```
+![esgpull search](images/search_4.svg)
 
-??? warning "What facets can be used?"
+!!! warning "Using spaces "disconnects" values from the facet name"
 
-    `esgpull` provides a handy way to print out all facet names:
+    ![esgpull search](images/search_5.svg)
+
+
+!!! note "If you don't know the facets' names"
+
+    `esgpull` provides a handy way to print out facet names that can be used to refine a query:
 
     ```sh
-    esgpull facet
+    esgpull search variable_id:c2h2,c2h6 --facets
     ```
-    ```{.sh .markdown .result}
-    [
-      'Acknowledgement',
-      'Campaign',
-      'Conventions',
-      'Period',
-      'Science Driver',
-      'access',
-      'activity',
-      'activity_drs',
-      'activity_id',
-      ...
-    ]
-    ```
+    ![esgpull search](images/search_6.svg)
+
+    Using a facet that is **not** in this list will always result in a query with 0 corresponding datasets.
 
 
 ## Free-text search
@@ -99,19 +70,7 @@ Note that on most shells, the wildcard symbol should be inside `"` quotes, to es
 ```sh title="All initializations for areacella variable from piControl experiments"
 esgpull search "member_id:r1i*p1f1" table_id:fx variable_id:areacella experiment_id:piControl
 ```
-``` {.markdown .result}
-Found 6 datasets.
-    ╷         ╷
-  # │    size │ id
-╶───┼─────────┼────────────────────────────────────────────────────────────╴
-  0 │ 28.5 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i2p1f1.fx.areace…
-  1 │ 26.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…
-  2 │ 26.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…
-  3 │ 26.9 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…
-  4 │ 28.6 kB │ CMIP6.CMIP.IPSL.IPSL-CM6A-LR.piControl.r1i1p1f1.fx.areace…
-  5 │ 28.1 kB │ CMIP6.CMIP.IPSL.IPSL-CM5A2-INCA.piControl.r1i1p1f1.fx.are…
-    ╵         ╵
-```
+![esgpull search](images/search_7.svg)
 
 
 ## Case sensitivity
