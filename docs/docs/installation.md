@@ -72,7 +72,7 @@ esgpull --version
 Make sure your python version meets the requirements (>=3.10), then you can run:
 
 ```shell title="Install esgpull from pip"
-pip install git+https://github.com/svenrdz/esg-pull.git
+pip install git+https://github.com/ESGF/esgf-download
 ```
 
 
@@ -81,7 +81,7 @@ pip install git+https://github.com/svenrdz/esg-pull.git
 Esgpull is developed and maintained on GitHub, you can clone the public repository with:
 
 ```shell
-git clone https://github.com/svenrdz/esg-pull.git
+git clone https://github.com/ESGF/esgf-download
 ```
 
 And then install with `pip`:

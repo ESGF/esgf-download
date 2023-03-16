@@ -32,8 +32,8 @@ dependencies = [
     "pyparsing>=3.0.9",
 ]
 [project.urls]
-Repository = "https://github.com/svenrdz/esg-pull"
-Documentation = "https://svenrdz.github.io/esg-pull/"
+Repository = "https://github.com/ESGF/esgf-download"
+Documentation = "https://esgf.github.io/esgf-download/"
 
 [project.optional-dependencies]
 [tool.pdm.dev-dependencies]
