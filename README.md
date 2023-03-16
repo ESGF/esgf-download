@@ -49,7 +49,7 @@ Commands:
   self
   show      Show recorded query data
   status
-  track     Remove queries
-  untrack   Remove queries
+  track     Track queries
+  untrack   Untrack queries
   update
 ```
