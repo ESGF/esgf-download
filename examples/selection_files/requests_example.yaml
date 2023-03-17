@@ -1,7 +1,0 @@
-project: CMIP6
-table_id: Emon
-member_id: r1i1p1f1
-requests:
-- variable_id: raGrass,raTree,prhmax
-- +table_id: fx
-  variable_id: orog

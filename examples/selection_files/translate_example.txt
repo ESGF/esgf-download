@@ -1,6 +1,0 @@
-project=CMIP5
-experiment=historical,rcp85
-ensemble=r1i1p1
-realm=atmos
-variable[time_frequency=day]=tas
-variable[time_frequency=mon]=tasmin

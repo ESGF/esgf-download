@@ -1,6 +1,0 @@
-query: "surface AND temperature"
-requests:
-  - project: CMIP5
-    experiment: "rcp*"
-  - project: CMIP6
-    experiment_id: "ssp*"
