@@ -47,6 +47,7 @@ def show(
                 *queries,
                 children=children,
                 parents=parents,
+                keep_db=True,
             )
         if tag is not None:
             tag_db = esg.graph.get_tag(tag)

@@ -220,19 +220,35 @@ class Graph:
         *queries: Query,
         children: bool = True,
         parents: bool = False,
+        keep_db: bool = False,
     ) -> Graph:
         if not queries:
             raise ValueError("Cannot subgraph from nothing")
-        graph = Graph(None, *queries, force=True)
+        if keep_db:
+            graph = Graph(self.db)
+            queries_shas = [q.sha for q in queries]
+            graph.load_db(*queries_shas)
+        else:
+            graph = Graph(None, *queries, force=True)
         shas = set(self._shas)
         if children:
             for query in queries:
                 shas = shas - graph._shas
-                graph.add(*self.get_all_children(query.sha, shas), force=True)
+                query_children = self.get_all_children(query.sha, shas)
+                if keep_db:
+                    children_shas = [q.sha for q in query_children]
+                    graph.load_db(*children_shas)
+                else:
+                    graph.add(*query_children, force=True)
         if parents:
             for query in queries:
                 shas = shas - graph._shas
-                graph.add(*self.get_parents(query), force=True)
+                query_parents = self.get_parents(query)
+                if keep_db:
+                    parents_shas = [q.sha for q in query_parents]
+                    graph.load_db(*parents_shas)
+                else:
+                    graph.add(*query_parents, force=True)
         return graph
 
     def _load_db_shas(self, full: bool = False) -> None:
@@ -244,11 +260,14 @@ class Graph:
             name_sha[name] = sha
         self._name_sha = name_sha
 
-    def load_db(self) -> None:
+    def load_db(self, *shas: str) -> None:
         if self.db is None:
             raise GraphWithoutDatabase()
         # self._load_db_shas()
-        unloaded_shas = set(self._shas) - set(self.queries.keys())
+        if shas:
+            unloaded_shas = set(shas)
+        else:
+            unloaded_shas = set(self._shas) - set(self.queries.keys())
         if unloaded_shas:
             queries = self.db.scalars(sql.query.with_shas(*unloaded_shas))
             for query in queries:
@@ -270,7 +289,7 @@ class Graph:
             query.require = parent.sha
             query.compute_sha()
         else:
-            query._unknown_require = True
+            query._unknown_require = True  # type: ignore [attr-defined]
 
     def add(
         self,
