@@ -81,16 +81,6 @@ class opts:
         is_flag=True,
         default=False,
     )
-    # date: Dec = click.option(
-    #     "--date",
-    #     is_flag=True,
-    #     default=False,
-    # )
-    data_node: Dec = click.option(
-        "--data-node",
-        is_flag=True,
-        default=False,
-    )
     detail: Dec = click.option(
         "--detail",
         type=int,
