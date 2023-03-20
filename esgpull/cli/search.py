@@ -18,8 +18,6 @@ from esgpull.tui import Verbosity
 @groups.query_def
 @groups.query_date
 @groups.display
-# @opts.date
-# @opts.data_node
 @opts.dry_run
 @opts.file
 @opts.facets_hints
@@ -52,8 +50,6 @@ def search(
     ## ungrouped
     show: bool,
     detail: int | None,
-    # date: bool,
-    # data_node: bool,
     dry_run: bool,
     file: bool,
     facets_hints: bool,
