@@ -80,13 +80,13 @@ path = "esgpull/version.py"
 [tool.pdm.scripts]
 echo_gap = "echo"
 echo_black = "echo [black]"
-lint_black = "black esgpull tests examples"
+lint_black = "black esgpull tests"
 echo_isort = "echo [isort]"
-lint_isort = "isort esgpull tests examples"
+lint_isort = "isort esgpull tests"
 echo_flake8 = "echo [flake8]"
-lint_flake8 = "flake8 esgpull tests examples"
+lint_flake8 = "flake8 esgpull tests"
 echo_mypy = "echo [mypy]"
-lint_mypy = "mypy --disable-recursive-aliases esgpull tests examples"
+lint_mypy = "mypy --disable-recursive-aliases esgpull tests"
 lint = {composite = [
     "echo_black",
     "lint_black",
