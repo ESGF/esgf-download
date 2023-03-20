@@ -6,11 +6,12 @@ from esgpull.models import Query
 
 @pytest.fixture
 def base():
-    base = Query()
-    base.selection = dict(
-        project="CMIP5",
-        ensemble="r1i1p1",
-        realm="atmos",
+    base = Query(
+        selection=dict(
+            project="CMIP5",
+            ensemble="r1i1p1",
+            realm="atmos",
+        )
     )
     base.compute_sha()
     return base
@@ -18,11 +19,13 @@ def base():
 
 @pytest.fixture
 def a(base):
-    a = Query(require=base.sha)
-    a.selection = dict(
-        experiment=["historical", "rcp26"],
-        time_frequency="mon",
-        variable="tasmin",
+    a = Query(
+        require=base.sha,
+        selection=dict(
+            experiment=["historical", "rcp26"],
+            time_frequency="mon",
+            variable="tasmin",
+        ),
     )
     a.compute_sha()
     return a
@@ -30,11 +33,13 @@ def a(base):
 
 @pytest.fixture
 def b(base):
-    b = Query(require=base.sha)
-    b.selection = dict(
-        experiment="rcp85",
-        time_frequency="day",
-        variable=["tas", "ua"],
+    b = Query(
+        require=base.sha,
+        selection=dict(
+            experiment="rcp85",
+            time_frequency="day",
+            variable=["tas", "ua"],
+        ),
     )
     b.compute_sha()
     return b
@@ -42,10 +47,12 @@ def b(base):
 
 @pytest.fixture
 def c(base):
-    c = Query(require=base.sha)
-    c.selection = dict(
-        time_frequency=["day", "mon", "fx"],
-        variable="tasmax",
+    c = Query(
+        require=base.sha,
+        selection=dict(
+            time_frequency=["day", "mon", "fx"],
+            variable="tasmax",
+        ),
     )
     c.compute_sha()
     return c
