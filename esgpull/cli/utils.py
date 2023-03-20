@@ -2,7 +2,7 @@ import sys
 from collections import OrderedDict
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal, Mapping, Sequence
+from typing import Any, Literal, MutableMapping, Sequence
 
 import click
 import yaml
@@ -182,16 +182,16 @@ def parse_query(
 
 
 def is_list_of_maps(seq: Sequence) -> bool:
-    return all(isinstance(item, Mapping) for item in seq)
+    return all(isinstance(item, MutableMapping) for item in seq)
 
 
 def serialize_queries_from_file(path: Path) -> list[Query]:
     with path.open() as f:
         content = yaml.safe_load(f)
-    queries: list[Mapping]
+    queries: list[MutableMapping]
     if isinstance(content, list):
         queries = content
-    elif isinstance(content, Mapping):
+    elif isinstance(content, MutableMapping):
         values = list(content.values())
         if is_list_of_maps(values):
             queries = values

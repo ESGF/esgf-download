@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Iterator, Mapping
+from typing import Iterator, MutableMapping
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
@@ -95,7 +95,7 @@ class Options(Base):
             elif keep_notset:
                 yield name, option
 
-    def asdict(self) -> Mapping[str, bool | None]:
+    def asdict(self) -> MutableMapping[str, bool | None]:
         return {name: option.value[1] for name, option in self.items()}
 
     def __bool__(self) -> bool:

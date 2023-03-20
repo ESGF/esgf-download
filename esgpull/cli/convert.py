@@ -1,6 +1,6 @@
 from collections import Counter
 from pathlib import Path
-from typing import Mapping
+from typing import MutableMapping
 
 import click
 import pyparsing as pp
@@ -75,8 +75,8 @@ selection_file = name_comment("name") + rest("rest")
 
 
 def remove_duplicates(
-    selection: Mapping[str, FacetValues]
-) -> Mapping[str, FacetValues]:
+    selection: MutableMapping[str, FacetValues]
+) -> MutableMapping[str, FacetValues]:
     result: dict[str, FacetValues] = {}
     duplicates: dict[str, list[str]] = {}
     for name, values in selection.items():

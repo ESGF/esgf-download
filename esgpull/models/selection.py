@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, Iterator, Mapping, TypeAlias
+from typing import ClassVar, Iterator, MutableMapping, TypeAlias
 
 import sqlalchemy as sa
 from rich.pretty import pretty_repr
@@ -122,7 +122,7 @@ class Selection(Base):
                 facet.compute_sha()
         super().compute_sha()
 
-    def asdict(self) -> Mapping[str, FacetValues]:
+    def asdict(self) -> MutableMapping[str, FacetValues]:
         result: dict[str, FacetValues] = {}
         for name, facet in self.items():
             if len(facet) == 1:

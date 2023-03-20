@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, Literal, Mapping
+from typing import Any, Iterator, Literal, MutableMapping
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
@@ -130,8 +130,8 @@ class QueryDict(TypedDict):
     tags: NotRequired[str | list[str]]
     tracked: NotRequired[Literal[True]]
     require: NotRequired[str]
-    options: NotRequired[Mapping[str, bool | None]]
-    selection: NotRequired[Mapping[str, FacetValues]]
+    options: NotRequired[MutableMapping[str, bool | None]]
+    selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
     # children: NotRequired[list[QueryDict]]
 
