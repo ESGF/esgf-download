@@ -133,7 +133,6 @@ class QueryDict(TypedDict):
     options: NotRequired[MutableMapping[str, bool | None]]
     selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
-    # children: NotRequired[list[QueryDict]]
 
 
 class Query(Base):
