@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, Literal, MutableMapping
+from typing import Any, Iterator, Literal, MutableMapping, Sequence
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
@@ -163,6 +163,44 @@ class Query(Base):
         back_populates="queries",
     )
 
+    def __init__(
+        self,
+        *,
+        tracked: bool = False,
+        require: str | None = None,
+        tags: Sequence[Tag | str] | Tag | str | None = None,
+        options: Options | MutableMapping[str, bool | None] | None = None,
+        selection: Selection | MutableMapping[str, FacetValues] | None = None,
+        files: list[FileDict] | None = None,
+    ) -> None:
+        self.tracked = tracked
+        self.require = require
+        self.tags = []
+        if tags is not None:
+            if isinstance(tags, (str, Tag)):
+                tags = [tags]
+            for tag in tags:
+                if isinstance(tag, str):
+                    self.tags.append(Tag(name=tag))
+                elif isinstance(tag, Tag):
+                    self.tags.append(tag)
+        if selection is None:
+            self.selection = Selection()
+        elif isinstance(selection, dict):
+            self.selection = Selection(**selection)
+        elif isinstance(selection, Selection):
+            self.selection = selection
+        if options is None:
+            self.options = Options()
+        elif isinstance(options, dict):
+            self.options = Options(**options)
+        elif isinstance(options, Options):
+            self.options = options
+        self.files = []
+        if files is not None:
+            for file in files:
+                self.files.append(File(**file))
+
     @property
     def has_files(self) -> bool:
         stmt: sa.Select[tuple[int]] = (
@@ -207,27 +245,6 @@ class Query(Base):
         self.options.compute_sha()
         self.selection.compute_sha()
         super().compute_sha()
-
-    # TODO: improve typing
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name == "tags" and isinstance(value, (str, Tag)):
-            value = [value]
-        match name, value:
-            case "tags", list() | tuple():
-                tags: list[Tag] = []
-                for tag in value:
-                    if isinstance(tag, str):
-                        tags.append(Tag(name=tag))
-                    else:
-                        tags.append(tag)
-                value = tags
-            case "options", dict():
-                value = Options(**value)
-            case "selection", dict():
-                value = Selection(**value)
-            case _, _:
-                ...
-        super().__setattr__(name, value)
 
     @property
     def tag_name(self) -> str | None:
@@ -324,7 +341,7 @@ class Query(Base):
 
     def no_require(self) -> Query:
         cl = self.clone(compute_sha=True)
-        cl._rich_no_require = True
+        cl._rich_no_require = True  # type: ignore [attr-defined]
         return cl
 
     def __lshift__(self, other: Query) -> Query:
