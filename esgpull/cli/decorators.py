@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any, Callable, TypeAlias, TypeVar
 
 import click
-from click_option_group import MutuallyExclusiveOptionGroup, optgroup
 from click_params import StringListParamType
 
 from esgpull.cli.utils import EnumParam
@@ -206,23 +205,19 @@ class opts:
 
 
 # Display group
-_display_group: Dec = optgroup.group(
-    "Display options",
-    cls=MutuallyExclusiveOptionGroup,
-)
-_page: Dec = optgroup.option(
+_page: Dec = click.option(
     "--page",
     "-p",
     type=int,
     default=0,  # 1?
 )
-_zero: Dec = optgroup.option(
+_zero: Dec = click.option(
     "--zero",
     "-0",
     is_flag=True,
     default=False,
 )
-_all: Dec = optgroup.option(
+_all: Dec = click.option(
     "_all",
     "--all",
     "-a",
@@ -231,16 +226,12 @@ _all: Dec = optgroup.option(
 )
 
 # Json/Yaml exclusive group
-_json_yaml_group: Dec = optgroup.group(
-    "Json/Yaml",
-    cls=MutuallyExclusiveOptionGroup,
-)
-_json: Dec = optgroup.option(
+_json: Dec = click.option(
     "--json",
     is_flag=True,
     default=False,
 )
-_yaml: Dec = optgroup.option(
+_yaml: Dec = click.option(
     "--yaml",
     is_flag=True,
     default=False,
@@ -248,9 +239,8 @@ _yaml: Dec = optgroup.option(
 
 # Query definition group
 OptionChoice = click.Choice([opt.name for opt in list(Option)[:-1]])
-_query_def: Dec = optgroup.group("Query definition")
-_tag: Dec = optgroup.option("tags", "--tag", "-t", multiple=True)
-_require: Dec = optgroup.option(
+_tag: Dec = click.option("tags", "--tag", "-t", multiple=True)
+_require: Dec = click.option(
     "--require",
     "-r",
     type=str,
@@ -258,58 +248,52 @@ _require: Dec = optgroup.option(
     required=False,
     default=None,
 )
-_distrib: Dec = optgroup.option(
+_distrib: Dec = click.option(
     "--distrib",
     "-d",
     type=OptionChoice,
-    # default="notset",
 )
-_latest: Dec = optgroup.option(
+_latest: Dec = click.option(
     "--latest",
-    # "-l",
     type=OptionChoice,
-    # default="notset",
 )
-_replica: Dec = optgroup.option(
+_replica: Dec = click.option(
     "--replica",
     type=OptionChoice,
-    # default="notset",
 )
-_retracted: Dec = optgroup.option(
+_retracted: Dec = click.option(
     "--retracted",
     type=OptionChoice,
-    # default="notset",
 )
 
 # Query dates group
-_query_date: Dec = optgroup.group("Query dates")
-_from: Dec = optgroup.option(
+datetime_type = click.DateTime(["%Y-%m-%d"])
+_from: Dec = click.option(
     "date_from",
     "--from",
-    type=click.DateTime(),
+    type=datetime_type,
     default=None,
 )
-_to: Dec = optgroup.option(
+_to: Dec = click.option(
     "date_to",
     "--to",
-    type=click.DateTime(),
+    type=datetime_type,
     default=None,
 )
 
-_show: Dec = optgroup.group("Show options")
-_children: Dec = optgroup.option(
+_children: Dec = click.option(
     "--children",
     "-c",
     is_flag=True,
     default=False,
 )
-_parents: Dec = optgroup.option(
+_parents: Dec = click.option(
     "--parents",
     "-p",
     is_flag=True,
     default=False,
 )
-_expand: Dec = optgroup.option(
+_expand: Dec = click.option(
     "--expand",
     "-e",
     is_flag=True,
@@ -319,18 +303,15 @@ _expand: Dec = optgroup.option(
 
 class groups:
     display: Dec = compose(
-        _display_group,
         _page,
         _zero,
         _all,
     )
     json_yaml: Dec = compose(
-        _json_yaml_group,
         _json,
         _yaml,
     )
     query_def: Dec = compose(
-        _query_def,
         _tag,
         _require,
         _distrib,
@@ -343,7 +324,6 @@ class groups:
         _to,
     )
     show: Dec = compose(
-        _show,
         _children,
         _parents,
         _expand,
