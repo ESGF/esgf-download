@@ -50,13 +50,13 @@ Installing `esgpull` is the first step to using it, but not the only one.
 To install `esgpull` in a new `conda` environment, run:
 
 ```sh
-conda create --name my_env_name esgpull --channel ipsl
+conda create --name my_env_name esgpull --channel ipsl --channel conda-forge
 ```
 
 For `mamba` users:
 
 ```sh
-mamba create --name my_env_name esgpull --channel ipsl
+mamba create --name my_env_name esgpull --channel ipsl --channel conda-forge
 ```
 
 You can start using `esgpull` after activating the environment:
