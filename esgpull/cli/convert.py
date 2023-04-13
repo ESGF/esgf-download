@@ -14,7 +14,7 @@ from rich.text import Text
 from esgpull.cli.decorators import opts
 from esgpull.cli.utils import init_esgpull
 from esgpull.graph import Graph
-from esgpull.models import Options, Query
+from esgpull.models import Options, Query, Tag
 from esgpull.models.selection import FacetValues, Selection
 from esgpull.tui import Verbosity, logger
 
@@ -118,7 +118,7 @@ def convert_file(path: Path) -> Graph:
     result = selection_file.parse_file(path)
     if result.name:
         # name = result.name[0].split("@", 1)[0]
-        query.tags = result.name[0]
+        query.tags.append(Tag(name=result.name[0]))
     for line in result.rest:
         if line.facet:
             name, values = line.facet.as_list()

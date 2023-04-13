@@ -1,7 +1,7 @@
 import pytest
 
 from esgpull.exceptions import AlreadySetFacet
-from esgpull.models import Query
+from esgpull.models import Query, Tag
 
 
 def test_empty_asdict():
@@ -46,3 +46,25 @@ def test_combine_removes_require():
     ba = b << a
     assert ab.require is None
     assert ba.require == a.sha
+
+
+def test_set_tags_raise():
+    query = Query()
+    with pytest.raises(TypeError):
+        query.tags = "tag"
+    with pytest.raises(TypeError):
+        query.tags = Tag(name="tag")
+    with pytest.raises(AttributeError):
+        query.tags = ["tag"]
+        query.compute_sha()
+
+
+def test_set_tags_ok():
+    query = Query()
+    query.tags.append(Tag(name="tag"))
+    query_dict = query.asdict()
+    assert query_dict == {"tags": "tag"}
+    query_copy = Query(**query_dict)
+    query.compute_sha()
+    query_copy.compute_sha()
+    assert query.tags[0].sha == query_copy.tags[0].sha
