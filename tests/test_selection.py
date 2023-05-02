@@ -12,9 +12,10 @@ def selection():
 
 def test_configure():
     Selection.configure("some", "thing")
-    assert {"some", "thing"} <= Selection._facet_names
+    new_names = {"some", "thing", "!some", "!thing"}
+    assert new_names <= Selection._facet_names
     Selection.configure("some", "thing", replace=True)
-    assert {"some", "thing"} == Selection._facet_names
+    assert new_names == Selection._facet_names
     with pytest.raises(KeyError):
         sel = Selection()
         assert sel["a"] == []
@@ -66,3 +67,14 @@ def test_dump(selection):
     }
     selection.name = "other_value"
     assert "name" not in selection.asdict()
+
+
+def test_ignore_facet(selection):
+    selection["!a"] = "value"
+    assert selection.asdict() == {"!a": "value"}
+
+
+def test_ignore_facet_already_set(selection):
+    selection.a = "value"
+    with pytest.raises(AlreadySetFacet):
+        selection["!a"] = "other_value"

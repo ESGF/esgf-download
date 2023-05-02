@@ -22,6 +22,13 @@ selection_facet_proxy = sa.Table(
 )
 
 
+def opposite(facet_name: str) -> str:
+    if facet_name[0] == "!":
+        return facet_name[1:]
+    else:
+        return f"!{facet_name}"
+
+
 class Selection(Base):
     __tablename__ = "selection"
     _facet_names: ClassVar[set[str]] = set()
@@ -38,8 +45,11 @@ class Selection(Base):
             return sorted([self._facets[idx].value for idx in indices])
 
         def setter(self: Selection, values: FacetValues):
+            other = opposite(name)
             if name in self._facet_map_:
                 raise AlreadySetFacet(name, ", ".join(self[name]))
+            elif other in self._facet_map_:
+                raise AlreadySetFacet(other, ", ".join(self[other]))
             facet_map_name = set()
             if isinstance(values, str):
                 iter_values = enumerate([values])
@@ -62,13 +72,14 @@ class Selection(Base):
 
     @classmethod
     def configure(cls, *names: str, replace: bool = True) -> None:
+        nameset = set(names) | set(f"!{name}" for name in names)
         if replace:
             for name in cls._facet_names:
                 delattr(cls, name)
-            new_names = set(names)
-            cls._facet_names = set(names)
+            new_names = nameset
+            cls._facet_names = nameset
         else:
-            new_names = set(names) - cls._facet_names
+            new_names = nameset - cls._facet_names
             cls._facet_names |= new_names
         for name in new_names:
             cls._add_property(name)
