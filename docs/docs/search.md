@@ -42,6 +42,15 @@ esgpull search variable_id:c2h2,c2h6 -0
 
     Using a facet that is **not** in this list will always result in a query with 0 corresponding datasets.
 
+### Ignoring a facet
+
+A facet can be ignored by prepending its name with `!`. In this case, it is not possible to specify other values for this facet.
+
+```sh title="Ignore all datasets from IPSL"
+esgpull search !institution_id:IPSL
+```
+![esgpull search ignore](images/search_ignore.svg)
+
 
 ## Free-text search
 
