@@ -156,3 +156,14 @@ def test_hits_from_hints(ctx):
     hints = {"facet_name": {"value_a": 1, "value_b": 2, "value_c": 3}}
     hits = ctx.hits_from_hints(hints)
     assert hits == [6]
+
+
+def test_ignore_facet_hits(ctx):
+    query_all = Query()
+    query_ipsl = Query(selection={"institution_id": "IPSL"})
+    query_not_ipsl = Query(selection={"!institution_id": "IPSL"})
+    hits_all = ctx.hits(query_all, file=False)[0]
+    hits_ipsl = ctx.hits(query_ipsl, file=False)[0]
+    hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
+    assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
+    assert hits_all == hits_ipsl + hits_not_ipsl
