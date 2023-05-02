@@ -295,6 +295,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#ignoring-a-facet" class="md-nav__link">
+    Ignoring a facet
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -398,6 +405,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#ignoring-a-facet" class="md-nav__link">
+    Ignoring a facet
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -470,21 +484,26 @@ Both are done through the <code>search</code> command.</p>
 <img alt="esgpull search" src="../images/search_6.svg" /></p>
 <p>Using a facet that is <strong>not</strong> in this list will always result in a query with 0 corresponding datasets.</p>
 </div>
+<h3 id="ignoring-a-facet">Ignoring a facet<a class="headerlink" href="#ignoring-a-facet" title="Permanent link">&para;</a></h3>
+<p>A facet can be ignored by prepending its name with <code>!</code>. In this case, it is not possible to specify other values for this facet.</p>
+<p><div class="highlight"><span class="filename">Ignore all datasets from IPSL</span><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>!institution_id:IPSL
+</code></pre></div>
+<img alt="esgpull search ignore" src="../images/search_ignore.svg" /></p>
 <h2 id="free-text-search">Free-text search<a class="headerlink" href="#free-text-search" title="Permanent link">&para;</a></h2>
 <p><em>Free-text search</em> is performed on any term <em>not</em> using the <code>&lt;name&gt;:&lt;value&gt;</code> syntax. Each term is sent to the ESGF search API, which uses <a href="https://fr.wikipedia.org/wiki/Apache_Solr">Apache Solr</a> to match results.</p>
 <div class="admonition warning">
 <p class="admonition-title">Solr syntax</p>
 <p><em>Solr</em> will always try to match any of the search terms.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>surface<span class="w"> </span>temperature<span class="w"> </span><span class="c1"># will match either `surface` or `temperature`</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>surface<span class="w"> </span>temperature<span class="w"> </span><span class="c1"># will match either `surface` or `temperature`</span>
 </code></pre></div>
 <p>To make sure <strong>all</strong> the words are matched, terms must be separated with <code>AND</code> and written between quotes
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;surface AND temperature&quot;</span><span class="w"> </span><span class="c1"># will match BOTH `surface` and `temperature`</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;surface AND temperature&quot;</span><span class="w"> </span><span class="c1"># will match BOTH `surface` and `temperature`</span>
 </code></pre></div></p>
 </div>
 <h2 id="wildcard-syntax">Wildcard syntax<a class="headerlink" href="#wildcard-syntax" title="Permanent link">&para;</a></h2>
 <p>A <em>wildcard</em> <code>*</code> can be used in both facet (value only) and free-text search, allowing for more controllable search results.</p>
 <p>Note that on most shells, the wildcard symbol should be inside <code>"</code> quotes, to escape it from being expanded by the shell before <code>esgpull</code> receives any input.</p>
-<p><div class="highlight"><span class="filename">All initializations for areacella variable from piControl experiments</span><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;member_id:r1i*p1f1&quot;</span><span class="w"> </span>table_id:fx<span class="w"> </span>variable_id:areacella<span class="w"> </span>experiment_id:piControl
+<p><div class="highlight"><span class="filename">All initializations for areacella variable from piControl experiments</span><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;member_id:r1i*p1f1&quot;</span><span class="w"> </span>table_id:fx<span class="w"> </span>variable_id:areacella<span class="w"> </span>experiment_id:piControl
 </code></pre></div>
 <img alt="esgpull search" src="../images/search_7.svg" /></p>
 <h2 id="case-sensitivity">Case sensitivity<a class="headerlink" href="#case-sensitivity" title="Permanent link">&para;</a></h2>
