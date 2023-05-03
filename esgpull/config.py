@@ -93,7 +93,7 @@ class Download:
 
 
 @define
-class Search:
+class API:
     index_node: str = "esgf-node.ipsl.upmc.fr"
     http_timeout: int = 20
     max_concurrent: int = 5
@@ -107,7 +107,7 @@ class Config:
     cli: Cli = Factory(Cli)
     db: Db = Factory(Db)
     download: Download = Factory(Download)
-    search: Search = Factory(Search)
+    api: API = Factory(API)
     _raw: tomlkit.TOMLDocument | None = field(init=False, default=None)
     _config_file: Path | None = field(init=False, default=None)
 

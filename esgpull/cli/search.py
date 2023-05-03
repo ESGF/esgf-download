@@ -148,7 +148,7 @@ def search(
             esg.ui.print(facet_counts, json=True)
             esg.ui.raise_maybe_record(Exit(0))
         if max_hits > 200 and not yes:
-            nb_req = max_hits // esg.config.search.page_limit
+            nb_req = max_hits // esg.config.api.page_limit
             message = f"{nb_req} requests will be sent to ESGF. Send anyway?"
             if not esg.ui.ask(message, default=True):
                 esg.ui.raise_maybe_record(Abort)

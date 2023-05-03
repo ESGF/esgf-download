@@ -295,7 +295,7 @@ class Context:
     async def __aenter__(self) -> Context:
         if hasattr(self, "client"):
             raise Exception("Context is already initialized.")
-        self.client = AsyncClient(timeout=self.config.search.http_timeout)
+        self.client = AsyncClient(timeout=self.config.api.http_timeout)
         return self
 
     async def __aexit__(self, *exc) -> None:
@@ -317,7 +317,7 @@ class Context:
         for i, query in enumerate(queries):
             result = ResultHits(query, file)
             result.prepare(
-                index_node=index_node or self.config.search.index_node,
+                index_node=index_node or self.config.api.index_node,
                 page_limit=0,
                 index_url=index_url,
                 date_from=date_from,
@@ -340,7 +340,7 @@ class Context:
         for i, query in enumerate(queries):
             result = ResultHints(query, file)
             result.prepare(
-                index_node=index_node or self.config.search.index_node,
+                index_node=index_node or self.config.api.index_node,
                 page_limit=0,
                 facets_param=facets,
                 index_url=index_url,
@@ -365,7 +365,7 @@ class Context:
         date_to: datetime | None = None,
     ) -> list[ResultSearch]:
         if page_limit is None:
-            page_limit = self.config.search.page_limit
+            page_limit = self.config.api.page_limit
         if fields_param is None:
             if file:
                 fields_param = FileFieldParams
@@ -382,7 +382,7 @@ class Context:
             for sl in query_slices:
                 result = ResultSearch(query, file=file)
                 result.prepare(
-                    index_node=index_node or self.config.search.index_node,
+                    index_node=index_node or self.config.api.index_node,
                     offset=sl.start,
                     page_limit=sl.stop - sl.start,
                     fields_param=fields_param,
@@ -406,7 +406,7 @@ class Context:
         date_to: datetime | None = None,
     ) -> list[ResultSearch]:
         if page_limit is None:
-            page_limit = self.config.search.page_limit
+            page_limit = self.config.api.page_limit
         if fields_param is None:
             if file:
                 fields_param = FileFieldParams
@@ -443,7 +443,7 @@ class Context:
     async def _fetch_one(self, result: RT) -> RT:
         host = result.request.url.host
         if host not in self.semaphores:
-            max_concurrent = self.config.search.max_concurrent
+            max_concurrent = self.config.api.max_concurrent
             self.semaphores[host] = asyncio.Semaphore(max_concurrent)
         async with self.semaphores[host]:
             logger.debug(f"GET {host} params={result.request.url.params}")

@@ -56,7 +56,7 @@
 #             esg.ui.print(queries)
 #             raise Exit(0)
 #         if not force and nb_files > 5000:
-#             nb_req = nb_files // esg.config.search.page_limit
+#             nb_req = nb_files // esg.config.api.page_limit
 #             message = f"{nb_req} requests will be send to ESGF. Continue?"
 #             if not esg.ui.ask(message, default=True):
 #                 raise Abort
