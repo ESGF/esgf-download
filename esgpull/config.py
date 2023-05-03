@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Container
 from pathlib import Path
 from typing import Any, Iterator
@@ -8,10 +9,13 @@ import tomlkit
 from attrs import Factory, define, field
 from cattrs import Converter
 from cattrs.gen import make_dict_unstructure_fn, override
+from tomlkit import TOMLDocument
 
 from esgpull.constants import CONFIG_FILENAME
-from esgpull.exceptions import VirtualConfigError
+from esgpull.exceptions import BadConfigError, VirtualConfigError
 from esgpull.install_config import InstallConfig
+
+logger = logging.getLogger("esgpull")
 
 
 @define
@@ -100,6 +104,21 @@ class API:
     page_limit: int = 50
 
 
+def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
+    if "api" in doc and "search" in doc:
+        raise KeyError("Both 'api' and deprecated 'search' keys found.")
+    elif "search" in doc:
+        logger.warn(
+            "Deprecated key 'search' is used in your config, "
+            "please use 'api' instead."
+        )
+        doc["api"] = doc.pop("search")
+    return doc
+
+
+config_fixers = [fix_rename_search_api]
+
+
 @define
 class Config:
     paths: Paths = Factory(Paths)
@@ -108,7 +127,7 @@ class Config:
     db: Db = Factory(Db)
     download: Download = Factory(Download)
     api: API = Factory(API)
-    _raw: tomlkit.TOMLDocument | None = field(init=False, default=None)
+    _raw: TOMLDocument | None = field(init=False, default=None)
     _config_file: Path | None = field(init=False, default=None)
 
     @classmethod
@@ -117,9 +136,14 @@ class Config:
         if config_file.is_file():
             with config_file.open() as fh:
                 doc = tomlkit.load(fh)
+                for fixer in config_fixers:
+                    try:
+                        doc = fixer(doc)
+                    except Exception:
+                        raise BadConfigError(config_file)
                 raw = doc
         else:
-            doc = tomlkit.TOMLDocument()
+            doc = TOMLDocument()
             raw = None
         config = _converter_defaults.structure(doc, cls)
         config._raw = raw
@@ -138,8 +162,10 @@ class Config:
         return self.dump(defaults, comments).as_string()
 
     def dump(
-        self, defaults: bool = True, comments: bool = False
-    ) -> tomlkit.TOMLDocument:
+        self,
+        defaults: bool = True,
+        comments: bool = False,
+    ) -> TOMLDocument:
         if defaults:
             converter = _converter_defaults
         else:
@@ -147,7 +173,7 @@ class Config:
         dump = converter.unstructure(self)
         if not defaults:
             pop_empty(dump)
-        doc = tomlkit.TOMLDocument()
+        doc = TOMLDocument()
         doc.update(dump)
         # if comments and self._raw is not None:
         #     original = tomlkit.loads(self._raw)
@@ -193,7 +219,7 @@ class Config:
             if key is None:
                 self._raw = self.dump()
             else:
-                self._raw = tomlkit.TOMLDocument()
+                self._raw = TOMLDocument()
                 *parts, last = key.split(".")
                 doc: dict = {last: "NOT_SET"}
                 for part in parts[::-1]:

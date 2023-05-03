@@ -30,7 +30,7 @@ def init_esgpull(
     record: bool = False,
     load_db: bool = True,
 ) -> Esgpull:
-    TempUI.verbosity = verbosity
+    TempUI.verbosity = Verbosity.Errors
     with TempUI.logging():
         esg = Esgpull(
             verbosity=verbosity,
