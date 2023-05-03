@@ -97,14 +97,20 @@ class NoClauseError(EsgpullException):
     """
 
 
-class InstallException(EsgpullException):
-    ...
+class BadConfigError(EsgpullException):
+    msg = """
+    Please fix your config, located at {}
+    """
 
 
-class VirtualConfigError(InstallException):
+class VirtualConfigError(EsgpullException):
     msg = """
     This config was not loaded from a file.
     """
+
+
+class InstallException(EsgpullException):
+    ...
 
 
 class UnregisteredInstallPath(InstallException):

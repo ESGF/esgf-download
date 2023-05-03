@@ -1,5 +1,6 @@
 import pytest
 
+from esgpull.constants import CONFIG_FILENAME
 from esgpull.install_config import InstallConfig
 from esgpull.models import File, FileStatus
 
@@ -9,6 +10,11 @@ def root(tmp_path):
     idx = InstallConfig.add(tmp_path / "esgpull")
     InstallConfig.choose(idx=idx)
     return InstallConfig.installs[idx].path
+
+
+@pytest.fixture
+def config_path(root):
+    return root / CONFIG_FILENAME
 
 
 @pytest.fixture

@@ -105,7 +105,7 @@ class Timer:
 @pytest.mark.slow
 def test_search_distributed(ctx):
     query = Query()
-    # ctx.config.search.http_timeout = 60
+    # ctx.config.api.http_timeout = 60
     query.options.distrib = True
     # configure terms to target ~1000 files across different index nodes
     query.selection.mip_era = "CMIP6"

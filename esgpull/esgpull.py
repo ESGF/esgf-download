@@ -121,7 +121,7 @@ class Esgpull:
         Fetch hints from ESGF search API with a distributed query.
         """
 
-        default_index = self.config.search.index_node
+        default_index = self.config.api.index_node
         logger.info(f"Fetching index nodes from {default_index!r}")
         options = Options(distrib=True)
         query = Query(options=options)
