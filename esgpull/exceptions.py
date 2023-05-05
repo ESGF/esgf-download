@@ -113,6 +113,18 @@ class InstallException(EsgpullException):
     ...
 
 
+class UntrackableQuery(EsgpullException):
+    msg = """
+    {} cannot be tracked, it has unset options.
+    """
+
+
+class UnsetOptionsError(EsgpullException):
+    msg = """
+    {} has some unset options.
+    """
+
+
 class UnregisteredInstallPath(InstallException):
     msg = "{}"
 

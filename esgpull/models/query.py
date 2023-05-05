@@ -10,6 +10,7 @@ from rich.tree import Tree
 from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 from typing_extensions import NotRequired, TypedDict
 
+from esgpull.exceptions import UntrackableQuery
 from esgpull.models.base import Base, Sha
 from esgpull.models.file import FileDict, FileStatus
 from esgpull.models.options import Options
@@ -343,21 +344,21 @@ class Query(Base):
         cl._rich_no_require = True  # type: ignore [attr-defined]
         return cl
 
-    def __lshift__(self, other: Query) -> Query:
+    def __lshift__(self, child: Query) -> Query:
         result = self.clone(compute_sha=False)
-        # if self.name != other.require:
-        #     raise ValueError(f"{self.name} is not required by {other.name}")
-        for tag in other.tags:
+        # if self.name != child.require:
+        #     raise ValueError(f"{self.name} is not required by {child.name}")
+        for tag in child.tags:
             if tag not in result.tags:
                 result.tags.append(tag)
-        for name, option in other.options.items():
+        for name, option in child.options.items():
             setattr(result.options, name, option)
-        for name, values in other.selection.items():
+        for name, values in child.selection.items():
             result.selection[name] = values
-        result.tracked = other.tracked
+        result.tracked = child.tracked
         result.compute_sha()
         files_shas = set([f.sha for f in result.files])
-        for file in other.files:
+        for file in child.files:
             if file.sha not in files_shas:
                 result.files.append(file)
         return result
@@ -436,6 +437,21 @@ class Query(Base):
         opts: ConsoleOptions,
     ) -> Iterator[Tree]:
         yield self._rich_tree()
+
+    def trackable(self) -> bool:
+        return self.options.trackable()
+
+    def track(self, options: Options | None = None, compute_sha: bool = True):
+        if options is not None:
+            self.options.apply_defaults(options)
+        elif not self.options.trackable():
+            raise UntrackableQuery(self.name)
+        self.tracked = True
+        if compute_sha:
+            self.compute_sha()
+
+    def untrack(self):
+        self.tracked = False
 
 
 LegacyQuery = Query()

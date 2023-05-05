@@ -53,6 +53,33 @@ class Options(Base):
     replica: Mapped[Option] = mapped_column(sa.Enum(Option))
     retracted: Mapped[Option] = mapped_column(sa.Enum(Option))
 
+    _distrib_ = Option(False)
+    _latest_ = Option(True)
+    _replica_ = Option(None)
+    _retracted_ = Option(False)
+
+    @classmethod
+    def default(cls) -> Options:
+        return cls(
+            cls._distrib_,
+            cls._latest_,
+            cls._replica_,
+            cls._retracted_,
+        )
+
+    @classmethod
+    def _set_defaults(
+        cls,
+        distrib: str | bool | None,
+        latest: str | bool | None,
+        replica: str | bool | None,
+        retracted: str | bool | None,
+    ) -> None:
+        cls._distrib_ = Option(distrib)
+        cls._latest_ = Option(latest)
+        cls._replica_ = Option(replica)
+        cls._retracted_ = Option(retracted)
+
     def __init__(
         self,
         distrib: Option | str | bool | None = Option.notset,
@@ -77,6 +104,19 @@ class Options(Base):
         else:
             raise AttributeError(name)
 
+    def __getitem__(self, name: str) -> Option:
+        if name in self._names:
+            return getattr(self, name)
+        else:
+            raise KeyError(name)
+
+    def __setitem__(
+        self,
+        name: str,
+        value: Option | str | bool | None,
+    ) -> None:
+        setattr(self, name, value)
+
     def _as_bytes(self) -> bytes:
         self_tuple = (self.distrib, self.latest, self.replica, self.retracted)
         return str(self_tuple).encode()
@@ -86,12 +126,13 @@ class Options(Base):
         use_default: bool = False,
         keep_notset: bool = False,
     ) -> Iterator[tuple[str, Option]]:
+        default = self.default()
         for name in self._names:
             option = getattr(self, name, Option.notset)
             if option.is_set():
                 yield name, option
             elif use_default:
-                yield name, getattr(DefaultOptions, name)
+                yield name, getattr(default, name)
             elif keep_notset:
                 yield name, option
 
@@ -110,10 +151,14 @@ class Options(Base):
         items = [f"{k}={v}" for k, v in self.__rich_repr__()]
         return f"{cls_name}(" + ", ".join(items) + ")"
 
+    def trackable(self) -> bool:
+        return all(opt.is_set() for (_, opt) in self.items(keep_notset=True))
 
-DefaultOptions = Options(
-    distrib=False,
-    latest=True,
-    replica=None,
-    retracted=False,
-)
+    def apply_defaults(self, parent: Options):
+        for name, opt in self.items(keep_notset=True):
+            if opt.is_set():
+                continue
+            elif parent[name].is_set():
+                self[name] = parent[name]
+            else:
+                self[name] = self.default()[name]

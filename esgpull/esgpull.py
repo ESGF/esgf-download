@@ -101,6 +101,7 @@ class Esgpull:
         if not install and not self.path.is_dir():
             raise InvalidInstallPath(path=self.path)
         self.config = Config.load(path=self.path)
+        Options._set_defaults(**self.config.api.default_options.asdict())
         self.fs = Filesystem.from_config(self.config, install=install)
         self.ui = UI.from_config(
             self.config,
