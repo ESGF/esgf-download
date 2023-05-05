@@ -104,6 +104,19 @@ class Options(Base):
         else:
             raise AttributeError(name)
 
+    def __getitem__(self, name: str) -> Option:
+        if name in self._names:
+            return getattr(self, name)
+        else:
+            raise KeyError(name)
+
+    def __setitem__(
+        self,
+        name: str,
+        value: Option | str | bool | None,
+    ) -> None:
+        setattr(self, name, value)
+
     def _as_bytes(self) -> bytes:
         self_tuple = (self.distrib, self.latest, self.replica, self.retracted)
         return str(self_tuple).encode()
@@ -113,12 +126,13 @@ class Options(Base):
         use_default: bool = False,
         keep_notset: bool = False,
     ) -> Iterator[tuple[str, Option]]:
+        default = self.default()
         for name in self._names:
             option = getattr(self, name, Option.notset)
             if option.is_set():
                 yield name, option
             elif use_default:
-                yield name, getattr(DefaultOptions, name)
+                yield name, getattr(default, name)
             elif keep_notset:
                 yield name, option
 
@@ -137,10 +151,14 @@ class Options(Base):
         items = [f"{k}={v}" for k, v in self.__rich_repr__()]
         return f"{cls_name}(" + ", ".join(items) + ")"
 
+    def trackable(self) -> bool:
+        return all(opt.is_set() for (_, opt) in self.items(keep_notset=True))
 
-DefaultOptions = Options(
-    distrib=False,
-    latest=True,
-    replica=None,
-    retracted=False,
-)
+    def apply_defaults(self, parent: Options):
+        for name, opt in self.items(keep_notset=True):
+            if opt.is_set():
+                continue
+            elif parent[name].is_set():
+                self[name] = parent[name]
+            else:
+                self[name] = self.default()[name]

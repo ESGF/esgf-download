@@ -58,8 +58,13 @@ def add(
                 replica=replica,
                 retracted=retracted,
             )
-            query.tracked = track
             esg.graph.resolve_require(query)
+            if track:
+                if query.require is not None:
+                    expanded = esg.graph.expand(query.require)
+                else:
+                    expanded = query
+                query.track(expanded.options)
             queries = [query]
         subgraph = Graph(None, *queries)
         esg.ui.print(subgraph)
@@ -76,7 +81,7 @@ def add(
             else:
                 esg.graph.add(query)
                 esg.ui.print(f"New query added: {query.rich_name}")
-        new_queries = esg.graph.merge(commit=True)
+        new_queries = esg.graph.merge()
         nb = len(new_queries)
         ies = "ies" if nb > 1 else "y"
         if new_queries:

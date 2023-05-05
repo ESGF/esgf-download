@@ -8,6 +8,7 @@ from click.exceptions import Abort, Exit
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
+from esgpull.exceptions import UnsetOptionsError
 from esgpull.models import File, FileStatus, Query
 from esgpull.tui import Verbosity
 from esgpull.utils import format_size
@@ -54,8 +55,12 @@ def update(
             )
         qfs: list[QueryFiles] = []
         for query in queries:
-            if query.tracked:
-                qfs.append(QueryFiles(query, esg.graph.expand(query.sha)))
+            expanded = esg.graph.expand(query.sha)
+            if query.tracked and not expanded.trackable():
+                esg.ui.print(query)
+                raise UnsetOptionsError(query.name)
+            elif query.tracked:
+                qfs.append(QueryFiles(query, expanded))
         queries = [
             query
             for query in queries

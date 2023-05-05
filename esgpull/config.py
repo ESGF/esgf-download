@@ -214,11 +214,11 @@ class Config:
         for part in parts:
             doc.setdefault(part, {})
             doc = doc[part]
-            obj = getattr(self, part)
-        old_value = doc.get(last)
-        if isinstance(doc[last], str):
+            obj = getattr(obj, part)
+        old_value = getattr(obj, last)
+        if isinstance(old_value, str):
             ...
-        elif isinstance(doc[last], Container):
+        elif isinstance(old_value, Container):
             raise KeyError(key)
         try:
             value = int(value)

@@ -20,11 +20,12 @@ from esgpull.models.utils import rich_measure_impl
 
 @dataclass(init=False, repr=False)
 class Graph:
-    db: Database | None
     queries: dict[str, Query]
+    _db: Database | None
     _shas: set[str]
     _name_sha: dict[str, str]
     _rendered: set[str]
+    _deleted_shas: set[str]
 
     @classmethod
     def from_config(
@@ -52,15 +53,23 @@ class Graph:
         noraise: bool = False,
         load_db: bool = False,
     ) -> None:
-        self.db = db
+        self._db = db
         self.queries = {}
         self._shas = set()
         self._name_sha = {}
-        if self.db is not None:
+        self._deleted_shas = set()
+        if db is not None:
             self._load_db_shas()
         if load_db:
             self.load_db()
         self.add(*queries, force=force, noraise=noraise)
+
+    @property
+    def db(self) -> Database:
+        if self._db is None:
+            raise GraphWithoutDatabase()
+        else:
+            return self._db
 
     @staticmethod
     def matching_shas(name: str, shas: set[str]) -> list[str]:
@@ -110,8 +119,8 @@ class Graph:
         sha = self._expand_name(name, self._shas, self._name_sha)
         if sha in self.queries:
             ...
-        elif self.db is None:
-            raise GraphWithoutDatabase()
+        # elif self.db is None:
+        #     raise GraphWithoutDatabase()
         elif sha in self._shas:
             query_db = self.db.get(Query, sha)
             if query_db is not None:
@@ -124,9 +133,10 @@ class Graph:
 
     def get_mutable(self, name: str) -> Query:
         sha = self._expand_name(name, self._shas, self._name_sha)
-        if self.db is None:
-            raise GraphWithoutDatabase()
-        elif sha in self._shas:
+        # if self.db is None:
+        #     raise GraphWithoutDatabase()
+        # elif sha in self._shas:
+        if sha in self._shas:
             query_db = self.db.get(
                 Query,
                 sha,
@@ -188,10 +198,11 @@ class Graph:
         return result
 
     def get_tags(self) -> list[Tag]:
-        if self.db is None:
-            raise GraphWithoutDatabase()
-        else:
-            return list(self.db.scalars(sql.tag.all()))
+        # if self.db is None:
+        #     raise GraphWithoutDatabase()
+        # else:
+        #     return list(self.db.scalars(sql.tag.all()))
+        return list(self.db.scalars(sql.tag.all()))
 
     def get_tag(self, name: str) -> Tag | None:
         result: Tag | None = None
@@ -204,11 +215,13 @@ class Graph:
     def with_tag(self, tag_name: str) -> list[Query]:
         queries: list[Query] = []
         shas: set[str] = set()
-        if self.db is not None:
+        try:
             db_queries = self.db.scalars(sql.query.with_tag(tag_name))
             for query in db_queries:
                 queries.append(query)
                 shas.add(query.sha)
+        except GraphWithoutDatabase:
+            pass
         for sha in self._shas - shas:
             query = self.get(sha)
             if query.get_tag(tag_name) is not None:
@@ -252,8 +265,8 @@ class Graph:
         return graph
 
     def _load_db_shas(self, full: bool = False) -> None:
-        if self.db is None:
-            raise GraphWithoutDatabase()
+        # if self.db is None:
+        #     raise GraphWithoutDatabase()
         name_sha: dict[str, str] = {}
         self._shas = set(self.db.scalars(sql.query.shas()))
         for name, sha in self.db.rows(sql.query.name_sha()):
@@ -261,8 +274,8 @@ class Graph:
         self._name_sha = name_sha
 
     def load_db(self, *shas: str) -> None:
-        if self.db is None:
-            raise GraphWithoutDatabase()
+        # if self.db is None:
+        #     raise GraphWithoutDatabase()
         # self._load_db_shas()
         if shas:
             unloaded_shas = set(shas)
@@ -360,8 +373,8 @@ class Graph:
         Why was this implemented?
         Maybe useful to enable adding facets (e.g. `table_id:*day*`)
         """
-        if self.db is None:
-            raise GraphWithoutDatabase()
+        # if self.db is None:
+        #     raise GraphWithoutDatabase()
         facets: dict[str, Facet] = {}
         for query in self.queries.values():
             for facet in query.selection._facets:
@@ -373,7 +386,7 @@ class Graph:
         unknown_facets = set([facets[sha] for sha in unknown_shas])
         return unknown_facets
 
-    def merge(self, commit: bool = False) -> Mapping[str, Query]:
+    def merge(self) -> Mapping[str, Query]:
         """
         Try to load instances from database into self.db.
 
@@ -385,16 +398,20 @@ class Graph:
         Only load options/selection/facets if query is not in db,
         and updated options/selection/facets should change sha value.
         """
-        if self.db is None:
-            raise GraphWithoutDatabase()
+        # if self.db is None:
+        #     raise GraphWithoutDatabase()
         updated_shas: set[str] = set()
         for sha, query in self.queries.items():
-            query_db = self.db.merge(query, commit=commit)
+            query_db = self.db.merge(query, commit=True)
             if query is query_db:
                 ...
             else:
                 updated_shas.add(sha)
                 self.queries[sha] = query_db
+        for sha in self._deleted_shas:
+            query_to_delete = self.db.get(Query, sha)
+            if query_to_delete is not None:
+                self.db.delete(query_to_delete)
         return {sha: self.queries[sha] for sha in updated_shas}
 
     # def remove(self, *queries: Query) -> None:
@@ -465,3 +482,16 @@ class Graph:
         self.fill_tree(None, tree)
         del self._rendered
         yield tree
+
+    def delete(self, query: Query) -> None:
+        self._shas.remove(query.sha)
+        self.queries.pop(query.sha, None)
+        self._deleted_shas.add(query.sha)
+
+    def replace(self, original: Query, new: Query) -> None:
+        # if original not in self.db:
+        #     raise ValueError(f"{original.name} not found in the database.")
+        # elif new in self.db:
+        #     raise ValueError(f"{new.name} already in the database.")
+        self.delete(original)
+        self.add(new)
