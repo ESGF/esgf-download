@@ -14,6 +14,7 @@ from tomlkit import TOMLDocument
 from esgpull.constants import CONFIG_FILENAME
 from esgpull.exceptions import BadConfigError, VirtualConfigError
 from esgpull.install_config import InstallConfig
+from esgpull.models.options import Options
 
 logger = logging.getLogger("esgpull")
 
@@ -97,11 +98,28 @@ class Download:
 
 
 @define
+class DefaultOptions:
+    distrib: str = Options._distrib_.name
+    latest: str = Options._latest_.name
+    replica: str = Options._replica_.name
+    retracted: str = Options._retracted_.name
+
+    def asdict(self) -> dict[str, str]:
+        return dict(
+            distrib=self.distrib,
+            latest=self.latest,
+            replica=self.replica,
+            retracted=self.retracted,
+        )
+
+
+@define
 class API:
     index_node: str = "esgf-node.ipsl.upmc.fr"
     http_timeout: int = 20
     max_concurrent: int = 5
     page_limit: int = 50
+    default_options: DefaultOptions = Factory(DefaultOptions)
 
 
 def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:

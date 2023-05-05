@@ -53,6 +53,33 @@ class Options(Base):
     replica: Mapped[Option] = mapped_column(sa.Enum(Option))
     retracted: Mapped[Option] = mapped_column(sa.Enum(Option))
 
+    _distrib_ = Option(False)
+    _latest_ = Option(True)
+    _replica_ = Option(None)
+    _retracted_ = Option(False)
+
+    @classmethod
+    def default(cls) -> Options:
+        return cls(
+            cls._distrib_,
+            cls._latest_,
+            cls._replica_,
+            cls._retracted_,
+        )
+
+    @classmethod
+    def _set_defaults(
+        cls,
+        distrib: str | bool | None,
+        latest: str | bool | None,
+        replica: str | bool | None,
+        retracted: str | bool | None,
+    ) -> None:
+        cls._distrib_ = Option(distrib)
+        cls._latest_ = Option(latest)
+        cls._replica_ = Option(replica)
+        cls._retracted_ = Option(retracted)
+
     def __init__(
         self,
         distrib: Option | str | bool | None = Option.notset,
