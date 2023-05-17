@@ -8,7 +8,6 @@ from esgpull.cli.add import add
 from esgpull.cli.config import config
 from esgpull.cli.convert import convert
 from esgpull.cli.download import download
-from esgpull.cli.facet import facet
 from esgpull.cli.login import login
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
@@ -21,6 +20,7 @@ from esgpull.cli.update import update
 from esgpull.tui import UI
 
 # from esgpull.cli.autoremove import autoremove
+# from esgpull.cli.facet import facet
 # from esgpull.cli.get import get
 # from esgpull.cli.install import install
 
@@ -35,7 +35,7 @@ SUBCOMMANDS: list[click.Command] = [
     config,
     convert,
     download,
-    facet,
+    # facet,
     # get,
     self,
     # install,

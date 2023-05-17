@@ -39,10 +39,21 @@ def add(
     verbosity: Verbosity,
 ) -> None:
     """
-    Add one or more queries to the database.
+    Add queries to the database
 
-    Adding a query will mark it as `untracked` by default.
-    To associate files to this query, run the update command.
+    OPTIONS / FACETS examples:
+
+        esgpull add --distrib true variable_id:co2,co3 mip_era:CMIP6
+
+            Syntax reference: http://www.esgf.io/esgf-download/search/
+
+        esgpull add --query-file path/to/query.yaml
+
+            Valid query files are usually created with either `show --json/--yaml` or `convert` commands.
+
+    Queries are `untracked` by default.
+
+    To fetch files from ESGF and link them to a query, see the `track` and `update` commands.
     """
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("add", onraise=Abort):

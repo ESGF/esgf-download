@@ -32,6 +32,23 @@ def config(
     generate: bool,
     verbosity: Verbosity,
 ):
+    """
+    View/modify config
+
+    The full config is shown when no arguments are provided. It includes all items overwritten
+    in the `config.toml` file, and default values otherwise.
+    Note that the `config.toml` file does not exist by default, an empty file will be created
+    on the first modification of any item. Otherwise one can generate a config file containing
+    every default value using the `--generate` flag.
+
+    To view a specific config section/item, the dot-separated path to that section/item must
+    be provided as the only argument.
+
+    To modify a config item, the dot-separated path to that item must be provided as the first
+    argument, along with the new value that item should get as the second argument.
+
+    Only config items can be modified.
+    """
     esg = init_esgpull(verbosity=verbosity, load_db=False)
     with esg.ui.logging("config", onraise=Abort):
         if key is not None and value is not None:

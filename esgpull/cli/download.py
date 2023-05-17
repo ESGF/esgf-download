@@ -28,6 +28,9 @@ def download(
     record: bool,
     verbosity: Verbosity,
 ):
+    """
+    Asynchronously download files linked to queries
+    """
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("download", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, query_id, tag):

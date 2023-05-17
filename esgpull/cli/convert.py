@@ -202,7 +202,17 @@ def convert(
     verbosity: Verbosity,
 ):
     """
-    Convert synda selection files to esgpull queries.
+    Convert synda selection files to esgpull queries
+
+    The flags `--table/--graph` are used to select the console output design.
+
+    Use `--out <path/to/output.yaml>` to generate a query file containing the converted synda
+    selection files. This file can be used as an input to the `add --query-file` command.
+
+    Note that `convert` takes any number of input paths, only converting the .txt entries.
+    This can be leveraged to generate a single output for a whole tree using an input path like `**/*`.
+
+    As a an arbitrary convention, the generated queries will be tagged with the content of the first line of a synda selection file, if that line starts with `#` and has a single word (+symbols) without whitespaces in it.
     """
     esg = init_esgpull(verbosity, safe=False, record=record)
     with esg.ui.logging("convert", onraise=Abort):

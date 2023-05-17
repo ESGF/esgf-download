@@ -38,6 +38,9 @@ def update(
     record: bool,
     verbosity: Verbosity,
 ) -> None:
+    """
+    Fetch files, link files <-> queries, send files to download queue
+    """
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("update", onraise=Abort):
         # Select which queries to update + setup

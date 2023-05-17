@@ -39,6 +39,9 @@ def get_synda_db_path(sdt_home: str | None = None) -> Path | None:
 
 @click.group()
 def self():
+    """
+    Manage esgpull installations / import synda database
+    """
     ...
 
 

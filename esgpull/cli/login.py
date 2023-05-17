@@ -12,6 +12,14 @@ from esgpull.tui import Verbosity
 @opts.verbosity
 @opts.force
 def login(verbosity: Verbosity, force: bool):
+    """
+    OpenID authentication and certificates renewal
+
+    The first call to `login` is a prompt asking for provider/username/password.
+
+    Subsequent calls check whether the login certificates are valid, renewing them if needed.
+    Renewal can be forced using the `--force` flag.
+    """
     esg = init_esgpull(verbosity)
     with esg.ui.logging("login", onraise=Abort):
         cred_file = esg.config.paths.auth / esg.config.credentials.filename

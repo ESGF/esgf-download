@@ -29,7 +29,7 @@ def show(
     verbosity: Verbosity,
 ) -> None:
     """
-    Show recorded query data
+    View query tree
     """
     esg = init_esgpull(verbosity)
     with esg.ui.logging("show", onraise=Abort):
