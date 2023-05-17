@@ -12,28 +12,34 @@ from esgpull.utils import format_size
 
 
 @click.command()
-@args.sha_or_name
+@args.query_id
 @opts.tag
 @opts.children
 @opts.verbosity
 def remove(
-    sha_or_name: str | None,
+    query_id: str | None,
     tag: str | None,
     children: bool,
     verbosity: Verbosity,
 ) -> None:
     """
-    Remove queries
+    Remove queries from the database
+
+    A query required by other queries cannot be removed.
+
+    Upon removal, no files are deleted from the database nor from the filesystem, only links to that query are deleted.
+
+    There is currently no mechanism to delete "orphaned" files, as this functionality should be designed carefully and rooted in practical needs.
     """
     esg = init_esgpull(verbosity)
     with esg.ui.logging("remove", onraise=Abort):
-        if sha_or_name is None and tag is None:
+        if query_id is None and tag is None:
             raise click.UsageError("No query or tag provided.")
-        if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+        if not valid_name_tag(esg.graph, esg.ui, query_id, tag):
             raise Exit(1)
         queries = get_queries(
             esg.graph,
-            sha_or_name,
+            query_id,
             tag,
             children=children,
         )

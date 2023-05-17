@@ -16,13 +16,13 @@ from esgpull.utils import format_size
 
 
 @click.command()
-@args.sha_or_name
+@args.query_id
 @opts.tag
 @opts.quiet
 @opts.record
 @opts.verbosity
 def download(
-    sha_or_name: str | None,
+    query_id: str | None,
     tag: str | None,
     quiet: bool,
     record: bool,
@@ -30,13 +30,13 @@ def download(
 ):
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("download", onraise=Abort):
-        if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+        if not valid_name_tag(esg.graph, esg.ui, query_id, tag):
             esg.ui.raise_maybe_record(Exit(1))
-        if sha_or_name is None and tag is None:
+        if query_id is None and tag is None:
             esg.graph.load_db()
             graph = esg.graph
         else:
-            queries = get_queries(esg.graph, sha_or_name, tag)
+            queries = get_queries(esg.graph, query_id, tag)
             graph = esg.graph.subgraph(
                 *queries,
                 children=True,

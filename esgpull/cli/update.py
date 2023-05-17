@@ -24,14 +24,14 @@ class QueryFiles:
 
 
 @click.command()
-@args.sha_or_name
+@args.query_id
 @opts.tag
 @opts.children
 @opts.yes
 @opts.record
 @opts.verbosity
 def update(
-    sha_or_name: str | None,
+    query_id: str | None,
     tag: str | None,
     children: bool,
     yes: bool,
@@ -41,15 +41,15 @@ def update(
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("update", onraise=Abort):
         # Select which queries to update + setup
-        if sha_or_name is None and tag is None:
+        if query_id is None and tag is None:
             esg.graph.load_db()
             queries = list(esg.graph.queries.values())
         else:
-            if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+            if not valid_name_tag(esg.graph, esg.ui, query_id, tag):
                 esg.ui.raise_maybe_record(Exit(1))
             queries = get_queries(
                 esg.graph,
-                sha_or_name,
+                query_id,
                 tag,
                 children=children,
             )

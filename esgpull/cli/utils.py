@@ -205,18 +205,18 @@ def serialize_queries_from_file(path: Path) -> list[Query]:
 def valid_name_tag(
     graph: Graph,
     ui: UI,
-    sha_or_name: str | None,
+    query_id: str | None,
     tag: str | None,
 ) -> bool:
     result = True
-    if sha_or_name is not None:
-        shas = graph.matching_shas(sha_or_name, graph._shas)
+    if query_id is not None:
+        shas = graph.matching_shas(query_id, graph._shas)
         if len(shas) > 1:
-            ui.print(Messages.multimatch(sha_or_name))
+            ui.print(Messages.multimatch(query_id))
             ui.print(shas, json=True)
             result = False
         elif len(shas) == 0:
-            ui.print(Messages.no_such_query(sha_or_name), err=True)
+            ui.print(Messages.no_such_query(query_id), err=True)
             result = False
     elif tag is not None:
         tags = [t.name for t in graph.get_tags()]
@@ -228,13 +228,13 @@ def valid_name_tag(
 
 def get_queries(
     graph: Graph,
-    sha_or_name: str | None,
+    query_id: str | None,
     tag: str | None,
     children: bool = False,
 ) -> list[Query]:
     queries: list[Query] = []
-    if sha_or_name is not None:
-        query = graph.get(name=sha_or_name)
+    if query_id is not None:
+        query = graph.get(name=query_id)
         if query is not None:
             queries = [query]
     elif tag is not None:

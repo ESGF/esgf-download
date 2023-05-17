@@ -52,14 +52,14 @@ class args:
         type=EnumParam(FileStatus),
         nargs=-1,
     )
-    sha_or_name: Dec = click.argument(
-        "sha_or_name",
+    query_id: Dec = click.argument(
+        "query_id",
         type=str,
         nargs=1,
         required=False,
     )
-    multi_sha_or_name: Dec = click.argument(
-        "sha_or_name",
+    query_ids: Dec = click.argument(
+        "query_ids",
         type=str,
         nargs=-1,
         required=True,

@@ -9,7 +9,7 @@ from esgpull.tui import Verbosity
 
 
 @click.command()
-@args.sha_or_name
+@args.query_id
 @opts.tag
 @groups.show
 @groups.json_yaml
@@ -17,7 +17,7 @@ from esgpull.tui import Verbosity
 @opts.shas
 @opts.verbosity
 def show(
-    sha_or_name: str | None,
+    query_id: str | None,
     tag: str | None,
     children: bool,
     parents: bool,
@@ -33,16 +33,16 @@ def show(
     """
     esg = init_esgpull(verbosity)
     with esg.ui.logging("show", onraise=Abort):
-        if not valid_name_tag(esg.graph, esg.ui, sha_or_name, tag):
+        if not valid_name_tag(esg.graph, esg.ui, query_id, tag):
             raise Exit(1)
-        if expand and sha_or_name is not None:
-            esg.ui.print(esg.graph.expand(sha_or_name))
+        if expand and query_id is not None:
+            esg.ui.print(esg.graph.expand(query_id))
             raise Exit(0)
-        if sha_or_name is None and tag is None:
+        if query_id is None and tag is None:
             esg.graph.load_db()
             graph = esg.graph
         else:
-            queries = get_queries(esg.graph, sha_or_name, tag)
+            queries = get_queries(esg.graph, query_id, tag)
             graph = esg.graph.subgraph(
                 *queries,
                 children=children,

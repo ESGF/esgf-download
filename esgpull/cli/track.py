@@ -12,20 +12,24 @@ from esgpull.tui import Verbosity
 
 
 @click.command()
-@args.multi_sha_or_name
+@args.query_ids
 @opts.record
 @opts.verbosity
 def track(
-    sha_or_name: tuple[str],
+    query_ids: tuple[str],
     record: bool,
     verbosity: Verbosity,
 ) -> None:
     """
     Track queries
+
+    As a side effect, tracking a query applies all default options to the query,
+    so that modifications of the config's default options have no impact on
+    previouly tracked queries.
     """
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("track", onraise=Abort):
-        for sha in sha_or_name:
+        for sha in query_ids:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):
                 esg.ui.raise_maybe_record(Exit(1))
             query = esg.graph.get(sha)
@@ -60,10 +64,10 @@ def track(
 
 
 @click.command()
-@args.multi_sha_or_name
+@args.query_ids
 @opts.verbosity
 def untrack(
-    sha_or_name: tuple[str],
+    query_ids: tuple[str],
     verbosity: Verbosity,
 ) -> None:
     """
@@ -71,7 +75,7 @@ def untrack(
     """
     esg = init_esgpull(verbosity)
     with esg.ui.logging("untrack", onraise=Abort):
-        for sha in sha_or_name:
+        for sha in query_ids:
             if not valid_name_tag(esg.graph, esg.ui, sha, None):
                 raise Exit(1)
             query = esg.graph.get(sha)
