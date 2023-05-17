@@ -37,19 +37,18 @@ Options:
   -h, --help     Show this message and exit.
 
 Commands:
-  add       Add one or more queries to the database.
-  config
-  convert   Convert synda selection files to esgpull queries.
-  download
-  facet
-  login
-  remove    Remove queries
-  retry
+  add       Add queries to the database
+  config    View/modify config
+  convert   Convert synda selection files to esgpull queries
+  download  Asynchronously download files linked to queries
+  login     OpenID authentication and certificates renewal
+  remove    Remove queries from the database
+  retry     Re-queue failed and cancelled downloads
   search    Search datasets and files on ESGF
-  self
-  show      Show recorded query data
-  status
+  self      Manage esgpull installations / import synda database
+  show      View query tree
+  status    View file queue status
   track     Track queries
   untrack   Untrack queries
-  update
+  update    Fetch files, link files <-> queries, send files to download...
 ```
