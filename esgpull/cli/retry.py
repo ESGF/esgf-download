@@ -12,17 +12,16 @@ from esgpull.tui import Verbosity
 
 @click.command()
 @args.status
-@opts.all
 @opts.verbosity
 def retry(
     status: Sequence[FileStatus],
-    _all: bool,
     verbosity: Verbosity,
 ):
-    if _all:
-        status = FileStatus.retryable()
+    """
+    Re-queue failed and cancelled downloads
+    """
     if not status:
-        status = [FileStatus.Error, FileStatus.Cancelled]
+        status = FileStatus.retryable()
     esg = init_esgpull(verbosity)
     with esg.ui.logging("retry", onraise=Abort):
         assert FileStatus.Done not in status

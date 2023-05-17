@@ -131,16 +131,17 @@ class file:
 
     @staticmethod
     @functools.cache
-    def status_count_size() -> sa.Select[tuple[FileStatus, int, int]]:
-        return (
-            sa.select(
-                File.status,
-                sa.func.count("*"),
-                sa.func.sum(File.size),
-            )
-            .group_by(File.status)
-            .where(File.status != FileStatus.Done)
-        )
+    def status_count_size(
+        all_: bool = False,
+    ) -> sa.Select[tuple[FileStatus, int, int]]:
+        stmt = sa.select(
+            File.status,
+            sa.func.count("*"),
+            sa.func.sum(File.size),
+        ).group_by(File.status)
+        if not all_:
+            stmt = stmt.where(File.status != FileStatus.Done)
+        return stmt
 
 
 class query:

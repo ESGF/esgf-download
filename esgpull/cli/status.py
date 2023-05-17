@@ -13,14 +13,21 @@ from esgpull.utils import format_size
 
 @click.command()
 @opts.simple
+@opts.all
 @opts.verbosity
 def status(
     simple: bool,
+    all_: bool,
     verbosity: Verbosity,
 ):
+    """
+    View file queue status
+
+    Use the `--all` flag to include already downloaded files (`done` status).
+    """
     esg = init_esgpull(verbosity)
     with esg.ui.logging("status", onraise=Abort):
-        status_count_size = list(esg.db.rows(sql.file.status_count_size()))
+        status_count_size = list(esg.db.rows(sql.file.status_count_size(all_)))
         table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)
         table.add_column("status", justify="right", style="bold blue")
         table.add_column("files", justify="center")
@@ -43,11 +50,9 @@ def status(
                             if first_line:
                                 first_line = False
                             else:
-                                # table.add_row()
                                 table.add_row(end_section=True)
                             table.add_row(
                                 Text(status.value, justify="left"),
-                                # "",
                                 str(count),
                                 format_size(total_size),
                                 style="bold",
@@ -55,7 +60,6 @@ def status(
                             )
                             first_row = False
                         table.add_row(
-                            # "",
                             query.rich_name,
                             str(len(files)),
                             format_size(sum([f.size for f in files])),

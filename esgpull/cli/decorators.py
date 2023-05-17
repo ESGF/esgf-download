@@ -68,7 +68,7 @@ class args:
 
 class opts:
     all: Dec = click.option(
-        "_all",
+        "all_",
         "--all",
         "-a",
         is_flag=True,
