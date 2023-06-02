@@ -193,6 +193,7 @@ BaseFacets = [
     "rcm_name",
     "member_id",
     "cmor_table",
+    "grid_label",
 ]
 
 
