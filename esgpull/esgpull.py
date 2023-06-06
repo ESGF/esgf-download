@@ -336,6 +336,7 @@ class Esgpull:
     async def download(
         self,
         queue: list[File],
+        use_db: bool = True,
         show_progress: bool = True,
     ) -> tuple[list[File], list[Err]]:
         """
@@ -343,7 +344,8 @@ class Esgpull:
         """
         for file in queue:
             file.status = FileStatus.Starting
-        self.db.add(*queue)
+        if use_db:
+            self.db.add(*queue)
         main_progress = self.ui.make_progress(
             SpinnerColumn(),
             MofNCompleteColumn(),
@@ -360,7 +362,6 @@ class Esgpull:
             transient=True,
         )
         queue_size = len(queue)
-        main_task_id = main_progress.add_task("", total=queue_size)
         file_task_shas = {}
         start_callbacks = {}
         for file in queue:
@@ -377,10 +378,11 @@ class Esgpull:
             files=queue,
             start_callbacks=start_callbacks,
         )
+        main_task_id = main_progress.add_task("", total=len(processor.tasks))
         # TODO: rename ? installed/downloaded/completed/...
         files: list[File] = []
         errors: list[Err] = []
-        remaining_dict = {file.sha: file for file in queue}
+        remaining_dict = {task.file.sha: task.file for task in processor.tasks}
         try:
             with self.ui.live(
                 file_progress,
@@ -402,7 +404,8 @@ class Esgpull:
                             )
                             result.data.file.status = FileStatus.Error
                             errors.append(result)
-                    self.db.add(result.data.file)
+                    if use_db:
+                        self.db.add(result.data.file)
                     remaining_dict.pop(result.data.file.sha)
         finally:
             if remaining_dict:
@@ -412,5 +415,6 @@ class Esgpull:
                     file.status = FileStatus.Cancelled
                     cancelled.append(file)
                     errors.append(Err(file, DownloadCancelled()))
-                self.db.add(*cancelled)
+                if use_db:
+                    self.db.add(*cancelled)
         return files, errors

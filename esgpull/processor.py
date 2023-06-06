@@ -52,6 +52,10 @@ class Task:
         else:
             self.start_callbacks = start_callbacks
 
+    @property
+    def file(self) -> File:
+        return self.ctx.file
+
     # def fetch_file(self, url: str) -> File:
     #     ctx = Context()
     #     # [?]TODO: define map data_node->index_node to find url-file
@@ -109,8 +113,9 @@ class Processor:
     ) -> None:
         self.config = config
         self.files = files
+        self.fs = fs
         self.tasks = []
-        for file in files:
+        for file in filter(self.should_download, files):
             task = Task(
                 config=config,
                 auth=auth,
@@ -119,6 +124,13 @@ class Processor:
                 start_callbacks=start_callbacks[file.sha],
             )
             self.tasks.append(task)
+
+    def should_download(self, file: File) -> bool:
+        path = self.fs.path_of(file)
+        if path.is_file():
+            return False
+        else:
+            return True
 
     async def process(self) -> AsyncIterator[Result]:
         semaphore = asyncio.Semaphore(self.config.download.max_concurrent)
