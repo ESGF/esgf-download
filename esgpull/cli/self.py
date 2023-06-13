@@ -83,11 +83,11 @@ def install(
         TempUI.print(f"Install config added to {InstallConfig.path}")
         esg = Esgpull(verbosity=verbosity, install=True)
     with esg.ui.logging("init", onraise=Abort):
-        with esg.ui.spinner("Fetching facets"):
-            if esg.fetch_facets(update=False):
-                esg.ui.print(":+1: Facets are initialised.")
-            else:
-                esg.ui.print(":+1: Facets were already initialised.")
+        # with esg.ui.spinner("Fetching facets"):
+        #     if esg.fetch_facets(update=False):
+        #         esg.ui.print(":+1: Facets are initialised.")
+        #     else:
+        #         esg.ui.print(":+1: Facets were already initialised.")
         sdt_home = os.getenv("SDT_HOME")
         if sdt_home is not None:
             db_name = get_synda_db_path(sdt_home) or ""
