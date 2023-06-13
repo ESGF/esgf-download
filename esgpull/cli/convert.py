@@ -150,27 +150,31 @@ def convert_file(path: Path) -> Graph:
                 if "table_id" in selection:
                     selection["time_frequency"] = selection.pop("table_id")
             logger.debug(f"SUBQUERY {selection}")
-            kid = Query(selection=remove_duplicates(selection), tracked=True)
+            kid = Query(selection=remove_duplicates(selection))
             kids.append(kid)
         elif line.variable_no_sqbr:
             logger.error(line.as_dict())
         elif line.as_list():
             logger.error(line.as_list())
     if len(kids) > 1:
-        query.tracked = False
+        query.untrack()
     elif len(kids) == 1:
         query = query << kids.pop()
     else:
-        query.tracked = True
+        query.track(query.options)
     if isnot_CMIP6(query):
         query = fix_CMIP5(query)
     query.compute_sha()
+    graph = Graph(None, query)
     for kid in kids:
         if isnot_CMIP6(query) or isnot_CMIP6(kid):
             kid = fix_CMIP5(kid)
         kid.require = query.sha
         kid.compute_sha()
-    return Graph(None, query, *kids, force=True)
+        expanded = query << kid
+        kid.track(expanded.options)
+        graph.add(kid)
+    return graph
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
