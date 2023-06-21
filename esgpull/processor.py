@@ -97,6 +97,7 @@ class Task:
             HTTPError,
             DownloadSizeError,
             GeneratorExit,
+            ssl.SSLError
             # KeyboardInterrupt,
         ) as err:
             yield Err(ctx, err)
