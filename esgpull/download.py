@@ -1,6 +1,6 @@
 # from math import ceil
 from dataclasses import dataclass
-from typing import AsyncIterator
+from typing import AsyncGenerator
 
 from httpx import AsyncClient
 
@@ -32,7 +32,7 @@ class BaseDownloader:
         self,
         client: AsyncClient,
         ctx: DownloadCtx,
-    ) -> AsyncIterator[DownloadCtx]:
+    ) -> AsyncGenerator[DownloadCtx, None]:
         raise NotImplementedError
 
 
@@ -45,7 +45,7 @@ class Simple(BaseDownloader):
         self,
         client: AsyncClient,
         ctx: DownloadCtx,
-    ) -> AsyncIterator[DownloadCtx]:
+    ) -> AsyncGenerator[DownloadCtx, None]:
         async with client.stream("GET", ctx.file.url) as resp:
             resp.raise_for_status()
             async for chunk in resp.aiter_bytes():

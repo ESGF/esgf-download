@@ -85,11 +85,15 @@ class Task:
             ):
                 for callback in self.start_callbacks:
                     callback()
-                async for ctx in self.downloader.stream(client, ctx):
+                stream = self.downloader.stream(client, ctx)
+                async for ctx in stream:
                     if ctx.chunk is not None:
                         await file_obj.write(ctx.chunk)
                     if ctx.error:
-                        raise DownloadSizeError(ctx.completed, ctx.file.size)
+                        err = DownloadSizeError(ctx.completed, ctx.file.size)
+                        yield Err(ctx, err)
+                        await stream.aclose()
+                        break
                     elif ctx.finished:
                         file_obj.finished = True
                     yield Ok(ctx)
