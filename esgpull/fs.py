@@ -75,7 +75,9 @@ class Filesystem:
     def delete(self, *files: File) -> None:
         for file in files:
             path = self.path_of(file)
-            path.unlink(missing_ok=True)
+            if not path.is_file():
+                continue
+            path.unlink()
             logger.info(f"Deleted file {path}")
             for subpath in self.iter_empty_parents(path.parent):
                 subpath.rmdir()
