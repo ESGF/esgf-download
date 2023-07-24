@@ -67,7 +67,7 @@ It handles scanning, downloading and updating **datasets**, **files** and *queri
 
 ## Setup
 
-Run `pip install esgpull` to install the latest release and its dependencies.
+Run `$ pip install esgpull` to install the latest release and its dependencies.
 
 Have a look at the [Installation page](installation) for more ways to install.
 

@@ -11,8 +11,8 @@ With `esgpull`, downloading files is done after a few steps gradually altering t
 
 To make things easier to explain, we will use the following example query in this document:
 
-```sh
-esgpull search project:CMIP6 experiment_id:historical institution_id:IPSL variable_id:tas table_id:Amon member_id:r1i1p1f1 --distrib true --show
+```shell
+$ esgpull search project:CMIP6 experiment_id:historical institution_id:IPSL variable_id:tas table_id:Amon member_id:r1i1p1f1 --distrib true --show
 ```
 ![esgpull download](images/download_1.svg)
 
@@ -25,8 +25,8 @@ Our query, named `<7fd1f2>`, corresponds to the following 15 datasets:
 The first necessary step is to add `<7fd1f2>` to the database.
 Simply replace `search` with `add` and remove any flags specific to the search command, in our case we need to remove `--show`.
 
-```sh
-esgpull add project:CMIP6 experiment_id:historical institution_id:IPSL variable_id:tas table_id:Amon member_id:r1i1p1f1 --distrib true
+```shell
+$ esgpull add project:CMIP6 experiment_id:historical institution_id:IPSL variable_id:tas table_id:Amon member_id:r1i1p1f1 --distrib true
 ```
 ![esgpull download](images/download_3.svg)
 
@@ -47,8 +47,8 @@ There are 2 ways to track a query:
 - use the `track` command with the query id as an argument,
 - use the `--track` flag on the `add` command to have it tracked directly.
 
-```sh
-esgpull track 7fd1f2
+```shell
+$ esgpull track 7fd1f2
 ```
 ![esgpull download](images/download_4.svg)
 
@@ -61,8 +61,8 @@ Updating a query will send requests to the ESGF search api to fetch metadata for
 
 For those familiar with package managers such as `apt`, the `update` command should feel familiar with how those require update *lists* to fetch latest versions of packages before actually downloading (and installing in this case).
 
-```sh
-esgpull update 7fd1f2
+```shell
+$ esgpull update 7fd1f2
 ```
 ![esgpull download](images/download_5.svg)
 
@@ -77,8 +77,8 @@ esgpull update 7fd1f2
 
 All that remains after these steps is to download the files:
 
-```sh
-esgpull download
+```shell
+$ esgpull download
 ```
 ![esgpull download](images/download_6.svg)
 
@@ -96,8 +96,8 @@ For each failed download, their status will be set to **error**.
 
 Those can be put back to the download queue, by using the `retry` command.
 
-```sh
-esgpull retry --help
+```shell
+$ esgpull retry --help
 ```
 ```{.sh .markdown .result}
 Usage: esgpull retry [OPTIONS] [[new|queued|starting|started|pausing|paused|er

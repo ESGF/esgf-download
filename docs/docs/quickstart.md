@@ -9,13 +9,13 @@ For a detailed explanation of the `search` command, read the [data discovery pag
 
 ### Search/add workflow example
 
-```sh
-esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon
-esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon --show
-esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon --detail 0
-esgpull add project:CMIP6 member_id:r1i1p1f1 frequency:mon --tag cmip6_monthly
-esgpull add --require cmip6_monthly variable_id:tas experiment_id:ssp245 --track
-esgpull add --require 2ddfa0 variable_id:tas experiment_id:ssp585 --track
+```shell
+$ esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon
+$ esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon --show
+$ esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon --detail 0
+$ esgpull add project:CMIP6 member_id:r1i1p1f1 frequency:mon --tag cmip6_monthly
+$ esgpull add --require cmip6_monthly variable_id:tas experiment_id:ssp245 --track
+$ esgpull add --require 2ddfa0 variable_id:tas experiment_id:ssp585 --track
 ```
 
 ## Converting synda selection files
@@ -51,8 +51,8 @@ variable[Omon]=fgco2 mlotst hfds o2
 
 Running the `convert` command with `--graph` will print the graph of queries the way it would appear after being added to the current install:
 
-```sh title="Convert example"
-esgpull convert example_cmip5.txt example_cmip6.txt --graph
+```shell title="Convert example"
+$ esgpull convert example_cmip5.txt example_cmip6.txt --graph
 ```
 ![esgpull convert](images/quickstart_1.svg)
 
@@ -64,25 +64,25 @@ Since the root query always corresponds to a superset of the datasets return by 
 
 To add the queries obtained from converting the selection files, they must first be exported to a yaml representation with:
 
-```sh
-esgpull convert example_cmip5.txt example_cmip6.txt --out examples_converted.yaml
+```shell
+$ esgpull convert example_cmip5.txt example_cmip6.txt --out examples_converted.yaml
 ```
 
 Adding them is done through the `add` command, under the parameter `--query-file`:
 
-```sh
-esgpull add --query-file examples_converted.yaml
-esgpull show
+```shell
+$ esgpull add --query-file examples_converted.yaml
+$ esgpull show
 ```
 
 
 ## Downloading
 
-```sh
-esgpull update <id>
-esgpull show
-esgpull download <id>
-esgpull status
+```shell
+$ esgpull update <id>
+$ esgpull show
+$ esgpull download <id>
+$ esgpull status
 ```
 
 Loop at the [download page](../download) for more information.
