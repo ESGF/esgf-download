@@ -20,34 +20,34 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-    - id: trailing-whitespace
-      exclude: setup.cfg
-    - id: end-of-file-fixer
-    - id: check-toml
-    - id: debug-statements
-    - id: pretty-format-json
-      args: ['--autofix', '--no-ensure-ascii', '--no-sort-keys']
+      - id: trailing-whitespace
+        exclude: setup.cfg
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: debug-statements
+      - id: pretty-format-json
+        args: ['--autofix', '--no-ensure-ascii', '--no-sort-keys']
   - repo: https://github.com/pappasam/toml-sort
     rev: v0.23.1
     hooks:
-    - id: toml-sort-fix
+      - id: toml-sort-fix
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 23.7.0
     hooks:
       - id: black
         exclude: ^setup.py
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.12.0
     hooks:
       - id: isort
         exclude: ^setup.py
   - repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
       - id: flake8
         exclude: ^setup.py
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.991
+    rev: v1.4.1
     hooks:
       - id: mypy
         args: ["--disable-recursive-aliases"]
@@ -66,3 +66,15 @@ repos:
     rev: 0.23.3
     hooks:
       - id: check-github-workflows
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: monthly
+  skip: [ ]
+  submodules: false
