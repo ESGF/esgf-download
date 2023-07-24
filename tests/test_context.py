@@ -128,8 +128,8 @@ def test_search_distributed(ctx):
         )
         coro = ctx._datasets(*results, keep_duplicates=True)
         datasets_distributed = ctx._sync(coro)
-    dataset_ids_regular = set(d.dataset_id for d in datasets_regular)
-    dataset_ids_distributed = set(d.dataset_id for d in datasets_distributed)
+    dataset_ids_regular = {d.dataset_id for d in datasets_regular}
+    dataset_ids_distributed = {d.dataset_id for d in datasets_distributed}
     assert dataset_ids_regular == dataset_ids_distributed
     # assert t_regular.duration >= t_distributed.duration
     logging.info(f"{t_regular.duration}")

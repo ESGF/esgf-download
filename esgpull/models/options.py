@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, MutableMapping
 from enum import Enum
-from typing import Iterator, MutableMapping
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column

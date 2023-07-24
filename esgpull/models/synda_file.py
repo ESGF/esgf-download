@@ -16,7 +16,6 @@ class SyndaBase(MappedAsDataclass, DeclarativeBase):
 class SyndaFile(SyndaBase):
     __tablename__ = "file"
 
-    file_id: Mapped[int] = mapped_column(init=False, primary_key=True)
     url: Mapped[str]
     file_functional_id: Mapped[str]
     filename: Mapped[str]
@@ -43,6 +42,7 @@ class SyndaFile(SyndaBase):
     dataset_id: Mapped[int]
     insertion_group_id: Mapped[int]
     timestamp: Mapped[str]
+    file_id: Mapped[int] = mapped_column(init=False, primary_key=True)
 
     def to_file(self) -> File:
         file_id = self.file_functional_id

@@ -1,6 +1,6 @@
 from collections import Counter
+from collections.abc import MutableMapping
 from pathlib import Path
-from typing import MutableMapping
 
 import click
 import pyparsing as pp

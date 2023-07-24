@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import Field
 from hashlib import sha1
-from typing import Any, ClassVar, Mapping, TypeVar, cast
+from typing import Any, ClassVar, TypeVar, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (

@@ -1,7 +1,8 @@
 import asyncio
 import ssl
+from collections.abc import AsyncIterator
 from functools import partial
-from typing import AsyncIterator, TypeAlias
+from typing import TypeAlias
 
 from aiostream.stream import merge
 from httpx import AsyncClient, HTTPError

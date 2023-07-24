@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import ClassVar, Iterator, MutableMapping, TypeAlias
+from collections.abc import Iterator, MutableMapping
+from typing import ClassVar, TypeAlias
 
 import sqlalchemy as sa
 from rich.pretty import pretty_repr
@@ -72,7 +73,7 @@ class Selection(Base):
 
     @classmethod
     def configure(cls, *names: str, replace: bool = True) -> None:
-        nameset = set(names) | set(f"!{name}" for name in names)
+        nameset = set(names) | {f"!{name}" for name in names}
         if replace:
             for name in cls._facet_names:
                 delattr(cls, name)
