@@ -21,12 +21,10 @@ repos:
     rev: v4.4.0
     hooks:
       - id: trailing-whitespace
-        exclude: setup.cfg
+        exclude: '(setup.cfg|.svg)'
       - id: end-of-file-fixer
       - id: check-toml
       - id: debug-statements
-      - id: pretty-format-json
-        args: ['--autofix', '--no-ensure-ascii', '--no-sort-keys']
   - repo: https://github.com/pappasam/toml-sort
     rev: v0.23.1
     hooks:
