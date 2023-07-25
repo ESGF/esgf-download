@@ -95,6 +95,7 @@ class Download:
     chunk_size: int = 1 << 26  # 64 MiB
     http_timeout: int = 20
     max_concurrent: int = 5
+    disable_ssl: bool = False
 
 
 @define
