@@ -338,6 +338,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#nodes-with-untrusted-ssl-certificates" class="md-nav__link">
+    Nodes with untrusted SSL certificates
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -429,6 +436,13 @@
           <li class="md-nav__item">
   <a href="#failed-downloads" class="md-nav__link">
     Failed downloads
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nodes-with-untrusted-ssl-certificates" class="md-nav__link">
+    Nodes with untrusted SSL certificates
   </a>
   
 </li>
@@ -539,6 +553,13 @@ When a query is tracked, it will always be checked for new files on later usage 
 <li><code>esgpull retry --all</code> to send every download back to the queue (except <code>done</code> downloads of course)</li>
 </ul>
 </div>
+<h3 id="nodes-with-untrusted-ssl-certificates">Nodes with untrusted SSL certificates<a class="headerlink" href="#nodes-with-untrusted-ssl-certificates" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Some data nodes may have untrusted SSL certificates.
+
+Since esgpull uses SSL verification by default, there is a configuration option `download.disable_ssl` to bypass this behaviour.
+
+SSL verification can also be bypassed for a single download using the `--disable-ssl` flag for the `esgpull download` command.
+</code></pre></div>
 
 
 
