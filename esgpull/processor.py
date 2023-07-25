@@ -13,16 +13,27 @@ from esgpull.exceptions import DownloadSizeError
 from esgpull.fs import Filesystem
 from esgpull.models import File
 from esgpull.result import Err, Ok, Result
+from esgpull.tui import logger
 
 # Callback: TypeAlias = Callable[[], None] | partial[None]
 Callback: TypeAlias = partial[None]
 
-ssl_context: ssl.SSLContext | bool
-if ssl.OPENSSL_VERSION_INFO[0] >= 3:
-    ssl_context = ssl.create_default_context()
-    ssl_context.options |= 0x4
-else:
-    ssl_context = True
+default_ssl_context: ssl.SSLContext | bool = False
+default_ssl_context_loaded = False
+
+
+def load_default_ssl_context() -> str:
+    global default_ssl_context
+    global default_ssl_context_loaded
+    if ssl.OPENSSL_VERSION_INFO[0] >= 3:
+        default_ssl_context = ssl.create_default_context()
+        default_ssl_context.options |= 0x4
+        msg = "Using openssl 3 or higher"
+    else:
+        default_ssl_context = True
+        msg = "Using openssl 1"
+    default_ssl_context_loaded = True
+    return msg
 
 
 class Task:
@@ -47,6 +58,16 @@ class Task:
         # else:
         #     raise ValueError("no arguments")
         self.downloader = Simple()
+        msg: str | None = None
+        if not default_ssl_context_loaded:
+            msg = load_default_ssl_context()
+        self.ssl_context: ssl.SSLContext | bool
+        if self.config.download.disable_ssl:
+            self.ssl_context = False
+        else:
+            if msg is not None:
+                logger.info(msg)
+            self.ssl_context = default_ssl_context
         if start_callbacks is None:
             self.start_callbacks = []
         else:
@@ -79,7 +100,7 @@ class Task:
                 AsyncClient(
                     follow_redirects=True,
                     cert=self.auth.cert,
-                    verify=ssl_context,
+                    verify=self.ssl_context,
                     timeout=self.config.download.http_timeout,
                 ) as client,
             ):
