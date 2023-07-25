@@ -85,6 +85,11 @@ class opts:
         type=int,
         default=None,
     )
+    disable_ssl: Dec = click.option(
+        "--disable-ssl",
+        is_flag=True,
+        default=False,
+    )
     dry_run: Dec = click.option(
         "--dry-run",
         "-z",

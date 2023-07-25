@@ -18,12 +18,14 @@ from esgpull.utils import format_size
 @click.command()
 @args.query_id
 @opts.tag
+@opts.disable_ssl
 @opts.quiet
 @opts.record
 @opts.verbosity
 def download(
     query_id: str | None,
     tag: str | None,
+    disable_ssl: bool,
     quiet: bool,
     record: bool,
     verbosity: Verbosity,
@@ -32,6 +34,8 @@ def download(
     Asynchronously download files linked to queries
     """
     esg = init_esgpull(verbosity, record=record)
+    if disable_ssl:
+        esg.config.download.disable_ssl = True
     with esg.ui.logging("download", onraise=Abort):
         if not valid_name_tag(esg.graph, esg.ui, query_id, tag):
             esg.ui.raise_maybe_record(Exit(1))
