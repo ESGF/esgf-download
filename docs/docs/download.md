@@ -123,3 +123,11 @@ Options:
 
     * `esgpull retry starting` to send only those back to the queue
     * `esgpull retry --all` to send every download back to the queue (except `done` downloads of course)
+
+### Nodes with untrusted SSL certificates
+
+    Some data nodes may have untrusted SSL certificates.
+
+    Since esgpull uses SSL verification by default, there is a configuration option `download.disable_ssl` to bypass this behaviour.
+
+    SSL verification can also be bypassed for a single download using the `--disable-ssl` flag for the `esgpull download` command.
