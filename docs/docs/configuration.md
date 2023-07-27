@@ -75,11 +75,12 @@ $ esgpull config --generate
 
 ## Login
 
-In order to download data from ESGF, you will need to provide a valid login and password.
+Although most data on ESGF can be downloaded without authentication, some datasets require a valid OpenID login and password.
+The ESGF OpenID authentication system is described on the [ESGF user documentation](http://www.esgf.io/esgf-user-support/user_guide.html).
 This can be provided from the command line by running the following:
 
 ```shell
-$ egsdpull login
+$ esgpull login
 ```
 ```shell
 No credentials found.
