@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import InitVar, dataclass, field
 from pathlib import Path
+from shutil import copyfile
 
 import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
@@ -103,4 +104,16 @@ class FileObject:
             await self.buffer.close()
         if self.finished:
             self.final_path.parent.mkdir(parents=True, exist_ok=True)
-            self.tmp_path.rename(self.final_path)
+            try:
+                self.tmp_path.rename(self.final_path)
+            except OSError as err:
+                logger.error(err)
+                copyfile(self.tmp_path, self.final_path)
+                msg = """
+File rename error, shutil.copyfile was used instead.
+For large files, download times might be impacted.
+To address this issue, you may consider setting your `tmp` directory to the same filesystem as your `data` directory:
+
+$ esgpull config path.tmp <some/path/on/data/filesystem>
+                """.strip()
+                logger.warn(msg)
