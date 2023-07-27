@@ -11,70 +11,80 @@ license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "MyProxyClient>=2.1.0",
-    "aiofiles>=22.1.0",
-    "alembic>=1.8.1",
-    "click>=8.1.3",
-    "click-params>=0.4.0",
-    "httpx>=0.23.0",
-    "nest-asyncio>=1.5.6",
-    "pyOpenSSL>=22.1.0",
-    "pyyaml>=6.0",
-    "tomlkit>=0.11.5",
-    "rich>=12.6.0",
-    "sqlalchemy>=2.0.0b2",
-    "setuptools>=65.4.1",
-    "aiostream>=0.4.5",
-    "attrs>=22.1.0",
-    "cattrs>=22.2.0",
-    "platformdirs>=2.6.2",
-    "pyparsing>=3.0.9",
+  "MyProxyClient>=2.1.0",
+  "aiofiles>=22.1.0",
+  "alembic>=1.8.1",
+  "click>=8.1.3",
+  "click-params>=0.4.0",
+  "httpx>=0.23.0",
+  "nest-asyncio>=1.5.6",
+  "pyOpenSSL>=22.1.0",
+  "pyyaml>=6.0",
+  "tomlkit>=0.11.5",
+  "rich>=12.6.0",
+  "sqlalchemy>=2.0.0b2",
+  "setuptools>=65.4.1",
+  "aiostream>=0.4.5",
+  "attrs>=22.1.0",
+  "cattrs>=22.2.0",
+  "platformdirs>=2.6.2",
+  "pyparsing>=3.0.9"
 ]
-[project.urls]
-Repository = "https://github.com/ESGF/esgf-download"
-Documentation = "https://esgf.github.io/esgf-download/"
 
 [project.optional-dependencies]
-[tool.pdm.dev-dependencies]
-doc = [
-    "mkdocs-material>=8.5.6",
-]
-test = [
-    "pytest>=7.1.3",
-    "pytest-cov>=4.0.0",
-    "pytest-xdist>=3.0.2"
-]
-lint = [
-    "black>=22.8.0",
-    "isort>=5.10.1",
-    "flake8>=5.0.4",
-    "mypy>=0.982,<1.1.1",
-    "types-pyopenssl>=22.1.0.1",
-    "types-aiofiles>=22.1.0",
-    "types-python-dateutil>=2.8.19.2",
-    "types-pymysql>=1.0.19.1",
-    "types-pyyaml>=6.0.12",
-    "types-cryptography>=3.3.23.1",
-    "types-setuptools>=65.5.0.1",
-]
-profile = [
-    "snakeviz>=2.1.1",
-    "vprof>=0.38",
-]
-
-[tool.pdm.build]
-includes = ["esgpull/"]
-excludes = [
-    "**/.mypy_cache/",
-    "**/.ruff_cache/",
-]
 
 [project.scripts]
 esgpull = "esgpull.cli:main"
 
-[tool.pdm.version]
-source = "file"
-path = "esgpull/version.py"
+[project.urls]
+Repository = "https://github.com/ESGF/esgf-download"
+Documentation = "https://esgf.github.io/esgf-download/"
+
+[tool.black]
+line-length = 79
+extend-exclude = "setup.py"
+
+[tool.isort]
+profile = "black"
+line_length = 79
+src_paths = ["esgpull", "tests", "migrations", "examples"]
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.pdm.build]
+includes = ["esgpull/"]
+excludes = [
+  "**/.mypy_cache/",
+  "**/.ruff_cache/"
+]
+
+[tool.pdm.dev-dependencies]
+doc = [
+  "mkdocs-material>=8.5.6"
+]
+test = [
+  "pytest>=7.1.3",
+  "pytest-cov>=4.0.0",
+  "pytest-xdist>=3.0.2"
+]
+lint = [
+  "black>=22.8.0",
+  "isort>=5.10.1",
+  "flake8>=5.0.4",
+  "mypy>=0.982,<1.1.1",
+  "types-pyopenssl>=22.1.0.1",
+  "types-aiofiles>=22.1.0",
+  "types-python-dateutil>=2.8.19.2",
+  "types-pymysql>=1.0.19.1",
+  "types-pyyaml>=6.0.12",
+  "types-cryptography>=3.3.23.1",
+  "types-setuptools>=65.5.0.1"
+]
+profile = [
+  "snakeviz>=2.1.1",
+  "vprof>=0.38"
+]
 
 [tool.pdm.scripts]
 echo_gap = "echo"
@@ -87,43 +97,35 @@ lint_flake8 = "flake8 esgpull tests"
 echo_mypy = "echo [mypy]"
 lint_mypy = "mypy --disable-recursive-aliases esgpull tests"
 lint = {composite = [
-    "echo_black",
-    "lint_black",
-    "echo_gap",
-    "echo_isort",
-    "lint_isort",
-    "echo_gap",
-    "echo_flake8",
-    "lint_flake8",
-    "echo_gap",
-    "echo_mypy",
-    "lint_mypy"
+  "echo_black",
+  "lint_black",
+  "echo_gap",
+  "echo_isort",
+  "lint_isort",
+  "echo_gap",
+  "echo_flake8",
+  "lint_flake8",
+  "echo_gap",
+  "echo_mypy",
+  "lint_mypy"
 ]}
 # test = "pytest --cov-report term-missing:skip-covered --cov=esgpull"
 test = "pytest"
 doc = {shell = "cd docs && mkdocs serve", help = "Start doc server"}
 
-[tool.black]
-line-length = 79
-extend-exclude = "setup.py"
-
-[tool.mypy]
-ignore_missing_imports = true
+[tool.pdm.version]
+source = "file"
+path = "esgpull/version.py"
 
 [tool.pytest.ini_options]
 minversion = "6.2.4"
 filterwarnings = [
-    "ignore::DeprecationWarning"
+  "ignore::DeprecationWarning"
 ]
 markers = [
-    "slow: mark test as slow to run"
+  "slow: mark test as slow to run"
 ]
 addopts = "-r aR"
 testpaths = [
-    "tests/"
+  "tests/"
 ]
-
-[tool.isort]
-profile = "black"
-line_length = 79
-src_paths = ["esgpull", "tests", "migrations", "examples"]

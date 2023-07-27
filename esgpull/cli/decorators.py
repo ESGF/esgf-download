@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, TypeAlias, TypeVar
+from typing import Any, TypeAlias, TypeVar
 
 import click
 from click_params import StringListParamType

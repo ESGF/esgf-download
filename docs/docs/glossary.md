@@ -3,4 +3,3 @@ __Dataset__
 
 __Facet__
 : basic element of a dataset's _metadata_. Pair of strings in the form `name:value`, equivalent to a python dictionary's item.
-

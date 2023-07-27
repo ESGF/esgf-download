@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, Literal, MutableMapping, Sequence
+from collections.abc import Iterator, MutableMapping, Sequence
+from typing import Any, Literal
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
@@ -52,7 +53,7 @@ class File(Base):
     data_node: Mapped[str] = mapped_column(sa.String(40))
     checksum: Mapped[str] = mapped_column(sa.String(64))
     checksum_type: Mapped[str] = mapped_column(sa.String(16))
-    size: Mapped[int]
+    size: Mapped[int] = mapped_column(sa.BigInteger)
     status: Mapped[FileStatus] = mapped_column(
         sa.Enum(FileStatus), default=FileStatus.New
     )
@@ -357,7 +358,7 @@ class Query(Base):
             result.selection[name] = values
         result.tracked = child.tracked
         result.compute_sha()
-        files_shas = set([f.sha for f in result.files])
+        files_shas = {f.sha for f in result.files}
         for file in child.files:
             if file.sha not in files_shas:
                 result.files.append(file)

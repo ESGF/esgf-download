@@ -1,6 +1,6 @@
 # from math import ceil
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import AsyncGenerator
 
 from httpx import AsyncClient
 

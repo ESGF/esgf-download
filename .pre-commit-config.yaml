@@ -1,3 +1,6 @@
+default_language_version:
+    python: python3
+
 repos:
   # - repo: https://github.com/pdm-project/pdm
   #   rev: 2.2.1
@@ -9,23 +12,37 @@ repos:
   #           pdm.lock|
   #           esgpull/version.py
   #         )$
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.9.0
+    hooks:
+      - id: pyupgrade
+        args: [ '--py310-plus' ]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '(setup.cfg|.svg)'
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: debug-statements
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort-fix
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 23.7.0
     hooks:
       - id: black
-        exclude: ^setup.py
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.12.0
     hooks:
       - id: isort
-        exclude: ^setup.py
   - repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
       - id: flake8
-        exclude: ^setup.py
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.991
+    rev: v1.4.1
     hooks:
       - id: mypy
         args: ["--disable-recursive-aliases"]
@@ -40,3 +57,19 @@ repos:
           - types-pyyaml==6.0.12
           - types-cryptography==3.3.23.1
           - types-setuptools==65.5.0.1
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.23.3
+    hooks:
+      - id: check-github-workflows
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: monthly
+  skip: [ ]
+  submodules: false

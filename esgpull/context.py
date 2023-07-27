@@ -2,17 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Coroutine,
-    Sequence,
-    TypeAlias,
-    TypeVar,
-)
+from typing import Any, TypeAlias, TypeVar
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
@@ -36,15 +29,13 @@ if asyncio.get_event_loop().is_running():
 T = TypeVar("T")
 RT = TypeVar("RT", bound="Result")
 HintsDict: TypeAlias = dict[str, dict[str, int]]
-DangerousFacets = set(
-    [
-        "instance_id",
-        "dataset_id",
-        "master_id",
-        "tracking_id",
-        "url",
-    ]
-)
+DangerousFacets = {
+    "instance_id",
+    "dataset_id",
+    "master_id",
+    "tracking_id",
+    "url",
+}
 
 
 @dataclass

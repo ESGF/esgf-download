@@ -3,12 +3,13 @@ from __future__ import annotations
 import atexit
 import logging
 import sys
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from enum import IntEnum
 from json import dumps as json_dumps
 from pathlib import Path
-from typing import Any, Iterable, Mapping, TypeVar
+from typing import Any, TypeVar
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup

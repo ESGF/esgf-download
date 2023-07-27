@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Container
+from collections.abc import Container, Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import tomlkit
 from attrs import Factory, define, field
