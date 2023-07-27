@@ -7,7 +7,7 @@ name = "esgpull"
 dynamic = ["version"]
 description = "ESGF data discovery, download, replication tool"
 authors = [{name = "Sven Rodriguez", email = "srodriguez@ipsl.fr"}]
-license = {text = "Public"}
+license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
