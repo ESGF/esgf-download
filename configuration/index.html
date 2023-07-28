@@ -403,7 +403,7 @@
   <h1>Configuration</h1>
 
 <p>This page details some of the options available for configuring your <code>esgpull</code> installation.</p>
-<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>On invocation, <code>$ esgpull config</code> will show the base configurations in the terminal.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -428,18 +428,19 @@
 <a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nv">chunk_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">67108864</span>
 <a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
 <a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="o">[</span>api<span class="o">]</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-node.ipsl.upmc.fr&quot;</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="o">[</span>api.default_options<span class="o">]</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nv">disable_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="o">[</span>api<span class="o">]</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-node.ipsl.upmc.fr&quot;</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="o">[</span>api.default_options<span class="o">]</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
 </code></pre></div>
 <p>To modify a config item from the command line, the dot-separated path to that item must
 be provided as the first argument along with the new value that item should get as the second argument:</p>
@@ -450,36 +451,52 @@ be provided as the first argument along with the new value that item should get 
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Previous<span class="w"> </span>value:<span class="w"> </span>esgf-node.ipsl.upmc.fr
 </code></pre></div></p>
-<p>On first call, this will generate a <code>config.toml</code> file in the <code>~/.esgpull</code> directory with the
-new values modified.</p>
+<p>On first call, this will generate a <code>config.toml</code> file in the <code>~/.esgpull</code>
+directory with only the modified values:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>api.index_node<span class="w"> </span>esgf-data.dkrz.de
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">[</span>api<span class="o">]</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-data.dkrz.de&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>👍<span class="w"> </span>New<span class="w"> </span>config<span class="w"> </span>file<span class="w"> </span>created<span class="w"> </span>at<span class="w"> </span>/home/srodriguez/.esgpull_test_config_generate/config.toml.
+</code></pre></div></p>
 <p>If a user wishes to simply generate the <code>config.toml</code> file without modifying any values, they
 simply must run the following:</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>--generate<span class="w"> </span>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>--generate
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">{</span><span class="w"> </span>...<span class="w"> </span>Default<span class="w"> </span>configuration<span class="w"> </span>output<span class="w"> </span>...<span class="w"> </span><span class="o">}</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>👍<span class="w"> </span>Config<span class="w"> </span>generated<span class="w"> </span>at<span class="w"> </span>/home/me/.esgpull/config.toml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>👍<span class="w"> </span>Config<span class="w"> </span>generated<span class="w"> </span>at<span class="w"> </span>/home/me/.esgpull/config.toml
 </code></pre></div></p>
+<div class="admonition note">
+<p class="admonition-title">Complete existing config with defaults</p>
+<p>The <code>--generate</code> flag also works when a configuration file already exists.</p>
+<p>In this case, a prompt will ask for permission to fill the existing file
+with default values for all missing options:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>--generate
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>A<span class="w"> </span>config<span class="w"> </span>file<span class="w"> </span>already<span class="w"> </span>exists,<span class="w"> </span>fill<span class="w"> </span>it<span class="w"> </span>with<span class="w"> </span>missing<span class="w"> </span>defaults?<span class="w"> </span><span class="o">[</span>y/n<span class="o">]</span><span class="w"> </span><span class="o">(</span>n<span class="o">)</span>:<span class="w"> </span>y
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>👍<span class="w"> </span>Config<span class="w"> </span>generated<span class="w"> </span>at<span class="w"> </span>/home/me/.esgpull/config.toml
+</code></pre></div></p>
+</div>
 <h2 id="login">Login<a class="headerlink" href="#login" title="Permanent link">&para;</a></h2>
-<p>Although most data on ESGF can be downloaded without authentication, some datasets require a valid OpenID login and password.
-The ESGF OpenID authentication system is described on the <a href="http://www.esgf.io/esgf-user-support/user_guide.html">ESGF user documentation</a>.
-This can be provided from the command line by running the following:</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>login
+<p>Although most data on ESGF can be downloaded without authentication, some datasets require a valid OpenID login and password.</p>
+<p>The ESGF OpenID authentication system is described on the <a href="http://www.esgf.io/esgf-user-support/user_guide.html">ESGF user documentation</a>.</p>
+<p>This can be provided from the command line by running the following:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>login
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>No<span class="w"> </span>credentials<span class="w"> </span>found.
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="w"> </span>esg-dn1.nsc.liu.se
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="o">[</span><span class="m">1</span><span class="o">]</span><span class="w"> </span>esgf-data.dkrz.de
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="o">[</span><span class="m">2</span><span class="o">]</span><span class="w"> </span>ceda.ac.uk
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="w"> </span>esgf-node.ipsl.upmc.fr
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="o">[</span><span class="m">4</span><span class="o">]</span><span class="w"> </span>esgf-node.llnl.gov
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="o">[</span><span class="m">5</span><span class="o">]</span><span class="w"> </span>esgf.nci.org.au
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>Select<span class="w"> </span>a<span class="w"> </span>provider:<span class="w"> </span><span class="m">0</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>User:<span class="w"> </span>MyESGFusername<span class="w"> </span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>Password:<span class="w"> </span>&lt;hidden&gt;
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>Certificates<span class="w"> </span>are<span class="w"> </span>missing.
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>👍<span class="w"> </span>Renewed<span class="w"> </span>successfully
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>No<span class="w"> </span>credentials<span class="w"> </span>found.
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="w"> </span>esg-dn1.nsc.liu.se
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="o">[</span><span class="m">1</span><span class="o">]</span><span class="w"> </span>esgf-data.dkrz.de
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="o">[</span><span class="m">2</span><span class="o">]</span><span class="w"> </span>ceda.ac.uk
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="w"> </span>esgf-node.ipsl.upmc.fr
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="o">[</span><span class="m">4</span><span class="o">]</span><span class="w"> </span>esgf-node.llnl.gov
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="o">[</span><span class="m">5</span><span class="o">]</span><span class="w"> </span>esgf.nci.org.au
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>Select<span class="w"> </span>a<span class="w"> </span>provider:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>User:<span class="w"> </span>MyESGFusername
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>Password:<span class="w"> </span>&lt;hidden&gt;
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>Certificates<span class="w"> </span>are<span class="w"> </span>missing.
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>👍<span class="w"> </span>Renewed<span class="w"> </span>successfully
 </code></pre></div></p>
-<p>The credentials will then be saved under the <code>~/.esgpull/auth</code> directory, within 
+<p>The credentials will then be saved under the <code>~/.esgpull/auth</code> directory, within
 <code>credentials.toml</code>, which can then be used for future sessions.</p>
 
 
