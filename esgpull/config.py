@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Container, Iterator, Mapping
+from enum import Enum, auto
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import tomlkit
 from attrs import Factory, define, field
@@ -138,6 +139,13 @@ def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
 config_fixers = [fix_rename_search_api]
 
 
+class ConfigKind(Enum):
+    Virtual = auto()
+    NoFile = auto()
+    Partial = auto()
+    Complete = auto()
+
+
 class ConfigKey:
     path: tuple[str, ...]
 
@@ -231,6 +239,17 @@ class Config:
             root = InstallConfig.default
         return cls.load(root)
 
+    @property
+    def kind(self) -> ConfigKind:
+        if self._config_file is None:
+            return ConfigKind.Virtual
+        elif not self._config_file.is_file():
+            return ConfigKind.NoFile
+        elif self.unset_options():
+            return ConfigKind.Partial
+        else:
+            return ConfigKind.Complete
+
     def dumps(self, defaults: bool = True, comments: bool = False) -> str:
         return self.dump(defaults, comments).as_string()
 
@@ -300,22 +319,26 @@ class Config:
         self,
         overwrite: bool = False,
     ) -> None:
-        if self._config_file is None:
-            raise VirtualConfigError
-        elif self._raw is not None and overwrite:
-            defaults = self.dump()
-            for ckey in self.unset_options():
-                self.update_item(str(ckey), ckey.value_of(defaults))
-        elif self._config_file.is_file():
-            raise FileExistsError(self._config_file)
-        else:
-            self._raw = self.dump()
+        match (self.kind, overwrite):
+            case (ConfigKind.Virtual, _):
+                raise VirtualConfigError
+            case (ConfigKind.Partial, overwrite):
+                defaults = self.dump()
+                for ckey in self.unset_options():
+                    self.update_item(str(ckey), ckey.value_of(defaults))
+            case (ConfigKind.Partial | ConfigKind.Complete, _):
+                raise FileExistsError(self._config_file)
+            case (ConfigKind.NoFile, _):
+                self._raw = self.dump()
+            case _:
+                raise ValueError(self.kind)
         self.write()
 
     def write(self) -> None:
-        if self._raw is None or self._config_file is None:
+        if self.kind == ConfigKind.Virtual or self._raw is None:
             raise VirtualConfigError
-        with self._config_file.open("w") as f:
+        config_file = cast(Path, self._config_file)
+        with config_file.open("w") as f:
             tomlkit.dump(self._raw, f)
 
 
