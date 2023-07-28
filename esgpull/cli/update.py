@@ -18,7 +18,9 @@ from esgpull.utils import format_size
 class QueryFiles:
     query: Query
     expanded: Query
+    skip: bool = False
     files: list[File] = field(default_factory=list)
+    hits: int = field(init=False)
     hints: HintsDict = field(init=False)
     results: list[ResultSearch] = field(init=False)
 
@@ -78,13 +80,21 @@ def update(
             facets=["index_node"],
         )
         for qf, qf_hints in zip(qfs, hints):
-            qf.hints = qf_hints
-        nb = sum(esg.context.hits_from_hints(*hints))
-        if not nb:
+            qf.hits = sum(esg.context.hits_from_hints(qf_hints))
+            if qf_hints:
+                qf.hints = qf_hints
+            else:
+                qf.skip = True
+        for qf in qfs:
+            s = "s" if qf.hits > 1 else ""
+            esg.ui.print(f"{qf.query.rich_name} -> {qf.hits} file{s}.")
+        total_hits = sum([qf.hits for qf in qfs])
+        if total_hits == 0:
             esg.ui.print("No files found.")
             esg.ui.raise_maybe_record(Exit(0))
         else:
-            esg.ui.print(f"Found {nb} files.")
+            esg.ui.print(f"{total_hits} files found.")
+        qfs = [qf for qf in qfs if not qf.skip]
         # Prepare optimally distributed requests to ESGF
         # [?] TODO: fetch FastFile first to determine what to fetch in detail later
         #   It might be interesting for the special case where all files already
@@ -123,7 +133,7 @@ def update(
             for qf, qf_files in zip(qfs, files):
                 qf.files = qf_files
         for qf in qfs:
-            shas = set([f.sha for f in qf.query.files])
+            shas = {f.sha for f in qf.query.files}
             new_files: list[File] = []
             for file in qf.files:
                 if file.sha not in shas:
@@ -133,12 +143,26 @@ def update(
                 esg.db.add(qf.query)
                 continue
             elif nb_files == 0:
-                esg.ui.print(f"{query.rich_name} is already up-to-date.")
+                esg.ui.print(f"{qf.query.rich_name} is already up-to-date.")
                 continue
-            esg.ui.print(esg.graph.subgraph(qf.query, parents=True))
             size = sum([file.size for file in new_files])
-            esg.ui.print(f"{nb_files} new files ({format_size(size)}).")
-            if esg.ui.ask("Send to download queue?", default=True):
+            msg = (
+                f"\nUpdating {qf.query.rich_name} with {nb_files}"
+                f" new files ({format_size(size)})."
+                "\nSend to download queue?"
+            )
+            if yes:
+                choice = "y"
+            else:
+                while (
+                    choice := esg.ui.choice(
+                        msg,
+                        choices=["y", "n", "show"],
+                        show_choices=True,
+                    )
+                ) and choice == "show":
+                    esg.ui.print(esg.graph.subgraph(qf.query, parents=True))
+            if choice == "y":
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
                 for file in new_files:
