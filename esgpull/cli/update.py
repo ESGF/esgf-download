@@ -10,7 +10,7 @@ from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
 from esgpull.models import File, FileStatus, Query
-from esgpull.tui import Verbosity
+from esgpull.tui import Verbosity, logger
 from esgpull.utils import format_size
 
 
@@ -168,6 +168,13 @@ def update(
                 for file in new_files:
                     file_db = esg.db.get(File, file.sha)
                     if file_db is None:
+                        if esg.db.has_file_id(file):
+                            logger.error(
+                                "File id already exists in database, "
+                                "there might be an error with its checksum"
+                                f"\n{file}"
+                            )
+                            continue
                         file.status = FileStatus.Queued
                         file_db = esg.db.merge(file)
                     elif has_legacy and legacy in file_db.queries:

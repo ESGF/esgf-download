@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import InitVar, dataclass, field
 from pathlib import Path
-from typing import Iterator, Sequence, TypeVar
+from typing import TypeVar
 
 import alembic.command
 import sqlalchemy as sa
@@ -133,6 +134,9 @@ class Database:
 
     def __contains__(self, item: Table) -> bool:
         return self.scalars(sql.count(item))[0] > 0
+
+    def has_file_id(self, file: File) -> bool:
+        return len(self.scalars(sql.file.with_file_id(file.file_id))) == 1
 
     def merge(self, item: Table, commit: bool = False) -> Table:
         with self.safe:
