@@ -9,6 +9,14 @@ on:
       - esgpull/**
       - tests/**
       - .github/workflows/ci.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "*.py"
+      - esgpull/**
+      - tests/**
+      - .github/workflows/ci.yml
 
 jobs:
   tests:
@@ -28,4 +36,4 @@ jobs:
         run: pdm install -G test
 
       - name: run tests
-        run: pdm run pytest -n auto --cov=esgpull --cov-config=setup.cfg --cov-report term-missing:skip-covered tests
+        run: pdm run test_coverage

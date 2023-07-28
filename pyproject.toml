@@ -109,8 +109,8 @@ lint = {composite = [
   "echo_mypy",
   "lint_mypy"
 ]}
-# test = "pytest --cov-report term-missing:skip-covered --cov=esgpull"
 test = "pytest"
+test_coverage = "pytest -n auto --cov=esgpull --cov-config=setup.cfg --cov-report term-missing:skip-covered"
 doc = {shell = "cd docs && mkdocs serve", help = "Start doc server"}
 
 [tool.pdm.version]
