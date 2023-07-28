@@ -2,6 +2,7 @@ site_name: esgpull documentation
 nav:
   - esgpull: index.md
   - Installation: installation.md
+  - Configuration: configuration.md
   - Quickstart: quickstart.md
   # - Queries: queries.md
   - Data discovery: search.md

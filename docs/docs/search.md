@@ -5,8 +5,8 @@ Both are done through the `search` command.
 
 *Facet search* is performed with all terms using the facet syntax `<name>:<value>`, for which both name and value are matched exactly.
 
-```sh title="Search CMIP6 datasets"
-esgpull search project:CMIP6
+```shell title="Search CMIP6 datasets"
+$ esgpull search project:CMIP6
 ```
 ![esgpull search](images/search_1.svg)
 
@@ -14,15 +14,15 @@ esgpull search project:CMIP6
 
 Multiples values can be used by separating each value with a `,` comma.
 
-```sh title="Single variable search"
-esgpull search variable_id:c2h2 -0
-esgpull search variable_id:c2h6 -0
+```shell title="Single variable search"
+$ esgpull search variable_id:c2h2 -0
+$ esgpull search variable_id:c2h6 -0
 ```
 ![esgpull search](images/search_2.svg)
 ![esgpull search](images/search_3.svg)
 
 ```sh title="Combine both variables in a single search"
-esgpull search variable_id:c2h2,c2h6 -0
+$ esgpull search variable_id:c2h2,c2h6 -0
 ```
 ![esgpull search](images/search_4.svg)
 
@@ -47,7 +47,7 @@ esgpull search variable_id:c2h2,c2h6 -0
 A facet can be ignored by prepending its name with `!`. In this case, it is not possible to specify other values for this facet.
 
 ```sh title="Ignore all datasets from IPSL"
-esgpull search !institution_id:IPSL
+$ esgpull search !institution_id:IPSL
 ```
 ![esgpull search ignore](images/search_ignore.svg)
 
@@ -77,7 +77,7 @@ A *wildcard* `*` can be used in both facet (value only) and free-text search, al
 Note that on most shells, the wildcard symbol should be inside `"` quotes, to escape it from being expanded by the shell before `esgpull` receives any input.
 
 ```sh title="All initializations for areacella variable from piControl experiments"
-esgpull search "member_id:r1i*p1f1" table_id:fx variable_id:areacella experiment_id:piControl
+$ esgpull search "member_id:r1i*p1f1" table_id:fx variable_id:areacella experiment_id:piControl
 ```
 ![esgpull search](images/search_7.svg)
 
@@ -96,7 +96,7 @@ In the case of *free-text search*, the opposite is true, case is entirely insens
 <!---->
 <!-- The number of requests sent to ESGF after expanding the *subrequests* is equal to the number of *subrequests*. -->
 <!---->
-<!-- A selection file is written using either [Yaml/1.0] or [Json], Yaml is recommended for its human-readable syntax. -->
+<!-- A selection file is written using either [Yaml/1.0] or [JSON], Yaml is recommended for its human-readable syntax. -->
 <!---->
 <!-- !!! note "Syntax Rules" -->
 <!--     1. key/value pair ⇒ **facet search** term -->
@@ -305,5 +305,5 @@ In the case of *free-text search*, the opposite is true, case is entirely insens
 
 
 [Yaml/1.0]: https://yaml.org/spec/1.0
-[Json]: https://www.json.org/
+[JSON]: https://www.json.org/
 [Apache Solr]: https://fr.wikipedia.org/wiki/Apache_Solr
