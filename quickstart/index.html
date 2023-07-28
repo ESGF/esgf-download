@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../installation/">
+        <link rel="prev" href="../configuration/">
       
       
         <link rel="next" href="../search/">
@@ -223,6 +223,21 @@
     <li class="md-nav__item">
       <a href="../installation/" class="md-nav__link">
         Installation
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        Configuration
       </a>
     </li>
   
@@ -458,12 +473,12 @@
 <h2 id="data-discovery">Data discovery<a class="headerlink" href="#data-discovery" title="Permanent link">&para;</a></h2>
 <p>For a detailed explanation of the <code>search</code> command, read the <a href="../search">data discovery page</a>.</p>
 <h3 id="searchadd-workflow-example">Search/add workflow example<a class="headerlink" href="#searchadd-workflow-example" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:<span class="s1">&#39;ssp*&#39;</span><span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:<span class="s1">&#39;ssp*&#39;</span><span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon<span class="w"> </span>--show
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:<span class="s1">&#39;ssp*&#39;</span><span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon<span class="w"> </span>--detail<span class="w"> </span><span class="m">0</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>esgpull<span class="w"> </span>add<span class="w"> </span>project:CMIP6<span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon<span class="w"> </span>--tag<span class="w"> </span>cmip6_monthly
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>esgpull<span class="w"> </span>add<span class="w"> </span>--require<span class="w"> </span>cmip6_monthly<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:ssp245<span class="w"> </span>--track
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>esgpull<span class="w"> </span>add<span class="w"> </span>--require<span class="w"> </span>2ddfa0<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:ssp585<span class="w"> </span>--track
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:<span class="s1">&#39;ssp*&#39;</span><span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:<span class="s1">&#39;ssp*&#39;</span><span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon<span class="w"> </span>--show
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:<span class="s1">&#39;ssp*&#39;</span><span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon<span class="w"> </span>--detail<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>$<span class="w"> </span>esgpull<span class="w"> </span>add<span class="w"> </span>project:CMIP6<span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>frequency:mon<span class="w"> </span>--tag<span class="w"> </span>cmip6_monthly
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>$<span class="w"> </span>esgpull<span class="w"> </span>add<span class="w"> </span>--require<span class="w"> </span>cmip6_monthly<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:ssp245<span class="w"> </span>--track
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>$<span class="w"> </span>esgpull<span class="w"> </span>add<span class="w"> </span>--require<span class="w"> </span>2ddfa0<span class="w"> </span>variable_id:tas<span class="w"> </span>experiment_id:ssp585<span class="w"> </span>--track
 </code></pre></div>
 <h2 id="converting-synda-selection-files">Converting synda selection files<a class="headerlink" href="#converting-synda-selection-files" title="Permanent link">&para;</a></h2>
 <p>If you have existing selection files written for <code>synda</code>, you can convert those with no manual editing, using the <code>convert</code> command.</p>
@@ -490,24 +505,24 @@ it will be used as a tag on the converted query.</p>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="na">variable[Omon]</span><span class="o">=</span><span class="s">fgco2 mlotst hfds o2</span>
 </code></pre></div>
 <p>Running the <code>convert</code> command with <code>--graph</code> will print the graph of queries the way it would appear after being added to the current install:</p>
-<p><div class="highlight"><span class="filename">Convert example</span><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>esgpull<span class="w"> </span>convert<span class="w"> </span>example_cmip5.txt<span class="w"> </span>example_cmip6.txt<span class="w"> </span>--graph
+<p><div class="highlight"><span class="filename">Convert example</span><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>convert<span class="w"> </span>example_cmip5.txt<span class="w"> </span>example_cmip6.txt<span class="w"> </span>--graph
 </code></pre></div>
 <img alt="esgpull convert" src="../images/quickstart_1.svg" /></p>
 <p>Notice how the "root" query from <code>example_cmip6.txt</code> is shown as <code>untracked</code>. This is done such that the root query's corresponding datasets are not installed.</p>
 <p>Since the root query always corresponds to a superset of the datasets return by any of its sub-queries, it would be pointless to download every dataset from the root query.</p>
 <h3 id="adding-converted-queries">Adding converted queries<a class="headerlink" href="#adding-converted-queries" title="Permanent link">&para;</a></h3>
 <p>To add the queries obtained from converting the selection files, they must first be exported to a yaml representation with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>convert<span class="w"> </span>example_cmip5.txt<span class="w"> </span>example_cmip6.txt<span class="w"> </span>--out<span class="w"> </span>examples_converted.yaml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>convert<span class="w"> </span>example_cmip5.txt<span class="w"> </span>example_cmip6.txt<span class="w"> </span>--out<span class="w"> </span>examples_converted.yaml
 </code></pre></div>
 <p>Adding them is done through the <code>add</code> command, under the parameter <code>--query-file</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>esgpull<span class="w"> </span>add<span class="w"> </span>--query-file<span class="w"> </span>examples_converted.yaml
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>esgpull<span class="w"> </span>show
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>add<span class="w"> </span>--query-file<span class="w"> </span>examples_converted.yaml
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>$<span class="w"> </span>esgpull<span class="w"> </span>show
 </code></pre></div>
 <h2 id="downloading">Downloading<a class="headerlink" href="#downloading" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>esgpull<span class="w"> </span>update<span class="w"> </span>&lt;id&gt;
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>esgpull<span class="w"> </span>show
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>esgpull<span class="w"> </span>download<span class="w"> </span>&lt;id&gt;
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>esgpull<span class="w"> </span>status
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>update<span class="w"> </span>&lt;id&gt;
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>$<span class="w"> </span>esgpull<span class="w"> </span>show
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>$<span class="w"> </span>esgpull<span class="w"> </span>download<span class="w"> </span>&lt;id&gt;
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>$<span class="w"> </span>esgpull<span class="w"> </span>status
 </code></pre></div>
 <p>Loop at the <a href="../download">download page</a> for more information.</p>
 

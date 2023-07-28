@@ -236,6 +236,21 @@
   
   
     <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        Configuration
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../quickstart/" class="md-nav__link">
         Quickstart
       </a>
@@ -459,17 +474,17 @@
 Both are done through the <code>search</code> command.</p>
 <h2 id="facet-search">Facet search<a class="headerlink" href="#facet-search" title="Permanent link">&para;</a></h2>
 <p><em>Facet search</em> is performed with all terms using the facet syntax <code>&lt;name&gt;:&lt;value&gt;</code>, for which both name and value are matched exactly.</p>
-<p><div class="highlight"><span class="filename">Search CMIP6 datasets</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6
+<p><div class="highlight"><span class="filename">Search CMIP6 datasets</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6
 </code></pre></div>
 <img alt="esgpull search" src="../images/search_1.svg" /></p>
 <h3 id="multiple-values-for-a-facet">Multiple values for a facet<a class="headerlink" href="#multiple-values-for-a-facet" title="Permanent link">&para;</a></h3>
 <p>Multiples values can be used by separating each value with a <code>,</code> comma.</p>
-<p><div class="highlight"><span class="filename">Single variable search</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>variable_id:c2h2<span class="w"> </span>-0
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>esgpull<span class="w"> </span>search<span class="w"> </span>variable_id:c2h6<span class="w"> </span>-0
+<p><div class="highlight"><span class="filename">Single variable search</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>variable_id:c2h2<span class="w"> </span>-0
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>variable_id:c2h6<span class="w"> </span>-0
 </code></pre></div>
 <img alt="esgpull search" src="../images/search_2.svg" />
 <img alt="esgpull search" src="../images/search_3.svg" /></p>
-<p><div class="highlight"><span class="filename">Combine both variables in a single search</span><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>variable_id:c2h2,c2h6<span class="w"> </span>-0
+<p><div class="highlight"><span class="filename">Combine both variables in a single search</span><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>variable_id:c2h2,c2h6<span class="w"> </span>-0
 </code></pre></div>
 <img alt="esgpull search" src="../images/search_4.svg" /></p>
 <div class="admonition warning">
@@ -486,7 +501,7 @@ Both are done through the <code>search</code> command.</p>
 </div>
 <h3 id="ignoring-a-facet">Ignoring a facet<a class="headerlink" href="#ignoring-a-facet" title="Permanent link">&para;</a></h3>
 <p>A facet can be ignored by prepending its name with <code>!</code>. In this case, it is not possible to specify other values for this facet.</p>
-<p><div class="highlight"><span class="filename">Ignore all datasets from IPSL</span><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>!institution_id:IPSL
+<p><div class="highlight"><span class="filename">Ignore all datasets from IPSL</span><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>!institution_id:IPSL
 </code></pre></div>
 <img alt="esgpull search ignore" src="../images/search_ignore.svg" /></p>
 <h2 id="free-text-search">Free-text search<a class="headerlink" href="#free-text-search" title="Permanent link">&para;</a></h2>
@@ -503,7 +518,7 @@ Both are done through the <code>search</code> command.</p>
 <h2 id="wildcard-syntax">Wildcard syntax<a class="headerlink" href="#wildcard-syntax" title="Permanent link">&para;</a></h2>
 <p>A <em>wildcard</em> <code>*</code> can be used in both facet (value only) and free-text search, allowing for more controllable search results.</p>
 <p>Note that on most shells, the wildcard symbol should be inside <code>"</code> quotes, to escape it from being expanded by the shell before <code>esgpull</code> receives any input.</p>
-<p><div class="highlight"><span class="filename">All initializations for areacella variable from piControl experiments</span><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;member_id:r1i*p1f1&quot;</span><span class="w"> </span>table_id:fx<span class="w"> </span>variable_id:areacella<span class="w"> </span>experiment_id:piControl
+<p><div class="highlight"><span class="filename">All initializations for areacella variable from piControl experiments</span><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;member_id:r1i*p1f1&quot;</span><span class="w"> </span>table_id:fx<span class="w"> </span>variable_id:areacella<span class="w"> </span>experiment_id:piControl
 </code></pre></div>
 <img alt="esgpull search" src="../images/search_7.svg" /></p>
 <h2 id="case-sensitivity">Case sensitivity<a class="headerlink" href="#case-sensitivity" title="Permanent link">&para;</a></h2>
@@ -517,7 +532,7 @@ Both are done through the <code>search</code> command.</p>
 <!---->
 <!-- The number of requests sent to ESGF after expanding the *subrequests* is equal to the number of *subrequests*. -->
 <!---->
-<!-- A selection file is written using either [Yaml/1.0] or [Json], Yaml is recommended for its human-readable syntax. -->
+<!-- A selection file is written using either [Yaml/1.0] or [JSON], Yaml is recommended for its human-readable syntax. -->
 <!---->
 <!-- !!! note "Syntax Rules" -->
 <!--     1. key/value pair ⇒ **facet search** term -->

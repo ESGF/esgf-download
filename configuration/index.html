@@ -9,17 +9,17 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../configuration/">
+        <link rel="next" href="../quickstart/">
       
       <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.15">
     
     
       
-        <title>Installation - esgpull documentation</title>
+        <title>Configuration - esgpull documentation</title>
       
     
     
@@ -67,7 +67,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#python-version" class="md-skip">
+        <a href="#configuration" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +100,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Configuration
             
           </span>
         </div>
@@ -219,6 +219,21 @@
 
   
   
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        Installation
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
     
   
   
@@ -229,12 +244,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Installation
+          Configuration
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Installation
+        Configuration
       </a>
       
         
@@ -251,64 +266,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#python-version" class="md-nav__link">
-    Python version
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installing-with-conda-mamba" class="md-nav__link">
-    Installing with conda / mamba
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-with-pip" class="md-nav__link">
-    Install with pip
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    Install from source
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
-    Setup
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-do-i-need-to-install-twice" class="md-nav__link">
-    Why do I need to install twice ?
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#multiple-installs" class="md-nav__link">
-    Multiple installs
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#deleting-an-install" class="md-nav__link">
-    Deleting an install
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#login" class="md-nav__link">
+    Login
   </a>
   
 </li>
@@ -317,21 +283,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../configuration/" class="md-nav__link">
-        Configuration
-      </a>
     </li>
   
 
@@ -421,64 +372,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#python-version" class="md-nav__link">
-    Python version
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installing-with-conda-mamba" class="md-nav__link">
-    Installing with conda / mamba
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-with-pip" class="md-nav__link">
-    Install with pip
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    Install from source
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
-    Setup
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-do-i-need-to-install-twice" class="md-nav__link">
-    Why do I need to install twice ?
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#multiple-installs" class="md-nav__link">
-    Multiple installs
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#deleting-an-install" class="md-nav__link">
-    Deleting an install
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#login" class="md-nav__link">
+    Login
   </a>
   
 </li>
@@ -498,60 +400,87 @@
                   
 
 
-  <h1>Installation</h1>
+  <h1>Configuration</h1>
 
-<p>This document covers a few ways to install <code>esgpull</code>, a necessary first step into being able to search and download ESGF datasets.</p>
-<h2 id="python-version">Python version<a class="headerlink" href="#python-version" title="Permanent link">&para;</a></h2>
-<p><code>esgpull</code> only supports python 3.10 and newer.</p>
-<div class="admonition note">
-<p class="admonition-title">Supporting lower python versions could be done with future releases, do not hesitate to ask for it.</p>
-</div>
-<h2 id="installing-with-conda-mamba">Installing with conda / mamba<a class="headerlink" href="#installing-with-conda-mamba" title="Permanent link">&para;</a></h2>
-<p>To install <code>esgpull</code> in a new <code>conda</code> environment, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>conda<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>my_env_name<span class="w"> </span>esgpull<span class="w"> </span>--channel<span class="w"> </span>ipsl<span class="w"> </span>--channel<span class="w"> </span>conda-forge
+<p>This page details some of the options available for configuring your <code>esgpull</code> installation.</p>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<p>On invocation, <code>$ esgpull config</code> will show the base configurations in the terminal.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>────────────────────────────────────────────────────────────────────────────────────────────────────────────────────<span class="w"> </span>/home/me/.esgpull/config.toml<span class="w"> </span>─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="o">[</span>paths<span class="o">]</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">auth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/auth&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/data&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nv">db</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/db&quot;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nv">log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/log&quot;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nv">tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/tmp&quot;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="o">[</span>credentials<span class="o">]</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;credentials.toml&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="o">[</span>cli<span class="o">]</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nv">page_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="o">[</span>db<span class="o">]</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgpull.db&quot;</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="o">[</span>download<span class="o">]</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nv">chunk_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">67108864</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="o">[</span>api<span class="o">]</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-node.ipsl.upmc.fr&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="o">[</span>api.default_options<span class="o">]</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
 </code></pre></div>
-<p>For <code>mamba</code> users:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>my_env_name<span class="w"> </span>esgpull<span class="w"> </span>--channel<span class="w"> </span>ipsl<span class="w"> </span>--channel<span class="w"> </span>conda-forge
+<p>To modify a config item from the command line, the dot-separated path to that item must
+be provided as the first argument along with the new value that item should get as the second argument:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>api.index_node<span class="w"> </span>esgf-data.dkrz.de
 </code></pre></div>
-<p>You can start using <code>esgpull</code> after activating the environment:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>my_env_name
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>esgpull<span class="w"> </span>--version
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="o">[</span>api<span class="o">]</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-data.dkrz.de&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Previous<span class="w"> </span>value:<span class="w"> </span>esgf-node.ipsl.upmc.fr
+</code></pre></div></p>
+<p>On first call, this will generate a <code>config.toml</code> file in the <code>~/.esgpull</code> directory with the
+new values modified.</p>
+<p>If a user wishes to simply generate the <code>config.toml</code> file without modifying any values, they
+simply must run the following:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>--generate<span class="w"> </span>
 </code></pre></div>
-<h2 id="install-with-pip">Install with pip<a class="headerlink" href="#install-with-pip" title="Permanent link">&para;</a></h2>
-<p>Make sure your python version meets the requirements (&gt;=3.10), then you can run:</p>
-<div class="highlight"><span class="filename">Install esgpull from pip</span><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/ESGF/esgf-download
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">{</span><span class="w"> </span>...<span class="w"> </span>Default<span class="w"> </span>configuration<span class="w"> </span>output<span class="w"> </span>...<span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>👍<span class="w"> </span>Config<span class="w"> </span>generated<span class="w"> </span>at<span class="w"> </span>/home/me/.esgpull/config.toml
+</code></pre></div></p>
+<h2 id="login">Login<a class="headerlink" href="#login" title="Permanent link">&para;</a></h2>
+<p>Although most data on ESGF can be downloaded without authentication, some datasets require a valid OpenID login and password.
+The ESGF OpenID authentication system is described on the <a href="http://www.esgf.io/esgf-user-support/user_guide.html">ESGF user documentation</a>.
+This can be provided from the command line by running the following:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>login
 </code></pre></div>
-<h2 id="install-from-source">Install from source<a class="headerlink" href="#install-from-source" title="Permanent link">&para;</a></h2>
-<p>Esgpull is developed and maintained on GitHub, you can clone the public repository with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/ESGF/esgf-download
-</code></pre></div>
-<p>And then install with <code>pip</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cd esg-pull
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>python -m pip install .
-</code></pre></div>
-<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
-<p>Installing <code>esgpull</code> is the first step to using it, but not the only one.</p>
-<details class="warning">
-<summary>Once you have installed the <code>esgpull</code> package, make sure to read this section.</summary>
-<p>Only a few <code>esgpull</code> commands work out of the box, namely <code>search</code> and <code>convert</code>.</p>
-<p>To use the full set of functionalities, you will need to setup a local install with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>esgpull<span class="w"> </span>self<span class="w"> </span>install
-</code></pre></div>
-<h2 id="why-do-i-need-to-install-twice">Why do I need to install twice ?<a class="headerlink" href="#why-do-i-need-to-install-twice" title="Permanent link">&para;</a></h2>
-<p>The reason is that <code>esgpull</code> is prevented from writing anything on disk until installed.</p>
-<p>Installing <code>esgpull</code> equates choosing a directory in which it is allowed to write anything it needs to run properly. It also creates all the required files/directories in that directory and fetches some metadata from ESGF that is required to run properly.</p>
-<h2 id="multiple-installs">Multiple installs<a class="headerlink" href="#multiple-installs" title="Permanent link">&para;</a></h2>
-<p>It is possible to have multiple installs, which allows using multiple configurations on the same machine.</p>
-<p>Installing in a directory which is an existing <code>esgpull</code> install is possible and intended. It allows sharing a single configuration across multiple users.</p>
-<h2 id="deleting-an-install">Deleting an install<a class="headerlink" href="#deleting-an-install" title="Permanent link">&para;</a></h2>
-<p>To delete an <code>esgpull</code> install, it is required that this install is active.</p>
-<p>Deleting does not <code>rm</code> any file, it only removes the option to use this install.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>esgpull<span class="w"> </span>self<span class="w"> </span>choose<span class="w"> </span>&lt;path/to/install&gt;
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>esgpull<span class="w"> </span>self<span class="w"> </span>delete
-</code></pre></div>
-</details>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>esgpull</code> is highly configurable, and it is recommended to take a look at the <a href="../configuration/">configuration</a> page to learn more about it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>No<span class="w"> </span>credentials<span class="w"> </span>found.
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="w"> </span>esg-dn1.nsc.liu.se
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="o">[</span><span class="m">1</span><span class="o">]</span><span class="w"> </span>esgf-data.dkrz.de
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="o">[</span><span class="m">2</span><span class="o">]</span><span class="w"> </span>ceda.ac.uk
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="w"> </span>esgf-node.ipsl.upmc.fr
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="o">[</span><span class="m">4</span><span class="o">]</span><span class="w"> </span>esgf-node.llnl.gov
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="o">[</span><span class="m">5</span><span class="o">]</span><span class="w"> </span>esgf.nci.org.au
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>Select<span class="w"> </span>a<span class="w"> </span>provider:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>User:<span class="w"> </span>MyESGFusername<span class="w"> </span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>Password:<span class="w"> </span>&lt;hidden&gt;
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>Certificates<span class="w"> </span>are<span class="w"> </span>missing.
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>👍<span class="w"> </span>Renewed<span class="w"> </span>successfully
+</code></pre></div></p>
+<p>The credentials will then be saved under the <code>~/.esgpull/auth</code> directory, within 
+<code>credentials.toml</code>, which can then be used for future sessions.</p>
 
 
 

@@ -236,6 +236,21 @@
   
   
     <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        Configuration
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../quickstart/" class="md-nav__link">
         Quickstart
       </a>
@@ -478,7 +493,7 @@ Then it makes sense to show datasets when exploring data.</p>
 <p><code>esgpull</code> only uses files in the database and for everything related to download.</p>
 </div>
 <p>To make things easier to explain, we will use the following example query in this document:</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>experiment_id:historical<span class="w"> </span>institution_id:IPSL<span class="w"> </span>variable_id:tas<span class="w"> </span>table_id:Amon<span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>--distrib<span class="w"> </span><span class="nb">true</span><span class="w"> </span>--show
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>experiment_id:historical<span class="w"> </span>institution_id:IPSL<span class="w"> </span>variable_id:tas<span class="w"> </span>table_id:Amon<span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>--distrib<span class="w"> </span><span class="nb">true</span><span class="w"> </span>--show
 </code></pre></div>
 <img alt="esgpull download" src="../images/download_1.svg" /></p>
 <p>Our query, named <code>&lt;7fd1f2&gt;</code>, corresponds to the following 15 datasets:
@@ -486,7 +501,7 @@ Then it makes sense to show datasets when exploring data.</p>
 <h2 id="adding-a-query">Adding a query<a class="headerlink" href="#adding-a-query" title="Permanent link">&para;</a></h2>
 <p>The first necessary step is to add <code>&lt;7fd1f2&gt;</code> to the database.
 Simply replace <code>search</code> with <code>add</code> and remove any flags specific to the search command, in our case we need to remove <code>--show</code>.</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>esgpull<span class="w"> </span>add<span class="w"> </span>project:CMIP6<span class="w"> </span>experiment_id:historical<span class="w"> </span>institution_id:IPSL<span class="w"> </span>variable_id:tas<span class="w"> </span>table_id:Amon<span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>--distrib<span class="w"> </span><span class="nb">true</span>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>add<span class="w"> </span>project:CMIP6<span class="w"> </span>experiment_id:historical<span class="w"> </span>institution_id:IPSL<span class="w"> </span>variable_id:tas<span class="w"> </span>table_id:Amon<span class="w"> </span>member_id:r1i1p1f1<span class="w"> </span>--distrib<span class="w"> </span><span class="nb">true</span>
 </code></pre></div>
 <img alt="esgpull download" src="../images/download_3.svg" /></p>
 <div class="admonition note">
@@ -502,14 +517,14 @@ When a query is tracked, it will always be checked for new files on later usage 
 <li>use the <code>track</code> command with the query id as an argument,</li>
 <li>use the <code>--track</code> flag on the <code>add</code> command to have it tracked directly.</li>
 </ul>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>esgpull<span class="w"> </span>track<span class="w"> </span>7fd1f2
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>track<span class="w"> </span>7fd1f2
 </code></pre></div>
 <img alt="esgpull download" src="../images/download_4.svg" /></p>
 <h2 id="updating-a-query">Updating a query<a class="headerlink" href="#updating-a-query" title="Permanent link">&para;</a></h2>
 <p>To associate a query with actual files, it needs to be <strong>updated</strong>.</p>
 <p>Updating a query will send requests to the ESGF search api to fetch metadata for each file corresponding to the query. Any file that is not already in the database is added and <strong>linked</strong> to the query. Files already in the database are simply linked to the query. This would happen for example if a file was previously fetched with another query.</p>
 <p>For those familiar with package managers such as <code>apt</code>, the <code>update</code> command should feel familiar with how those require update <em>lists</em> to fetch latest versions of packages before actually downloading (and installing in this case).</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>esgpull<span class="w"> </span>update<span class="w"> </span>7fd1f2
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>update<span class="w"> </span>7fd1f2
 </code></pre></div>
 <img alt="esgpull download" src="../images/download_5.svg" /></p>
 <div class="admonition note">
@@ -519,7 +534,7 @@ When a query is tracked, it will always be checked for new files on later usage 
 </div>
 <h2 id="downloading">Downloading<a class="headerlink" href="#downloading" title="Permanent link">&para;</a></h2>
 <p>All that remains after these steps is to download the files:</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>download
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>download
 </code></pre></div>
 <img alt="esgpull download" src="../images/download_6.svg" /></p>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
@@ -529,7 +544,7 @@ When a query is tracked, it will always be checked for new files on later usage 
 <h3 id="failed-downloads">Failed downloads<a class="headerlink" href="#failed-downloads" title="Permanent link">&para;</a></h3>
 <p>For each failed download, their status will be set to <strong>error</strong>.</p>
 <p>Those can be put back to the download queue, by using the <code>retry</code> command.</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>esgpull<span class="w"> </span>retry<span class="w"> </span>--help
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>retry<span class="w"> </span>--help
 </code></pre></div>
 <div class="markdown result highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Usage:<span class="w"> </span>esgpull<span class="w"> </span>retry<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span><span class="o">[[</span>new<span class="p">|</span>queued<span class="p">|</span>starting<span class="p">|</span>started<span class="p">|</span>pausing<span class="p">|</span>paused<span class="p">|</span>er
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">                     </span>ror<span class="p">|</span>cancelled<span class="p">|</span><span class="k">done</span><span class="o">]]</span>...
