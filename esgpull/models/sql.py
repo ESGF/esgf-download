@@ -114,6 +114,10 @@ class file:
         return sa.select(File).where(File.status.in_(status))
 
     @staticmethod
+    def with_file_id(file_id: str) -> sa.Select[tuple[str]]:
+        return sa.select(File.sha).where(File.file_id == file_id).limit(1)
+
+    @staticmethod
     def total_size_with_status(
         *status: FileStatus,
         query_sha: str | None = None,
