@@ -3,6 +3,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import init_esgpull
+from esgpull.config import ConfigKind
 from esgpull.tui import Verbosity
 
 
@@ -25,11 +26,13 @@ def extract_command(doc: dict, key: str | None) -> dict:
 @args.key
 @args.value
 @opts.generate
+@opts.record
 @opts.verbosity
 def config(
     key: str | None,
     value: str | None,
     generate: bool,
+    record: bool,
     verbosity: Verbosity,
 ):
     """
@@ -49,22 +52,42 @@ def config(
 
     Only config items can be modified.
     """
-    esg = init_esgpull(verbosity=verbosity, load_db=False)
+    esg = init_esgpull(verbosity=verbosity, load_db=False, record=record)
     with esg.ui.logging("config", onraise=Abort):
         if key is not None and value is not None:
+            kind = esg.config.kind
             old_value = esg.config.update_item(key, value, empty_ok=True)
             info = extract_command(esg.config.dump(), key)
             esg.config.write()
             esg.ui.print(info, toml=True)
-            esg.ui.print(f"Previous value: {old_value}")
+            if kind == ConfigKind.NoFile:
+                esg.ui.print(
+                    ":+1: New config file created at "
+                    f"{esg.config._config_file}."
+                )
+            else:
+                esg.ui.print(f"Previous value: {old_value}")
         elif key is not None:
             info = extract_command(esg.config.dump(), key)
             esg.ui.print(info, toml=True)
+        elif generate:
+            overwrite = False
+            if esg.config.kind == ConfigKind.Complete:
+                esg.ui.print(
+                    f"{esg.config._config_file}\n"
+                    ":+1: Your config file is already complete."
+                )
+                esg.ui.raise_maybe_record(Exit(0))
+            elif esg.config.kind == ConfigKind.Partial and esg.ui.ask(
+                "A config file already exists,"
+                " fill it with missing defaults?",
+                default=False,
+            ):
+                overwrite = True
+            esg.config.generate(overwrite=overwrite)
+            msg = f":+1: Config generated at {esg.config._config_file}"
+            esg.ui.print(msg)
         else:
             esg.ui.rule(str(esg.config._config_file))
             esg.ui.print(esg.config.dump(), toml=True)
-            if generate:
-                esg.config.generate()
-                msg = f":+1: Config generated at {esg.config._config_file}"
-                esg.ui.print(msg)
-                raise Exit(0)
+        esg.ui.raise_maybe_record(Exit(0))
