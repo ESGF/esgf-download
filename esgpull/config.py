@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Container, Iterator
+from collections.abc import Container, Iterator, Mapping
+from enum import Enum, auto
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import tomlkit
 from attrs import Factory, define, field
@@ -138,6 +139,67 @@ def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
 config_fixers = [fix_rename_search_api]
 
 
+class ConfigKind(Enum):
+    Virtual = auto()
+    NoFile = auto()
+    Partial = auto()
+    Complete = auto()
+
+
+class ConfigKey:
+    path: tuple[str, ...]
+
+    def __init__(self, first: str | tuple[str, ...], *rest: str) -> None:
+        if isinstance(first, tuple):
+            self.path = first + rest
+        elif "." in first:
+            self.path = tuple(first.split(".")) + rest
+        else:
+            self.path = (first,) + rest
+
+    def __iter__(self) -> Iterator[str]:
+        yield from self.path
+
+    def __hash__(self) -> int:
+        return hash(self.path)
+
+    def __repr__(self) -> str:
+        return ".".join(self)
+
+    def __add__(self, path: str) -> ConfigKey:
+        return ConfigKey(self.path, path)
+
+    def exists_in(self, source: Mapping) -> bool:
+        doc = source
+        for key in self:
+            if key in doc:
+                doc = doc[key]
+            else:
+                return False
+        return True
+
+    def value_of(self, source: Mapping) -> Any:
+        doc = source
+        for key in self:
+            doc = doc[key]
+        return doc
+
+
+def iter_keys(
+    source: Mapping,
+    path: ConfigKey | None = None,
+) -> Iterator[ConfigKey]:
+    for key in source.keys():
+        if path is None:
+            local_path = ConfigKey(key)
+        else:
+            local_path = path + key
+        if isinstance(source[key], Mapping):
+            yield from iter_keys(source[key], local_path)
+        else:
+            yield local_path
+
+
 @define
 class Config:
     paths: Paths = Factory(Paths)
@@ -177,6 +239,17 @@ class Config:
             root = InstallConfig.default
         return cls.load(root)
 
+    @property
+    def kind(self) -> ConfigKind:
+        if self._config_file is None:
+            return ConfigKind.Virtual
+        elif not self._config_file.is_file():
+            return ConfigKind.NoFile
+        elif self.unset_options():
+            return ConfigKind.Partial
+        else:
+            return ConfigKind.Complete
+
     def dumps(self, defaults: bool = True, comments: bool = False) -> str:
         return self.dump(defaults, comments).as_string()
 
@@ -204,14 +277,14 @@ class Config:
         value: int | str,
         empty_ok: bool = False,
     ) -> int | str | None:
-        if self._config_file is not None and self._raw is None and empty_ok:
-            self.generate(key)
+        if self._raw is None and empty_ok:
+            self._raw = TOMLDocument()
         if self._raw is None:
             raise VirtualConfigError
         else:
             doc: dict = self._raw
         obj = self
-        *parts, last = key.split(".")
+        *parts, last = ConfigKey(key)
         for part in parts:
             doc.setdefault(part, {})
             doc = doc[part]
@@ -229,27 +302,43 @@ class Config:
         doc[last] = value
         return old_value
 
-    def generate(self, key: str | None = None) -> None:
-        if self._config_file is None:
-            raise VirtualConfigError
-        elif self._config_file.is_file():
-            raise FileExistsError(self._config_file)
-        with self._config_file.open("w") as f:
-            if key is None:
+    def unset_options(self) -> list[ConfigKey]:
+        result: list[ConfigKey] = []
+        raw: dict
+        dump = self.dump()
+        if self._raw is None:
+            raw = {}
+        else:
+            raw = self._raw
+        for ckey in iter_keys(dump):
+            if not ckey.exists_in(raw):
+                result.append(ckey)
+        return result
+
+    def generate(
+        self,
+        overwrite: bool = False,
+    ) -> None:
+        match (self.kind, overwrite):
+            case (ConfigKind.Virtual, _):
+                raise VirtualConfigError
+            case (ConfigKind.Partial, overwrite):
+                defaults = self.dump()
+                for ckey in self.unset_options():
+                    self.update_item(str(ckey), ckey.value_of(defaults))
+            case (ConfigKind.Partial | ConfigKind.Complete, _):
+                raise FileExistsError(self._config_file)
+            case (ConfigKind.NoFile, _):
                 self._raw = self.dump()
-            else:
-                self._raw = TOMLDocument()
-                *parts, last = key.split(".")
-                doc: dict = {last: "NOT_SET"}
-                for part in parts[::-1]:
-                    doc = {part: doc}
-                self._raw.update(doc)
-            tomlkit.dump(self._raw, f)
+            case _:
+                raise ValueError(self.kind)
+        self.write()
 
     def write(self) -> None:
-        if self._raw is None or self._config_file is None:
+        if self.kind == ConfigKind.Virtual or self._raw is None:
             raise VirtualConfigError
-        with self._config_file.open("w") as f:
+        config_file = cast(Path, self._config_file)
+        with config_file.open("w") as f:
             tomlkit.dump(self._raw, f)
 
 
