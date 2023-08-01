@@ -11,7 +11,7 @@ from esgpull.auth import Auth
 from esgpull.config import Config
 from esgpull.download import DownloadCtx, Simple
 from esgpull.exceptions import DownloadSizeError
-from esgpull.fs import Filesystem
+from esgpull.fs import Digest, Filesystem
 from esgpull.models import File
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import logger
@@ -52,6 +52,8 @@ class Task:
         self.auth = auth
         self.fs = fs
         self.ctx = DownloadCtx(file)
+        if not self.config.download.disable_checksum:
+            self.ctx.digest = Digest(file)
         # if file is None and url is not None:
         #     self.file = self.fetch_file(url)
         # elif file is not None:
@@ -117,7 +119,7 @@ class Task:
                         await stream.aclose()
                         break
                     elif ctx.finished:
-                        file_obj.finished = True
+                        await file_obj.to_done()
                     yield Ok(ctx)
         except (
             HTTPError,
@@ -139,10 +141,10 @@ class Processor:
         start_callbacks: dict[str, list[Callback]],
     ) -> None:
         self.config = config
-        self.files = files
         self.fs = fs
+        self.files = list(filter(self.should_download, files))
         self.tasks = []
-        for file in filter(self.should_download, files):
+        for file in files:
             task = Task(
                 config=config,
                 auth=auth,
@@ -153,8 +155,7 @@ class Processor:
             self.tasks.append(task)
 
     def should_download(self, file: File) -> bool:
-        path = self.fs.path_of(file)
-        if path.is_file():
+        if self.fs[file].drs.is_file():
             return False
         else:
             return True

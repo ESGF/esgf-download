@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from functools import cached_property, partial
 from pathlib import Path
-from typing import AsyncIterator
 from warnings import warn
 
+from rich.live import Live
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -43,7 +44,7 @@ from esgpull.models import (
 from esgpull.models.utils import short_sha
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
-from esgpull.tui import UI, Verbosity, logger
+from esgpull.tui import UI, DummyLive, Verbosity, logger
 from esgpull.utils import format_size
 
 
@@ -305,6 +306,7 @@ class Esgpull:
         processor: Processor,
         progress: Progress,
         task_ids: dict[str, TaskID],
+        live: Live | DummyLive,
     ) -> AsyncIterator[Result]:
         async for result in processor.process():
             task_idx = progress.task_ids.index(task_ids[result.data.file.sha])
@@ -317,16 +319,31 @@ class Esgpull:
                         # TODO: add checksum verif here
                         progress.stop_task(task.id)
                         progress.update(task.id, visible=False)
-                        sha = short_sha(result.data.file.sha)
-                        sha = f"file: [cyan]{sha}[/]"
-                        size = f"[green]{format_size(int(task.completed))}[/]"
-                        items = [sha, size]
-                        if task.elapsed is not None:
-                            final_speed = int(task.completed / task.elapsed)
-                            speed = f"[red]{format_size(final_speed)}/s[/]"
-                            items.append(speed)
-                        logger.info("✓ " + " · ".join(items))
-                        yield result
+                        sha = f"[b blue]{task.fields['sha']}[/]"
+                        file = result.data.file
+                        digest = result.data.digest
+                        match self.fs.finalize(file, digest=digest):
+                            case Ok():
+                                size = f"[green]{format_size(int(task.completed))}[/]"
+                                if task.elapsed is not None:
+                                    final_speed = int(
+                                        task.completed / task.elapsed
+                                    )
+                                    speed = (
+                                        f"[red]{format_size(final_speed)}/s[/]"
+                                    )
+                                else:
+                                    speed = "[b red]?[/]"
+                                data_node = (
+                                    f"[blue]{task.fields['data_node']}[/]"
+                                )
+                                msg = " · ".join([sha, size, speed, data_node])
+                                logger.info(msg)
+                                live.console.print(msg)
+                                yield result
+                            case Err(_, err):
+                                progress.remove_task(task.id)
+                                yield Err(result.data, err)
                 case Err():
                     progress.remove_task(task.id)
                     yield result
@@ -340,33 +357,37 @@ class Esgpull:
         show_progress: bool = True,
     ) -> tuple[list[File], list[Err]]:
         """
-        Download all files from db for which status is `Queued`.
+        Download files provided in `queue`.
         """
         for file in queue:
             file.status = FileStatus.Starting
-        if use_db:
-            self.db.add(*queue)
         main_progress = self.ui.make_progress(
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
         )
         file_progress = self.ui.make_progress(
-            TextColumn("[cyan][{task.id}]"),
+            TextColumn("[cyan][{task.id}] [b blue]{task.fields[sha]}"),
             "[progress.percentage]{task.percentage:>3.0f}%",
             BarColumn(),
             "·",
-            DownloadColumn(),
+            DownloadColumn(binary_units=True),
             "·",
             TransferSpeedColumn(),
+            "·",
+            TextColumn("[blue]{task.fields[data_node]}"),
             transient=True,
         )
-        queue_size = len(queue)
         file_task_shas = {}
         start_callbacks = {}
         for file in queue:
             task_id = file_progress.add_task(
-                "", total=file.size, visible=False, start=False
+                "",
+                total=file.size,
+                visible=False,
+                start=False,
+                sha=short_sha(file.sha),
+                data_node=file.data_node,
             )
             callback = partial(file_progress.start_task, task_id)
             file_task_shas[file.sha] = task_id
@@ -378,19 +399,25 @@ class Esgpull:
             files=queue,
             start_callbacks=start_callbacks,
         )
-        main_task_id = main_progress.add_task("", total=len(processor.tasks))
+        if use_db:
+            self.db.add(*processor.files)
+        queue_size = len(processor.tasks)
+        main_task_id = main_progress.add_task("", total=queue_size)
         # TODO: rename ? installed/downloaded/completed/...
         files: list[File] = []
         errors: list[Err] = []
-        remaining_dict = {task.file.sha: task.file for task in processor.tasks}
+        remaining_dict = {file.sha: file for file in processor.files}
         try:
             with self.ui.live(
                 file_progress,
                 main_progress,
                 disable=not show_progress,
-            ):
+            ) as live:
                 async for result in self.iter_results(
-                    processor, file_progress, file_task_shas
+                    processor,
+                    file_progress,
+                    file_task_shas,
+                    live,
                 ):
                     match result:
                         case Ok():
@@ -406,7 +433,7 @@ class Esgpull:
                             errors.append(result)
                     if use_db:
                         self.db.add(result.data.file)
-                    remaining_dict.pop(result.data.file.sha)
+                    remaining_dict.pop(result.data.file.sha, None)
         finally:
             if remaining_dict:
                 logger.warning(f"Cancelling {len(remaining_dict)} downloads.")
