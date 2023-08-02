@@ -62,12 +62,21 @@ class Verbosity(IntEnum):
         return Text(self.name.upper(), style=f"logging.level.{self.name}")
 
 
+class DummyConsole:
+    def print(self, msg: str) -> None:
+        pass
+
+
 class DummyLive:
-    def __enter__(self):
-        ...
+    def __enter__(self) -> DummyLive:
+        return self
 
     def __exit__(self, *args):
         ...
+
+    @property
+    def console(self) -> DummyConsole:
+        return DummyConsole()
 
 
 def yaml_syntax(data: Mapping[str, Any]) -> Syntax:

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from httpx import AsyncClient
 
+from esgpull.fs import Digest
 from esgpull.models import File
 
 # import asyncio
@@ -17,6 +18,7 @@ class DownloadCtx:
     file: File
     completed: int = 0
     chunk: bytes | None = None
+    digest: Digest | None = None
 
     @property
     def finished(self) -> bool:
@@ -25,6 +27,10 @@ class DownloadCtx:
     @property
     def error(self) -> bool:
         return self.completed > self.file.size
+
+    def update_digest(self) -> None:
+        if self.digest is not None and self.chunk is not None:
+            self.digest.update(self.chunk)
 
 
 class BaseDownloader:
@@ -51,6 +57,7 @@ class Simple(BaseDownloader):
             async for chunk in resp.aiter_bytes():
                 ctx.completed += len(chunk)
                 ctx.chunk = chunk
+                ctx.update_digest()
                 yield ctx
 
 

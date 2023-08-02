@@ -1,12 +1,14 @@
 import asyncio
 
+import httpx
 import pytest
 
 from esgpull.auth import Auth
 from esgpull.config import Config
-from esgpull.fs import Filesystem
+from esgpull.fs import FileCheck, Filesystem
 from esgpull.models import File
 from esgpull.processor import Task
+from esgpull.result import Ok
 
 
 @pytest.fixture
@@ -78,12 +80,16 @@ async def run_task(task_):
     return result
 
 
-@pytest.mark.slow
+@pytest.mark.xfail(
+    raises=(httpx.ConnectTimeout, httpx.ReadTimeout),
+    reason="this is dependent on the IPSL data node's health (unstable)",
+)
 def test_task(auth, fs, smallfile, task):
     result = asyncio.run(run_task(task))
     if not result.ok:
         raise result.err
-    with fs.path_of(smallfile).open("rb") as f:
+    assert fs.finalize(smallfile) == Ok(FileCheck.Ok)
+    with fs[smallfile].drs.open("rb") as f:
         data = f.read()
     assert len(data) == smallfile.size
 
