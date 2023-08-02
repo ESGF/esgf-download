@@ -109,7 +109,11 @@ class Task:
             ):
                 for callback in self.start_callbacks:
                     callback()
-                stream = self.downloader.stream(client, ctx)
+                stream = self.downloader.stream(
+                    client,
+                    ctx,
+                    self.config.download.chunk_size,
+                )
                 async for ctx in stream:
                     if ctx.chunk is not None:
                         await file_obj.write(ctx.chunk)

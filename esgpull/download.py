@@ -38,6 +38,7 @@ class BaseDownloader:
         self,
         client: AsyncClient,
         ctx: DownloadCtx,
+        chunk_size: int,
     ) -> AsyncGenerator[DownloadCtx, None]:
         raise NotImplementedError
 
@@ -51,10 +52,11 @@ class Simple(BaseDownloader):
         self,
         client: AsyncClient,
         ctx: DownloadCtx,
+        chunk_size: int,
     ) -> AsyncGenerator[DownloadCtx, None]:
         async with client.stream("GET", ctx.file.url) as resp:
             resp.raise_for_status()
-            async for chunk in resp.aiter_bytes():
+            async for chunk in resp.aiter_bytes(chunk_size=chunk_size):
                 ctx.completed += len(chunk)
                 ctx.chunk = chunk
                 ctx.update_digest()
