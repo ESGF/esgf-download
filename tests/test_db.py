@@ -2,16 +2,8 @@ import pytest
 import sqlalchemy as sa
 
 from esgpull import __version__
-from esgpull.config import Config
 from esgpull.database import Database
 from esgpull.models import Facet, FileStatus, sql
-
-
-@pytest.fixture
-def config(root):
-    cfg = Config.load(root)
-    cfg.paths.db.mkdir(parents=True)
-    return cfg
 
 
 @pytest.fixture

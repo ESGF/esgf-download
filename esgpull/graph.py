@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Iterator, Mapping
 
 from rich.console import Console, ConsoleOptions
 from rich.pretty import pretty_repr
@@ -28,31 +28,11 @@ class Graph:
     _deleted_shas: set[str]
 
     @classmethod
-    def from_config(
-        cls,
-        config: Config,
-        *queries: Query,
-        force: bool = False,
-        noraise: bool = False,
-        load_db: bool = False,
-    ) -> Graph:
+    def from_config(cls, config: Config) -> Graph:
         db = Database.from_config(config)
-        return Graph(
-            db,
-            *queries,
-            force=force,
-            noraise=noraise,
-            load_db=load_db,
-        )
+        return Graph(db)
 
-    def __init__(
-        self,
-        db: Database | None,
-        *queries: Query,
-        force: bool = False,
-        noraise: bool = False,
-        load_db: bool = False,
-    ) -> None:
+    def __init__(self, db: Database | None) -> None:
         self._db = db
         self.queries = {}
         self._shas = set()
@@ -60,9 +40,6 @@ class Graph:
         self._deleted_shas = set()
         if db is not None:
             self._load_db_shas()
-        if load_db:
-            self.load_db()
-        self.add(*queries, force=force, noraise=noraise)
 
     @property
     def db(self) -> Database:
@@ -119,8 +96,6 @@ class Graph:
         sha = self._expand_name(name, self._shas, self._name_sha)
         if sha in self.queries:
             ...
-        # elif self.db is None:
-        #     raise GraphWithoutDatabase()
         elif sha in self._shas:
             query_db = self.db.get(Query, sha)
             if query_db is not None:
@@ -133,9 +108,6 @@ class Graph:
 
     def get_mutable(self, name: str) -> Query:
         sha = self._expand_name(name, self._shas, self._name_sha)
-        # if self.db is None:
-        #     raise GraphWithoutDatabase()
-        # elif sha in self._shas:
         if sha in self._shas:
             query_db = self.db.get(
                 Query,
@@ -151,36 +123,23 @@ class Graph:
             raise KeyError(name)
         return self.queries[sha]
 
-    def get_children(
-        self,
-        parent_sha: str | None,
-        shas: set[str] | None = None,
-    ) -> list[Query]:
-        if shas is None:
-            shas = set(self._shas)
-        children: list[Query] = []
-        for sha in shas:
-            query = self.get(sha)
-            if query.require == parent_sha:
-                children.append(query)
+    def get_children(self, sha: str) -> Sequence[Query]:
+        if self._db is None:
+            children: list[Query] = []
+            for query in self.queries.values():
+                if query.require == sha:
+                    children.append(query)
+        elif sha is None:
+            return []
+        else:
+            return self.db.scalars(sql.query.children(sha))
         return children
 
-    def get_all_children(
-        self,
-        sha: str | None,
-        shas: set[str] | None = None,
-    ) -> list[Query]:
-        if shas is None:
-            shas = set(self._shas)
-        else:
-            shas = set(shas)
-        children = self.get_children(sha, shas)
-        shas = shas - set([query.sha for query in children])
-        for i in range(len(children)):
-            query = children[i]
-            query_children = self.get_all_children(query.sha, shas)
-            children.extend(query_children)
-            shas = shas - set([query_kid.sha for query_kid in query_children])
+    def get_all_children(self, sha: str) -> Sequence[Query]:
+        children: list[Query] = []
+        for query in self.get_children(sha):
+            children.append(query)
+            children.extend(self.get_all_children(query.sha))
         return children
 
     def get_parent(self, query: Query) -> Query | None:
@@ -198,10 +157,6 @@ class Graph:
         return result
 
     def get_tags(self) -> list[Tag]:
-        # if self.db is None:
-        #     raise GraphWithoutDatabase()
-        # else:
-        #     return list(self.db.scalars(sql.tag.all()))
         return list(self.db.scalars(sql.tag.all()))
 
     def get_tag(self, name: str) -> Tag | None:
@@ -242,31 +197,31 @@ class Graph:
             queries_shas = [q.sha for q in queries]
             graph.load_db(*queries_shas)
         else:
-            graph = Graph(None, *queries, force=True)
-        shas = set(self._shas)
+            graph = Graph(None)
+            graph.add(*queries, force=True, clone=False)
         if children:
             for query in queries:
-                shas = shas - graph._shas
-                query_children = self.get_all_children(query.sha, shas)
+                query_children = self.get_all_children(query.sha)
+                if len(query_children) == 0:
+                    continue
                 if keep_db:
                     children_shas = [q.sha for q in query_children]
                     graph.load_db(*children_shas)
                 else:
-                    graph.add(*query_children, force=True)
+                    graph.add(*query_children, force=True, clone=False)
         if parents:
             for query in queries:
-                shas = shas - graph._shas
                 query_parents = self.get_parents(query)
+                if len(query_parents) == 0:
+                    continue
                 if keep_db:
                     parents_shas = [q.sha for q in query_parents]
                     graph.load_db(*parents_shas)
                 else:
-                    graph.add(*query_parents, force=True)
+                    graph.add(*query_parents, force=True, clone=False)
         return graph
 
     def _load_db_shas(self, full: bool = False) -> None:
-        # if self.db is None:
-        #     raise GraphWithoutDatabase()
         name_sha: dict[str, str] = {}
         self._shas = set(self.db.scalars(sql.query.shas()))
         for name, sha in self.db.rows(sql.query.name_sha()):
@@ -274,9 +229,6 @@ class Graph:
         self._name_sha = name_sha
 
     def load_db(self, *shas: str) -> None:
-        # if self.db is None:
-        #     raise GraphWithoutDatabase()
-        # self._load_db_shas()
         if shas:
             unloaded_shas = set(shas)
         else:
@@ -373,8 +325,6 @@ class Graph:
         Why was this implemented?
         Maybe useful to enable adding facets (e.g. `table_id:*day*`)
         """
-        # if self.db is None:
-        #     raise GraphWithoutDatabase()
         facets: dict[str, Facet] = {}
         for query in self.queries.values():
             for facet in query.selection._facets:
@@ -383,7 +333,7 @@ class Graph:
         shas = list(facets.keys())
         known_shas = self.db.scalars(sql.facet.known_shas(shas))
         unknown_shas = set(shas) - set(known_shas)
-        unknown_facets = set([facets[sha] for sha in unknown_shas])
+        unknown_facets = {facets[sha] for sha in unknown_shas}
         return unknown_facets
 
     def merge(self) -> Mapping[str, Query]:
@@ -398,8 +348,6 @@ class Graph:
         Only load options/selection/facets if query is not in db,
         and updated options/selection/facets should change sha value.
         """
-        # if self.db is None:
-        #     raise GraphWithoutDatabase()
         updated_shas: set[str] = set()
         for sha, query in self.queries.items():
             query_db = self.db.merge(query, commit=True)
@@ -413,10 +361,6 @@ class Graph:
             if query_to_delete is not None:
                 self.db.delete(query_to_delete)
         return {sha: self.queries[sha] for sha in updated_shas}
-
-    # def remove(self, *queries: Query) -> None:
-    #     for query in self.queries:
-    #         if query.sha in
 
     def expand(self, name: str) -> Query:
         """
@@ -444,7 +388,12 @@ class Graph:
                 result[sha]["files"] = [f.asdict() for f in query.files]
         return result
 
-    def fill_tree(self, root: Query | None, tree: Tree) -> None:
+    def fill_tree(
+        self,
+        root: Query | None,
+        tree: Tree,
+        keep_require: bool = False,
+    ) -> None:
         """
         Recursive method to add branches starting from queries with either:
             - require is None
@@ -462,7 +411,10 @@ class Graph:
                     query_tree = query._rich_tree()
             elif query.require == root.sha:
                 self._rendered.add(sha)
-                query_tree = query.no_require()._rich_tree()
+                if keep_require:
+                    query_tree = query._rich_tree()
+                else:
+                    query_tree = query.no_require()._rich_tree()
             if query_tree is not None:
                 tree.add(query_tree)
                 self.fill_tree(query, query_tree)
@@ -480,6 +432,13 @@ class Graph:
         tree = Tree("", hide_root=True, guide_style="dim")
         self._rendered = set()
         self.fill_tree(None, tree)
+        unrendered = set(self.queries.keys()) - self._rendered
+        for sha in unrendered:
+            query = self.get(sha)
+            if query.require is None:
+                continue
+            parent = self.get(query.require)
+            self.fill_tree(parent, tree, keep_require=True)
         del self._rendered
         yield tree
 

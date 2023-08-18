@@ -11,11 +11,6 @@ def creds():
     return Credentials("esgf-node.ipsl.upmc.fr", "foo", "foobar")
 
 
-# @pytest.fixture
-# def config(tmp_path):
-#     return Config(tmp_path)
-
-
 def test_auth_from_path(creds, tmp_path):
     auth = Auth.from_path(tmp_path, creds)
     assert auth.status == auth.Missing

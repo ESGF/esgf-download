@@ -202,6 +202,10 @@ class query:
             .where(Tag.name == tag)
         )
 
+    @staticmethod
+    def children(sha: str) -> sa.Select[tuple[Query]]:
+        return sa.select(Query).where(Query.require == sha)
+
 
 class selection:
     @staticmethod
