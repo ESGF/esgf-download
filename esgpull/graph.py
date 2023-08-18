@@ -28,31 +28,11 @@ class Graph:
     _deleted_shas: set[str]
 
     @classmethod
-    def from_config(
-        cls,
-        config: Config,
-        *queries: Query,
-        force: bool = False,
-        noraise: bool = False,
-        load_db: bool = False,
-    ) -> Graph:
+    def from_config(cls, config: Config) -> Graph:
         db = Database.from_config(config)
-        return Graph(
-            db,
-            *queries,
-            force=force,
-            noraise=noraise,
-            load_db=load_db,
-        )
+        return Graph(db)
 
-    def __init__(
-        self,
-        db: Database | None,
-        *queries: Query,
-        force: bool = False,
-        noraise: bool = False,
-        load_db: bool = False,
-    ) -> None:
+    def __init__(self, db: Database | None) -> None:
         self._db = db
         self.queries = {}
         self._shas = set()
@@ -60,9 +40,6 @@ class Graph:
         self._deleted_shas = set()
         if db is not None:
             self._load_db_shas()
-        if load_db:
-            self.load_db()
-        self.add(*queries, force=force, noraise=noraise)
 
     @property
     def db(self) -> Database:
@@ -220,7 +197,8 @@ class Graph:
             queries_shas = [q.sha for q in queries]
             graph.load_db(*queries_shas)
         else:
-            graph = Graph(None, *queries, force=True)
+            graph = Graph(None)
+            graph.add(*queries, force=True, clone=False)
         if children:
             for query in queries:
                 query_children = self.get_all_children(query.sha)
@@ -230,15 +208,17 @@ class Graph:
                     children_shas = [q.sha for q in query_children]
                     graph.load_db(*children_shas)
                 else:
-                    graph.add(*query_children, force=True)
+                    graph.add(*query_children, force=True, clone=False)
         if parents:
             for query in queries:
                 query_parents = self.get_parents(query)
+                if len(query_parents) == 0:
+                    continue
                 if keep_db:
                     parents_shas = [q.sha for q in query_parents]
                     graph.load_db(*parents_shas)
                 else:
-                    graph.add(*query_parents, force=True)
+                    graph.add(*query_parents, force=True, clone=False)
         return graph
 
     def _load_db_shas(self, full: bool = False) -> None:
@@ -408,7 +388,12 @@ class Graph:
                 result[sha]["files"] = [f.asdict() for f in query.files]
         return result
 
-    def fill_tree(self, root: Query | None, tree: Tree) -> None:
+    def fill_tree(
+        self,
+        root: Query | None,
+        tree: Tree,
+        keep_require: bool = False,
+    ) -> None:
         """
         Recursive method to add branches starting from queries with either:
             - require is None
@@ -426,7 +411,10 @@ class Graph:
                     query_tree = query._rich_tree()
             elif query.require == root.sha:
                 self._rendered.add(sha)
-                query_tree = query.no_require()._rich_tree()
+                if keep_require:
+                    query_tree = query._rich_tree()
+                else:
+                    query_tree = query.no_require()._rich_tree()
             if query_tree is not None:
                 tree.add(query_tree)
                 self.fill_tree(query, query_tree)
@@ -444,6 +432,13 @@ class Graph:
         tree = Tree("", hide_root=True, guide_style="dim")
         self._rendered = set()
         self.fill_tree(None, tree)
+        unrendered = set(self.queries.keys()) - self._rendered
+        for sha in unrendered:
+            query = self.get(sha)
+            if query.require is None:
+                continue
+            parent = self.get(query.require)
+            self.fill_tree(parent, tree, keep_require=True)
         del self._rendered
         yield tree
 

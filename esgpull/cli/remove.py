@@ -45,7 +45,9 @@ def remove(
         )
         nb = len(queries)
         ies = "ies" if nb > 1 else "y"
-        esg.ui.print(Graph(None, *queries))
+        graph = Graph(None)
+        graph.add(*queries)
+        esg.ui.print(graph)
         msg = f"Remove {nb} quer{ies}?"
         if not esg.ui.ask(msg, default=True):
             raise Abort

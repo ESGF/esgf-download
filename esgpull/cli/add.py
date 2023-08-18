@@ -77,7 +77,8 @@ def add(
                     expanded = query
                 query.track(expanded.options)
             queries = [query]
-        subgraph = Graph(None, *queries)
+        subgraph = Graph(None)
+        subgraph.add(*queries)
         esg.ui.print(subgraph)
         empty = Query()
         empty.compute_sha()

@@ -165,7 +165,8 @@ def convert_file(path: Path) -> Graph:
     if isnot_CMIP6(query):
         query = fix_CMIP5(query)
     query.compute_sha()
-    graph = Graph(None, query)
+    graph = Graph(None)
+    graph.add(query)
     for kid in kids:
         if isnot_CMIP6(query) or isnot_CMIP6(kid):
             kid = fix_CMIP5(kid)
