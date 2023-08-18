@@ -304,6 +304,8 @@ class Query(Base):
             instance.sha = "LEGACY"
         elif compute_sha:
             instance.compute_sha()
+        else:
+            instance.sha = self.sha
         return instance
 
     def get_tag(self, name: str) -> Tag | None:
@@ -341,7 +343,7 @@ class Query(Base):
         return tag is not None
 
     def no_require(self) -> Query:
-        cl = self.clone(compute_sha=True)
+        cl = self.clone(compute_sha=False)
         cl._rich_no_require = True  # type: ignore [attr-defined]
         return cl
 

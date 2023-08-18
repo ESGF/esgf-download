@@ -1,5 +1,6 @@
 import pytest
 
+from esgpull.database import Database
 from esgpull.graph import Graph
 from esgpull.models import Query
 
@@ -205,3 +206,63 @@ def test_expand(graph, base, a, b, c):
             variable="tasmax",
         )
     )
+
+
+@pytest.fixture
+def graph2():
+    graph = Graph(db=None)
+    cordex = Query(selection=dict(project="CORDEX"))
+    cordex.compute_sha()
+    cmip5 = Query(selection=dict(project="CMIP5"))
+    cmip5.compute_sha()
+    cmip5_tas = Query(require=cmip5.sha, selection=dict(variable_id="tas"))
+    cmip5_tas.compute_sha()
+    cmip5_pr = Query(require=cmip5.sha, selection=dict(variable_id="pr"))
+    cmip5_pr.compute_sha()
+    cmip6 = Query(selection=dict(project="CMIP6"), tags=["cmip6"])
+    cmip6.compute_sha()
+    cmip6.sha = "bad_value"
+    cmip6_tas = Query(
+        require=cmip6.sha, selection=dict(variable_id="tas"), tags=["children"]
+    )
+    cmip6_tas.compute_sha()
+    cmip6_pr = Query(
+        require=cmip6.sha, selection=dict(variable_id="pr"), tags=["children"]
+    )
+    cmip6_pr.compute_sha()
+    cmip6_pr_member = Query(
+        require=cmip6_pr.sha, selection=dict(member_id="r1i1p1f1")
+    )
+    cmip6_pr_member.compute_sha()
+    graph.add(
+        cordex,
+        cmip5,
+        cmip5_tas,
+        cmip5_pr,
+        cmip6,
+        cmip6_tas,
+        cmip6_pr,
+        cmip6_pr_member,
+        clone=False,
+    )
+    return graph
+
+
+def test_children(graph2):
+    assert len(graph2.get_children("bad_value")) == 2
+    assert len(graph2.get_all_children("bad_value")) == 3
+
+
+@pytest.fixture
+def db(config):
+    return Database.from_config(config)
+
+
+def test_children_db(graph2, db):
+    graph = Graph(db)
+    graph.add(*graph2.queries.values(), clone=False)
+    graph.merge()
+    graph = Graph(db)  # reset graph
+    assert len(graph.queries) == 0
+    assert len(graph.get_children("bad_value")) == 2
+    assert len(graph.get_all_children("bad_value")) == 3

@@ -4,7 +4,6 @@ import httpx
 import pytest
 
 from esgpull.auth import Auth
-from esgpull.config import Config
 from esgpull.fs import FileCheck, Filesystem
 from esgpull.models import File
 from esgpull.processor import Task
@@ -51,11 +50,6 @@ def smallfile():
     )
     file.compute_sha()
     return file
-
-
-@pytest.fixture
-def config(root):
-    return Config.load(root)
 
 
 @pytest.fixture

@@ -1,5 +1,6 @@
 import pytest
 
+from esgpull.config import Config
 from esgpull.constants import CONFIG_FILENAME
 from esgpull.install_config import InstallConfig
 from esgpull.models import File, FileStatus
@@ -15,6 +16,13 @@ def root(tmp_path):
 @pytest.fixture
 def config_path(root):
     return root / CONFIG_FILENAME
+
+
+@pytest.fixture
+def config(root):
+    cfg = Config.load(root)
+    cfg.paths.db.mkdir(parents=True)
+    return cfg
 
 
 @pytest.fixture
