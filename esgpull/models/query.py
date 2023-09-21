@@ -106,20 +106,20 @@ class File(Base):
         return result
 
     def asdict(self) -> FileDict:
-        return dict(
-            file_id=self.file_id,
-            dataset_id=self.dataset_id,
-            master_id=self.master_id,
-            url=self.url,
-            version=self.version,
-            filename=self.filename,
-            local_path=self.local_path,
-            data_node=self.data_node,
-            checksum=self.checksum,
-            checksum_type=self.checksum_type,
-            size=self.size,
-            status=self.status.name,
-        )
+        return {
+            "file_id": self.file_id,
+            "dataset_id": self.dataset_id,
+            "master_id": self.master_id,
+            "url": self.url,
+            "version": self.version,
+            "filename": self.filename,
+            "local_path": self.local_path,
+            "data_node": self.data_node,
+            "checksum": self.checksum,
+            "checksum_type": self.checksum_type,
+            "size": self.size,
+            "status": self.status.name,
+        }
 
     def clone(self, compute_sha: bool = True) -> File:
         result = File(**self.asdict())
