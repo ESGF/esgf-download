@@ -143,6 +143,11 @@ class opts:
         type=str,
         default=None,
     )
+    no_default_query: Dec = click.option(
+        "--no-default-query",
+        is_flag=True,
+        default=False,
+    )
     query_file: Dec = click.option(
         "--query-file",
         "-q",
