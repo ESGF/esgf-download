@@ -162,6 +162,7 @@ class Query(Base):
         secondary=query_file_proxy,
         default_factory=list,
         back_populates="queries",
+        repr=False,
     )
 
     def __init__(
