@@ -173,7 +173,12 @@ class ConfigKey:
     def __add__(self, path: str) -> ConfigKey:
         return ConfigKey(self.path, path)
 
-    def exists_in(self, source: Mapping) -> bool:
+    def __len__(self) -> int:
+        return len(self.path)
+
+    def exists_in(self, source: Mapping | None) -> bool:
+        if source is None:
+            return False
         doc = source
         for key in self:
             if key in doc:
@@ -304,6 +309,36 @@ class Config:
             ...
         setattr(obj, last, value)
         doc[last] = value
+        return old_value
+
+    def set_default(self, key: str) -> int | str | None:
+        ckey = ConfigKey(key)
+        if self._raw is None:
+            raise VirtualConfigError()
+        elif not ckey.exists_in(self._raw):
+            return None
+        default_config = self.__class__()
+        default_value = ckey.value_of(default_config.dump())
+        old_value: Any = ckey.value_of(self.dump())
+        first_pass = True
+        obj = self
+        for idx in range(len(ckey), 0, -1):
+            *parts, last = ckey.path[:idx]
+            doc: tomlkit.container.Container = self._raw
+            for part in parts:
+                if first_pass:
+                    obj = getattr(obj, part)
+                doc = cast(tomlkit.container.Container, doc[part])
+            if first_pass:
+                doc.remove(last)
+                setattr(obj, last, default_value)
+                first_pass = False
+            elif (
+                (value := doc[last])
+                and isinstance(value, tomlkit.container.Container)
+                and len(value) == 0
+            ):
+                doc.remove(last)
         return old_value
 
     def unset_options(self) -> list[ConfigKey]:
