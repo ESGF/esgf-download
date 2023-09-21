@@ -1,5 +1,7 @@
+from textwrap import dedent
+
 import click
-from click.exceptions import Abort, Exit
+from click.exceptions import Abort, BadOptionUsage, Exit
 
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import init_esgpull
@@ -25,12 +27,14 @@ def extract_command(doc: dict, key: str | None) -> dict:
 @click.command()
 @args.key
 @args.value
+@opts.default
 @opts.generate
 @opts.record
 @opts.verbosity
 def config(
     key: str | None,
     value: str | None,
+    default: bool,
     generate: bool,
     record: bool,
     verbosity: Verbosity,
@@ -55,6 +59,18 @@ def config(
     esg = init_esgpull(verbosity=verbosity, load_db=False, record=record)
     with esg.ui.logging("config", onraise=Abort):
         if key is not None and value is not None:
+            if default:
+                raise BadOptionUsage(
+                    "default",
+                    dedent(
+                        f"""
+                        --default/-d is invalid with a value.
+                        Instead use:
+
+                        $ esgpull config {key} -d
+                        """
+                    ),
+                )
             kind = esg.config.kind
             old_value = esg.config.update_item(key, value, empty_ok=True)
             info = extract_command(esg.config.dump(), key)
@@ -68,8 +84,15 @@ def config(
             else:
                 esg.ui.print(f"Previous value: {old_value}")
         elif key is not None:
-            info = extract_command(esg.config.dump(), key)
-            esg.ui.print(info, toml=True)
+            if default:
+                old_value = esg.config.set_default(key)
+                info = extract_command(esg.config.dump(), key)
+                esg.config.write()
+                esg.ui.print(info, toml=True)
+                esg.ui.print(f"Previous value: {old_value}")
+            else:
+                info = extract_command(esg.config.dump(), key)
+                esg.ui.print(info, toml=True)
         elif generate:
             overwrite = False
             if esg.config.kind == ConfigKind.Complete:

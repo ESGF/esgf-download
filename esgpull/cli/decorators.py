@@ -81,6 +81,12 @@ class opts:
         is_flag=True,
         default=False,
     )
+    default: Dec = click.option(
+        "--default",
+        "-d",
+        is_flag=True,
+        default=False,
+    )
     detail: Dec = click.option(
         "--detail",
         type=int,
