@@ -127,7 +127,10 @@ class API:
 
 def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
     if "api" in doc and "search" in doc:
-        raise KeyError("Both 'api' and deprecated 'search' keys found.")
+        raise KeyError(
+            "Both 'api' and 'search' (deprecated) are used in your "
+            "config, please use 'api' only."
+        )
     elif "search" in doc:
         logger.warn(
             "Deprecated key 'search' is used in your config, "
