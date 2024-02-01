@@ -1,6 +1,6 @@
 [build-system]
-requires = ["pdm-pep517>=1.0.0"]
-build-backend = "pdm.pep517.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [project]
 name = "esgpull"
@@ -30,8 +30,6 @@ dependencies = [
   "platformdirs>=2.6.2",
   "pyparsing>=3.0.9"
 ]
-
-[project.optional-dependencies]
 
 [project.scripts]
 esgpull = "esgpull.cli:main"
@@ -129,3 +127,6 @@ addopts = "-r aR"
 testpaths = [
   "tests/"
 ]
+
+[tool.ruff]
+line-length = 79
