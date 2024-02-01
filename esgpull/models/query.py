@@ -72,8 +72,23 @@ class File(Base):
         Base.compute_sha(self)
 
     @classmethod
-    def from_dict(cls, raw: dict) -> File:
-        raise NotImplementedError
+    def fromdict(cls, source: FileDict) -> File:
+        result = cls(
+            file_id=source["file_id"],
+            dataset_id=source["dataset_id"],
+            master_id=source["master_id"],
+            url=source["url"],
+            version=source["version"],
+            filename=source["filename"],
+            local_path=source["local_path"],
+            data_node=source["data_node"],
+            checksum=source["checksum"],
+            checksum_type=source["checksum_type"],
+            size=source["size"],
+        )
+        if "status" in source:
+            result.status = FileStatus(source.get("source"))
+        return result
 
     @classmethod
     def serialize(cls, source: dict) -> File:
@@ -89,40 +104,42 @@ class File(Base):
         dataset_master, version = dataset_id.rsplit(".", 1)  # remove version
         master_id = ".".join([dataset_master, filename])
         local_path = get_local_path(source, version)
-        result = cls(
-            file_id=file_id,
-            dataset_id=dataset_id,
-            master_id=master_id,
-            url=url,
-            version=version,
-            filename=filename,
-            local_path=local_path,
-            data_node=data_node,
-            checksum=checksum,
-            checksum_type=checksum_type,
-            size=size,
+        result = cls.fromdict(
+            {
+                "file_id": file_id,
+                "dataset_id": dataset_id,
+                "master_id": master_id,
+                "url": url,
+                "version": version,
+                "filename": filename,
+                "local_path": local_path,
+                "data_node": data_node,
+                "checksum": checksum,
+                "checksum_type": checksum_type,
+                "size": size,
+            }
         )
         result.compute_sha()
         return result
 
     def asdict(self) -> FileDict:
-        return {
-            "file_id": self.file_id,
-            "dataset_id": self.dataset_id,
-            "master_id": self.master_id,
-            "url": self.url,
-            "version": self.version,
-            "filename": self.filename,
-            "local_path": self.local_path,
-            "data_node": self.data_node,
-            "checksum": self.checksum,
-            "checksum_type": self.checksum_type,
-            "size": self.size,
-            "status": self.status.name,
-        }
+        return FileDict(
+            file_id=self.file_id,
+            dataset_id=self.dataset_id,
+            master_id=self.master_id,
+            url=self.url,
+            version=self.version,
+            filename=self.filename,
+            local_path=self.local_path,
+            data_node=self.data_node,
+            checksum=self.checksum,
+            checksum_type=self.checksum_type,
+            size=self.size,
+            status=self.status.name,
+        )
 
     def clone(self, compute_sha: bool = True) -> File:
-        result = File(**self.asdict())
+        result = File.fromdict(self.asdict())
         if compute_sha:
             result.compute_sha()
         return result
@@ -201,7 +218,7 @@ class Query(Base):
         self.files = []
         if files is not None:
             for file in files:
-                self.files.append(File(**file))
+                self.files.append(File.fromdict(file))
 
     @property
     def has_files(self) -> bool:
