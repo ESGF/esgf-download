@@ -98,6 +98,7 @@ class Download:
     max_concurrent: int = 5
     disable_ssl: bool = False
     disable_checksum: bool = False
+    show_filename: bool = False
 
 
 @define
