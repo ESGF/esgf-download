@@ -45,8 +45,6 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: ["--disable-recursive-aliases"]
-        exclude: ^setup.py
         additional_dependencies:
           - attrs==22.1.0
           - sqlalchemy==2.0.0b2
