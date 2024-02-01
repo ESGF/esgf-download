@@ -262,7 +262,7 @@ def convert(
                 queries = list(graph.queries.values())
                 if len(queries) == 1 and queries[0].sha == empty_query.sha:
                     esg.ui.print(
-                        f"Skipping invalid query produced from {path.resolve()}"
+                        f"Skipping empty query produced from {path.resolve()}"
                     )
                     continue
                 path_text = Text(str(path).replace("/", "/\n"), style="yellow")
