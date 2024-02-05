@@ -266,3 +266,16 @@ def test_children_db(graph2, db):
     assert len(graph.queries) == 0
     assert len(graph.get_children("bad_value")) == 2
     assert len(graph.get_all_children("bad_value")) == 3
+
+
+def test_delete_add_merge(base, db):
+    graph1 = Graph(db)
+    graph1.add(base)
+    graph1.merge()
+    graph2 = Graph(db)
+    assert base in graph2
+    graph2.delete(base)
+    graph2.add(base)
+    graph2.merge()
+    graph3 = Graph(db)
+    assert base in graph3

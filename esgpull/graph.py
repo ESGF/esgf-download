@@ -272,6 +272,7 @@ class Graph:
         - replace query.require with full sha
         """
         new_shas: set[str] = set(self._shas)
+        new_deleted_shas: set[str] = set(self._deleted_shas)
         new_queries: dict[str, Query] = dict(self.queries.items())
         name_shas: dict[str, list[str]] = {
             name: [sha] for name, sha in self._name_sha.items()
@@ -293,6 +294,8 @@ class Graph:
                 else:
                     raise QueryDuplicate(pretty_repr(query))
             new_shas.add(query.sha)
+            if query.sha in new_deleted_shas:
+                new_deleted_shas.remove(query.sha)
             new_queries[query.sha] = query
         skip_tags: set[str] = set()
         for sha, query in self.queries.items():
@@ -317,6 +320,7 @@ class Graph:
                         raise ValueError("case change require")
         self.queries = new_queries
         self._shas = new_shas
+        self._deleted_shas = new_deleted_shas
         self._name_sha = new_name_sha
         return replaced
 
