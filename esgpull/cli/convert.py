@@ -75,7 +75,7 @@ selection_file = name_comment("name") + rest("rest")
 
 
 def remove_duplicates(
-    selection: MutableMapping[str, FacetValues]
+    selection: MutableMapping[str, FacetValues],
 ) -> MutableMapping[str, FacetValues]:
     result: dict[str, FacetValues] = {}
     duplicates: dict[str, list[str]] = {}
@@ -214,8 +214,8 @@ def convert(
     Use `--out <path/to/output.yaml>` to generate a query file containing the converted synda
     selection files. This file can be used as an input to the `add --query-file` command.
 
-    Note that `convert` takes any number of input paths, only converting the .txt entries.
-    This can be leveraged to generate a single output for a whole tree using an input path like `**/*`.
+    Note that `convert` takes any number of input paths, and produces a single output.
+    Using `**/*` as the input path is a good way to convert a whole tree of selection files.
 
     As a an arbitrary convention, the generated queries will be tagged with the content of the first line of a synda selection file, if that line starts with `#` and has a single word (+symbols) without whitespaces in it.
     """
@@ -246,16 +246,29 @@ def convert(
         table.add_column(Text("file", justify="center"))
         table.add_column(Text("query", justify="center"))
         full_graph = Graph(None)
+        empty_query = Query()
+        empty_query.options.apply_defaults(empty_query.options)
+        empty_query.compute_sha()
         for path in paths:
-            extension = path.name.rsplit(".", 1)[-1]
-            if path.is_file() and extension == "txt":
-                graph = convert_file(path)
+            if path.is_file():
+                try:
+                    graph = convert_file(path)
+                except Exception as e:
+                    msg = f"Cannot convert {path.resolve()}"
+                    logger.exception(e)
+                    logger.error(msg)
+                    esg.ui.print(f"[red]Error[/]: {msg}")
+                    continue
+                queries = list(graph.queries.values())
+                if len(queries) == 1 and queries[0].sha == empty_query.sha:
+                    esg.ui.print(
+                        f"Skipping empty query produced from {path.resolve()}"
+                    )
+                    continue
                 path_text = Text(str(path).replace("/", "/\n"), style="yellow")
                 file_text = Text(path.read_text())
                 table.add_row(path_text, file_text, graph)
-                full_graph.add(*graph.queries.values(), force=True)
-            else:
-                esg.ui.print(f"Skipping {path}")
+                full_graph.add(*queries, force=True)
         if print_table:
             esg.ui.print(table)
         if print_graph:
