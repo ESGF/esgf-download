@@ -21,8 +21,15 @@ class FileStatus(Enum):
     Done = "done"
 
     @classmethod
-    def retryable(cls) -> list[FileStatus]:
-        return [cls.Error, cls.Cancelled]
+    def unretryable(cls) -> list[FileStatus]:
+        return [cls.New, cls.Queued, cls.Paused, cls.Done]
+
+    @classmethod
+    def retryable(cls, all: bool = False) -> list[FileStatus]:
+        if all:
+            return list(set(cls) - set(cls.unretryable()))
+        else:
+            return [cls.Error, cls.Cancelled]
 
 
 class FileDict(TypedDict):

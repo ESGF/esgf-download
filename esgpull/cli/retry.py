@@ -12,18 +12,29 @@ from esgpull.tui import Verbosity
 
 @click.command()
 @args.status
+@opts.all
 @opts.verbosity
 def retry(
     status: Sequence[FileStatus],
+    all_: bool,
     verbosity: Verbosity,
 ):
     """
     Re-queue failed and cancelled downloads
+
+    Use the `--all` flag to re-queue all files all retryable status:
+
+        [starting, cancelled, error, pausing, started]
     """
-    if not status:
-        status = FileStatus.retryable()
     esg = init_esgpull(verbosity)
     with esg.ui.logging("retry", onraise=Abort):
+        if all_ and len(status) > 0:
+            esg.ui.print(
+                "[red]ERROR: Using --all overrides any specified status."
+            )
+            raise Abort()
+        elif len(status) == 0:
+            status = FileStatus.retryable(all=all_)
         assert FileStatus.Done not in status
         assert FileStatus.Queued not in status
         files = list(esg.db.scalars(sql.file.with_status(*status)))
