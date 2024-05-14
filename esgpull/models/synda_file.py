@@ -8,9 +8,14 @@ from sqlalchemy.orm import (
 from esgpull.models.file import FileStatus
 from esgpull.models.query import File
 
+SyndaStatusMap = {
+    "running": FileStatus.Started,
+    "waiting": FileStatus.Queued,
+}
+
 
 class SyndaBase(MappedAsDataclass, DeclarativeBase):
-    ...
+    pass
 
 
 class SyndaFile(SyndaBase):
@@ -44,6 +49,17 @@ class SyndaFile(SyndaBase):
     timestamp: Mapped[str]
     file_id: Mapped[int] = mapped_column(init=False, primary_key=True)
 
+    def get_status(self) -> FileStatus:
+        s = self.status.lower()
+        result: FileStatus
+        if FileStatus.contains(s):
+            result = FileStatus(s)
+        elif s in SyndaStatusMap:
+            result = SyndaStatusMap[s]
+        else:
+            raise ValueError(s)
+        return result
+
     def to_file(self) -> File:
         file_id = self.file_functional_id
         dataset_id = file_id.removesuffix(self.filename).strip(".")
@@ -63,7 +79,7 @@ class SyndaFile(SyndaBase):
             checksum=self.checksum,
             checksum_type=self.checksum_type.upper(),
             size=self.size,
-            status=FileStatus(self.status),
+            status=self.get_status(),
         )
         result.compute_sha()
         return result
