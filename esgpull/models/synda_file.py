@@ -9,6 +9,7 @@ from esgpull.models.file import FileStatus
 from esgpull.models.query import File
 
 SyndaStatusMap = {
+    "running": FileStatus.Started,
     "waiting": FileStatus.Queued,
 }
 
@@ -51,7 +52,7 @@ class SyndaFile(SyndaBase):
     def get_status(self) -> FileStatus:
         s = self.status.lower()
         result: FileStatus
-        if s in FileStatus:
+        if FileStatus.contains(s):
             result = FileStatus(s)
         elif s in SyndaStatusMap:
             result = SyndaStatusMap[s]

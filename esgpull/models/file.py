@@ -24,6 +24,10 @@ class FileStatus(Enum):
     def retryable(cls) -> list[FileStatus]:
         return [cls.Error, cls.Cancelled]
 
+    @classmethod
+    def contains(cls, s: str) -> bool:
+        return s in [v.value for v in cls]
+
 
 class FileDict(TypedDict):
     file_id: str
