@@ -123,7 +123,3 @@ synda_files_by_status = {
 def test_synda_file_convert(status: FileStatus, data: dict):
     synda_file = SyndaFile(**data)
     assert synda_file.get_status() == status
-
-
-# @pytest.mark.parametrize("data", synda_files_by_status.values())
-# def test_synda_import(data: dict):
