@@ -27,7 +27,7 @@ requirements:
     - setuptools
     - pdm
     - pdm-pep517
-
+    - pdm-backend
 
   run:
     - python >=3.10
