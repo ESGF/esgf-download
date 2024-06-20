@@ -109,6 +109,10 @@ class VirtualConfigError(EsgpullException):
     """
 
 
+class UnknownDefaultQueryID(EsgpullException):
+    msg = "{}"
+
+
 class InstallException(EsgpullException):
     ...
 
