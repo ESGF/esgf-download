@@ -98,6 +98,7 @@ class Task:
                 async for ctx in stream:
                     if ctx.chunk is not None:
                         await file_obj.write(ctx.chunk)
+                        ctx.chunk = None
                     if ctx.error:
                         err = DownloadSizeError(ctx.completed, ctx.file.size)
                         yield Err(ctx, err)
