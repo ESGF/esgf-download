@@ -41,7 +41,6 @@ class Task:
     def __init__(
         self,
         config: Config,
-        auth: Auth,
         fs: Filesystem,
         # *,
         # url: str | None = None,
@@ -49,7 +48,6 @@ class Task:
         start_callbacks: list[Callback] | None = None,
     ) -> None:
         self.config = config
-        self.auth = auth
         self.fs = fs
         self.ctx = DownloadCtx(file)
         if not self.config.download.disable_checksum:
@@ -61,16 +59,6 @@ class Task:
         # else:
         #     raise ValueError("no arguments")
         self.downloader = Simple()
-        msg: str | None = None
-        if not default_ssl_context_loaded:
-            msg = load_default_ssl_context()
-        self.ssl_context: ssl.SSLContext | bool
-        if self.config.download.disable_ssl:
-            self.ssl_context = False
-        else:
-            if msg is not None:
-                logger.info(msg)
-            self.ssl_context = default_ssl_context
         if start_callbacks is None:
             self.start_callbacks = []
         else:
@@ -93,20 +81,13 @@ class Task:
     #     raise ValueError(f"{url} is not valid")
 
     async def stream(
-        self, semaphore: asyncio.Semaphore
+        self,
+        semaphore: asyncio.Semaphore,
+        client: AsyncClient,
     ) -> AsyncIterator[Result]:
         ctx = self.ctx
         try:
-            async with (
-                semaphore,
-                self.fs.open(ctx.file) as file_obj,
-                AsyncClient(
-                    follow_redirects=True,
-                    cert=self.auth.cert,
-                    verify=self.ssl_context,
-                    timeout=self.config.download.http_timeout,
-                ) as client,
-            ):
+            async with semaphore, self.fs.open(ctx.file) as file_obj:
                 for callback in self.start_callbacks:
                     callback()
                 stream = self.downloader.stream(
@@ -146,13 +127,23 @@ class Processor:
         start_callbacks: dict[str, list[Callback]],
     ) -> None:
         self.config = config
+        self.auth = auth
         self.fs = fs
         self.files = list(filter(self.should_download, files))
         self.tasks = []
+        msg: str | None = None
+        if not default_ssl_context_loaded:
+            msg = load_default_ssl_context()
+        self.ssl_context: ssl.SSLContext | bool
+        if self.config.download.disable_ssl:
+            self.ssl_context = False
+        else:
+            if msg is not None:
+                logger.info(msg)
+            self.ssl_context = default_ssl_context
         for file in files:
             task = Task(
                 config=config,
-                auth=auth,
                 fs=fs,
                 file=file,
                 start_callbacks=start_callbacks[file.sha],
@@ -167,7 +158,13 @@ class Processor:
 
     async def process(self) -> AsyncIterator[Result]:
         semaphore = asyncio.Semaphore(self.config.download.max_concurrent)
-        streams = [task.stream(semaphore) for task in self.tasks]
-        async with merge(*streams).stream() as stream:
-            async for result in stream:
-                yield result
+        async with AsyncClient(
+            follow_redirects=True,
+            cert=self.auth.cert,
+            verify=self.ssl_context,
+            timeout=self.config.download.http_timeout,
+        ) as client:
+            streams = [task.stream(semaphore, client) for task in self.tasks]
+            async with merge(*streams).stream() as stream:
+                async for result in stream:
+                    yield result
