@@ -3,7 +3,6 @@ import asyncio
 import httpx
 import pytest
 
-from esgpull.auth import Auth
 from esgpull.fs import FileCheck, Filesystem
 from esgpull.models import File
 from esgpull.processor import Task
@@ -58,19 +57,15 @@ def fs(config):
 
 
 @pytest.fixture
-def auth(config):
-    return Auth.from_config(config)
-
-
-@pytest.fixture
-def task(config, auth, fs, smallfile):
-    return Task(config, auth, fs, file=smallfile)
+def task(config, fs, smallfile):
+    return Task(config, fs, file=smallfile)
 
 
 async def run_task(task_):
     semaphore = asyncio.Semaphore(1)
-    async for result in task_.stream(semaphore):
-        ...
+    async with httpx.AsyncClient() as client:
+        async for result in task_.stream(semaphore, client):
+            ...
     return result
 
 
@@ -78,7 +73,7 @@ async def run_task(task_):
     raises=(httpx.ConnectTimeout, httpx.ReadTimeout),
     reason="this is dependent on the IPSL data node's health (unstable)",
 )
-def test_task(auth, fs, smallfile, task):
+def test_task(fs, smallfile, task):
     result = asyncio.run(run_task(task))
     if not result.ok:
         raise result.err
