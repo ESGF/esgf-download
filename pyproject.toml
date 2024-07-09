@@ -5,9 +5,15 @@ build-backend = "pdm.backend"
 [project]
 name = "esgpull"
 dynamic = ["version"]
+classifiers = [
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
+]
 description = "ESGF data discovery, download, replication tool"
 authors = [{name = "Sven Rodriguez", email = "srodriguez@ipsl.fr"}]
-license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -30,6 +36,7 @@ dependencies = [
   "platformdirs>=2.6.2",
   "pyparsing>=3.0.9"
 ]
+license.text = "BSD-3-Clause"
 
 [project.scripts]
 esgpull = "esgpull.cli:main"
