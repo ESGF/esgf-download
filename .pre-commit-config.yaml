@@ -29,18 +29,23 @@ repos:
     rev: v0.23.1
     hooks:
       - id: toml-sort-fix
-  - repo: https://github.com/psf/black
-    rev: 24.1.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.5.2
     hooks:
-      - id: black
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
+      # Run the linter.
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
+  # - repo: https://github.com/PyCQA/isort
+  #   rev: 5.13.2
+  #   hooks:
+  #     - id: isort
+  # - repo: https://github.com/PyCQA/flake8
+  #   rev: 7.0.0
+  #   hooks:
+  #     - id: flake8
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
