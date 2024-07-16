@@ -256,3 +256,19 @@ class synda_file:
     @staticmethod
     def with_ids(*ids: int) -> sa.Select[tuple[SyndaFile]]:
         return sa.select(SyndaFile).where(SyndaFile.file_id.in_(ids))
+
+
+class query_file:
+    @staticmethod
+    def link(query: Query, file: File) -> sa.Insert:
+        return sa.insert(query_file_proxy).values(
+            query_sha=query.sha, file_sha=file.sha
+        )
+
+    @staticmethod
+    def unlink(query: Query, file: File) -> sa.Delete:
+        return (
+            sa.delete(query_file_proxy)
+            .where(query_file_proxy.c.query_sha == query.sha)
+            .where(query_file_proxy.c.file_sha == file.sha)
+        )

@@ -165,20 +165,20 @@ def update(
             if choice == "y":
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
-                for file in new_files:
-                    file_db = esg.db.get(File, file.sha)
-                    if file_db is None:
-                        if esg.db.has_file_id(file):
-                            logger.error(
-                                "File id already exists in database, "
-                                "there might be an error with its checksum"
-                                f"\n{file}"
-                            )
-                            continue
-                        file.status = FileStatus.Queued
-                        file_db = esg.db.merge(file)
-                    elif has_legacy and legacy in file_db.queries:
-                        file_db.queries.remove(legacy)
-                    file_db.queries.append(qf.query)
-                    esg.db.add(file_db)
+                with esg.db.commit_context():
+                    for file in esg.ui.track(new_files):
+                        file_db = esg.db.get(File, file.sha)
+                        if file_db is None:
+                            if esg.db.has_file_id(file):
+                                logger.error(
+                                    "File id already exists in database, "
+                                    "there might be an error with its checksum"
+                                    f"\n{file}"
+                                )
+                                continue
+                            file.status = FileStatus.Queued
+                            esg.db.session.add(file)
+                        elif has_legacy and legacy in file_db.queries:
+                            esg.db.unlink(query=legacy, file=file_db)
+                        esg.db.link(query=qf.query, file=file)
         esg.ui.raise_maybe_record(Exit(0))

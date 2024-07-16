@@ -16,11 +16,10 @@ from sqlalchemy.orm import Session, joinedload, make_transient
 
 from esgpull import __file__
 from esgpull.config import Config
-from esgpull.models import File, Table, sql
+from esgpull.models import File, Query, Table, sql
 from esgpull.version import __version__
 
 # from esgpull.exceptions import NoClauseError
-# from esgpull.models import Query
 
 T = TypeVar("T")
 
@@ -88,6 +87,12 @@ class Database:
             self.session.rollback()
             raise
 
+    @contextmanager
+    def commit_context(self) -> Iterator[None]:
+        with self.safe:
+            yield
+            self.session.commit()
+
     def get(
         self,
         table: type[Table],
@@ -139,6 +144,12 @@ class Database:
             self.session.commit()
         for item in items:
             make_transient(item)
+
+    def link(self, query: Query, file: File):
+        self.session.execute(sql.query_file.link(query, file))
+
+    def unlink(self, query: Query, file: File):
+        self.session.execute(sql.query_file.unlink(query, file))
 
     def __contains__(self, item: Table) -> bool:
         return self.scalars(sql.count(item))[0] > 0
