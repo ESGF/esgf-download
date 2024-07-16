@@ -42,8 +42,16 @@ class Database:
         url = f"sqlite:///{config.paths.db / config.db.filename}"
         return Database(url, run_migrations=run_migrations)
 
+    def _setup_sqlite(self, conn, record):
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL;")
+        cursor.execute("PRAGMA synchronous = NORMAL;")
+        cursor.execute("PRAGMA cache_size = 20000;")
+        cursor.close()
+
     def __post_init__(self, run_migrations: bool) -> None:
         self._engine = sa.create_engine(self.url)
+        sa.event.listen(self._engine, "connect", self._setup_sqlite)
         self.session = Session(self._engine)
         if run_migrations:
             self._update()
