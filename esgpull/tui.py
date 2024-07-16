@@ -71,8 +71,7 @@ class DummyLive:
     def __enter__(self) -> DummyLive:
         return self
 
-    def __exit__(self, *args):
-        ...
+    def __exit__(self, *args): ...
 
     @property
     def console(self) -> DummyConsole:
@@ -259,9 +258,9 @@ class UI:
         # use _console to avoid recording the progress bar
         return Live(renderables, console=_console)
 
-    def track(self, iterable: Iterable[T]) -> Iterable[T]:
+    def track(self, iterable: Iterable[T], **kwargs) -> Iterable[T]:
         # use _console to avoid recording the progress bar
-        return track(iterable, console=_console)
+        return track(iterable, console=_console, **kwargs)
 
     def make_progress(
         self,

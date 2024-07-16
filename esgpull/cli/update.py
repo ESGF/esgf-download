@@ -166,7 +166,10 @@ def update(
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
                 with esg.db.commit_context():
-                    for file in esg.ui.track(new_files):
+                    for file in esg.ui.track(
+                        new_files,
+                        description=qf.query.rich_name,
+                    ):
                         file_db = esg.db.get(File, file.sha)
                         if file_db is None:
                             if esg.db.has_file_id(file):
