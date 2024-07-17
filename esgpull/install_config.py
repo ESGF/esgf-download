@@ -8,7 +8,7 @@ from pathlib import Path
 import platformdirs
 from typing_extensions import NotRequired, TypedDict
 
-from esgpull.constants import ROOT_ENV
+from esgpull.constants import INSTALLS_PATH_ENV, ROOT_ENV
 from esgpull.exceptions import AlreadyInstalledName, AlreadyInstalledPath
 
 
@@ -44,8 +44,13 @@ class _InstallConfig:
     current_idx: int | None
     installs: list[Install]
 
-    def __init__(self) -> None:
-        user_config_dir = platformdirs.user_config_path("esgpull")
+    def __init__(self, install_path: Path | None = None) -> None:
+        if install_path is not None:
+            user_config_dir = install_path
+        elif (env := os.environ.get(INSTALLS_PATH_ENV)) is not None:
+            user_config_dir = Path(env)
+        else:
+            user_config_dir = platformdirs.user_config_path("esgpull")
         self.path = user_config_dir / "installs.json"
         if self.path.is_file():
             with self.path.open() as f:
