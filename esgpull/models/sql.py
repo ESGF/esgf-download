@@ -217,9 +217,7 @@ class selection:
     @functools.cache
     def orphans() -> sa.Select[tuple[Selection]]:
         return (
-            sa.select(Selection)
-            .outerjoin(Query)
-            .where(Query.sha == None)  # noqa
+            sa.select(Selection).outerjoin(Query).where(Query.sha == None)  # noqa
         )
 
 

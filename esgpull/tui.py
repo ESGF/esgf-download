@@ -71,8 +71,7 @@ class DummyLive:
     def __enter__(self) -> DummyLive:
         return self
 
-    def __exit__(self, *args):
-        ...
+    def __exit__(self, *args): ...
 
     @property
     def console(self) -> DummyConsole:
