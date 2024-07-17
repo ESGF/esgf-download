@@ -109,8 +109,7 @@ class VirtualConfigError(EsgpullException):
     """
 
 
-class InstallException(EsgpullException):
-    ...
+class InstallException(EsgpullException): ...
 
 
 class UntrackableQuery(EsgpullException):
