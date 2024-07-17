@@ -44,7 +44,10 @@ class _InstallConfig:
     current_idx: int | None
     installs: list[Install]
 
-    def __init__(self, install_path: Path | None = None) -> None:
+    def __init__(self) -> None:
+        self.setup()
+
+    def setup(self, install_path: Path | None = None):
         if install_path is not None:
             user_config_dir = install_path
         elif (env := os.environ.get(INSTALLS_PATH_ENV)) is not None:
