@@ -39,3 +39,19 @@ def test_deprecated_search_api_error(root, config_path):
         raise
     finally:
         config_path.unlink()
+
+
+def test_update_config(root, config_path):
+    root.mkdir(parents=True)
+    with open(config_path, "w") as f:
+        tomlkit.dump({}, f)
+    config = Config.load(root)
+    config.download.disable_ssl = True
+    config.update_item("download.disable_ssl", "false")
+    assert config.download.disable_ssl is False
+    config.update_item("download.disable_ssl", "true")
+    assert config.download.disable_ssl is True
+    config.update_item("download.disable_ssl", False)
+    assert config.download.disable_ssl is False
+    with pytest.raises(ValueError):
+        config.update_item("download.disable_ssl", "bad_value")
