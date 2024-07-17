@@ -1,4 +1,5 @@
 CONFIG_FILENAME = "config.toml"
+INSTALLS_PATH_ENV = "ESGPULL_INSTALLS_PATH"
 ROOT_ENV = "ESGPULL_CURRENT"
 
 IDP = "/esgf-idp/openid/"

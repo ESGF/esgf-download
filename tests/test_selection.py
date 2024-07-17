@@ -7,7 +7,8 @@ from esgpull.models import Selection
 @pytest.fixture
 def selection():
     Selection.configure("a", "b", "c", "d", replace=True)
-    return Selection()
+    yield Selection()
+    Selection.reset()
 
 
 def test_configure():
@@ -16,11 +17,12 @@ def test_configure():
     assert new_names <= Selection._facet_names
     Selection.configure("some", "thing", replace=True)
     assert new_names == Selection._facet_names
+    sel = Selection()
     with pytest.raises(KeyError):
-        sel = Selection()
         assert sel["a"] == []
     Selection.configure("a")  # add 'a' to facets
     assert sel["a"] == []  # no more raise
+    Selection.reset()
 
 
 def test_basic(selection):

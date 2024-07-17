@@ -16,11 +16,10 @@ from sqlalchemy.orm import Session, joinedload, make_transient
 
 from esgpull import __file__
 from esgpull.config import Config
-from esgpull.models import File, Table, sql
+from esgpull.models import File, Query, Table, sql
 from esgpull.version import __version__
 
 # from esgpull.exceptions import NoClauseError
-# from esgpull.models import Query
 
 T = TypeVar("T")
 
@@ -42,8 +41,16 @@ class Database:
         url = f"sqlite:///{config.paths.db / config.db.filename}"
         return Database(url, run_migrations=run_migrations)
 
+    def _setup_sqlite(self, conn, record):
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL;")
+        cursor.execute("PRAGMA synchronous = NORMAL;")
+        cursor.execute("PRAGMA cache_size = 20000;")
+        cursor.close()
+
     def __post_init__(self, run_migrations: bool) -> None:
         self._engine = sa.create_engine(self.url)
+        sa.event.listen(self._engine, "connect", self._setup_sqlite)
         self.session = Session(self._engine)
         if run_migrations:
             self._update()
@@ -79,6 +86,12 @@ class Database:
         except (sa.exc.SQLAlchemyError, KeyboardInterrupt):
             self.session.rollback()
             raise
+
+    @contextmanager
+    def commit_context(self) -> Iterator[None]:
+        with self.safe:
+            yield
+            self.session.commit()
 
     def get(
         self,
@@ -131,6 +144,12 @@ class Database:
             self.session.commit()
         for item in items:
             make_transient(item)
+
+    def link(self, query: Query, file: File):
+        self.session.execute(sql.query_file.link(query, file))
+
+    def unlink(self, query: Query, file: File):
+        self.session.execute(sql.query_file.unlink(query, file))
 
     def __contains__(self, item: Table) -> bool:
         return self.scalars(sql.count(item))[0] > 0
