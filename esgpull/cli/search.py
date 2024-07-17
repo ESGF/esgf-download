@@ -18,17 +18,17 @@ from esgpull.tui import Verbosity
 @groups.query_def
 @groups.query_date
 @groups.display
+@groups.json_yaml
+@opts.detail
+@opts.no_default_query
+@opts.show
 @opts.dry_run
 @opts.file
 @opts.facets_hints
 @opts.hints
-@groups.json_yaml
-@opts.detail
-@opts.show
 @opts.yes
 @opts.record
 @opts.verbosity
-# @opts.selection_file
 def search(
     facets: list[str],
     ## query_def
@@ -38,6 +38,7 @@ def search(
     latest: str | None,
     replica: str | None,
     retracted: str | None,
+    ## query_date
     date_from: datetime | None,
     date_to: datetime | None,
     ## display
@@ -48,14 +49,14 @@ def search(
     json: bool,
     yaml: bool,
     ## ungrouped
-    show: bool,
     detail: int | None,
+    no_default_query: bool,
+    show: bool,
     dry_run: bool,
     file: bool,
     facets_hints: bool,
     hints: list[str] | None,
     yes: bool,
-    # selection_file: str | None,
     record: bool,
     verbosity: Verbosity,
 ) -> None:
@@ -64,7 +65,12 @@ def search(
 
     More info
     """
-    esg = init_esgpull(verbosity, safe=False, record=record)
+    esg = init_esgpull(
+        verbosity,
+        safe=False,
+        record=record,
+        no_default_query=no_default_query,
+    )
     with esg.ui.logging("search", onraise=Abort):
         query = parse_query(
             facets=facets,
@@ -77,6 +83,7 @@ def search(
         )
         query.compute_sha()
         esg.graph.resolve_require(query)
+        query = esg.insert_default_query(query)[0]
         if show:
             if json:
                 esg.ui.print(query.asdict(), json=True)

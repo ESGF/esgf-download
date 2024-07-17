@@ -123,6 +123,7 @@ class API:
     max_concurrent: int = 5
     page_limit: int = 50
     default_options: DefaultOptions = Factory(DefaultOptions)
+    default_query_id: str = ""
 
 
 def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:

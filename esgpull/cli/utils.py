@@ -1,8 +1,9 @@
 import sys
 from collections import OrderedDict
+from collections.abc import MutableMapping, Sequence
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal, MutableMapping, Sequence
+from typing import Any, Literal
 
 import click
 import yaml
@@ -29,6 +30,7 @@ def init_esgpull(
     safe: bool = True,
     record: bool = False,
     load_db: bool = True,
+    no_default_query: bool = False,
 ) -> Esgpull:
     TempUI.verbosity = Verbosity.Errors
     with TempUI.logging():
@@ -38,6 +40,8 @@ def init_esgpull(
             record=record,
             load_db=load_db,
         )
+        if no_default_query:
+            esg.config.api.default_query_id = ""
         if record:
             esg.ui.print(get_command())
     return esg
