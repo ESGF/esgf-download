@@ -72,6 +72,10 @@ class Selection(Base):
         setattr(cls, name, property(getter, setter))
 
     @classmethod
+    def reset(cls) -> None:
+        cls.configure(*DefaultFacets, *BaseFacets, replace=True)
+
+    @classmethod
     def configure(cls, *names: str, replace: bool = True) -> None:
         nameset = set(names) | {f"!{name}" for name in names}
         if replace:
@@ -198,4 +202,4 @@ BaseFacets = [
 ]
 
 
-Selection.configure(*DefaultFacets, *BaseFacets, replace=True)
+Selection.reset()
