@@ -21,7 +21,7 @@ def runner(tmp_path):
 
 
 def test_fast_update(runner: CliRunner):
-    result_update = runner.invoke(config, ["api.page_limit", "10000"])
+    _ = runner.invoke(config, ["api.page_limit", "10000"])
     result_add = runner.invoke(
         add,
         [
