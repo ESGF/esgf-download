@@ -1,8 +1,9 @@
 import sys
 from collections import OrderedDict
+from collections.abc import MutableMapping, Sequence
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal, MutableMapping, Sequence
+from typing import Any, Literal
 
 import click
 import yaml
@@ -14,7 +15,7 @@ from rich.text import Text
 from esgpull import Esgpull
 from esgpull.graph import Graph
 from esgpull.models import Dataset, File, Option, Options, Query, Selection
-from esgpull.tui import UI, TempUI, Verbosity
+from esgpull.tui import UI, TempUI, Verbosity, logger
 from esgpull.utils import format_size
 
 
@@ -117,9 +118,15 @@ def totable(docs: list[OrderedDict[str, Any]]) -> Table:
     return table
 
 
+def safe_value(value: str) -> str:
+    if " " in value:
+        return f'"{value}"'
+    else:
+        return value
+
+
 def parse_facets(facets: list[str]) -> Selection:
     facet_dict: dict[str, list[str]] = {}
-    exact_terms: list[str] | None = None
     for facet in facets:
         match facet.split(":"):
             case [value]:
@@ -128,28 +135,9 @@ def parse_facets(facets: list[str]) -> Selection:
                 ...
             case _:
                 raise BadArgumentUsage(f"{facet!r} is not valid syntax.")
-        if value.startswith("/"):
-            if exact_terms is not None:
-                raise BadArgumentUsage("Nested exact string is forbidden.")
-            exact_terms = []
-        if exact_terms is not None:
-            if name != "query":
-                raise BadArgumentUsage(
-                    "Cannot use facet term inside an exact string."
-                )
-            exact_terms.append(value)
-            if value.endswith("/"):
-                final_exact_str = " ".join(exact_terms)
-                value = '"' + final_exact_str.strip("/") + '"'
-                exact_terms = None
-            else:
-                continue
-            facet_dict.setdefault(name, [])
-            facet_dict[name].append(value)
-        else:
-            values = value.split(",")
-            facet_dict.setdefault(name, [])
-            facet_dict[name].extend(values)
+        values = list(map(safe_value, value.split(",")))
+        facet_dict.setdefault(name, [])
+        facet_dict[name].extend(values)
     selection = Selection()
     for name, values in facet_dict.items():
         selection[name] = values
@@ -166,6 +154,13 @@ def parse_query(
     replica: str | None,
     retracted: str | None,
 ) -> Query:
+    logger.info(f"{facets=}")
+    logger.info(f"{tags=}")
+    logger.info(f"{require=}")
+    logger.info(f"{distrib=}")
+    logger.info(f"{latest=}")
+    logger.info(f"{replica=}")
+    logger.info(f"{retracted=}")
     options = Options(
         distrib=distrib or Option.notset,
         latest=latest or Option.notset,
