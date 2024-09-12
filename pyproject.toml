@@ -54,7 +54,7 @@ branch = true
 source = ["esgpull/"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/esgpull"]
+packages = ["esgpull"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
