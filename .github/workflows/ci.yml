@@ -20,20 +20,26 @@ on:
 
 jobs:
   tests:
+    strategy:
+      matrix:
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: pdm-project/setup-pdm@v3
-        name: setup pdm
-        with:
-          python-version: "3.11"  # Version range or exact version of a Python version to use, the same as actions/setup-python
-          architecture: x64    # The target architecture (x86, x64) of the Python interpreter. the same as actions/setup-python
-          prerelease: false     # Allow prerelease versions to be installed
-          enable-pep582: true  # Enable PEP 582 package loading globally
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
 
-      - name: install dependencies
-        run: pdm install -G test
+      - name: Set up Python
+        run: uv python install
 
-      - name: run tests
-        run: pdm run test_coverage
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Run tests
+        run: uv run pytest tests
