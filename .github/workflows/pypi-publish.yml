@@ -26,7 +26,7 @@ jobs:
         run: rye sync
 
       - name: Build package
-        run: rye sync
+        run: rye build
 
       - name: Publish package distributions to PyPI
-        run: rye publish
+        uses: pypa/gh-action-pypi-publish@release/v1
