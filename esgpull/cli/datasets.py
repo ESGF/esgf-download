@@ -7,7 +7,7 @@ from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.table import Table
 
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import init_esgpull
+from esgpull.cli.utils import init_esgpull, valid_name_tag
 from esgpull.models import FileStatus
 from esgpull.tui import Verbosity
 
@@ -29,11 +29,11 @@ class DatasetCounter:
 
 
 @click.command()
-@args.query_id
+@args.query_id_required
 @groups.json_yaml
 @opts.verbosity
 def datasets(
-    query_id: str | None,
+    query_id: str,
     json: bool,
     yaml: bool,
     verbosity: Verbosity,
@@ -41,10 +41,10 @@ def datasets(
     """
     View datasets completeness per query.
     """
-    if query_id is None:
-        raise Exit(1)
     esg = init_esgpull(verbosity)
     with esg.ui.logging("datasets", onraise=Abort):
+        if not valid_name_tag(esg.graph, esg.ui, query_id, None):
+            raise Exit(1)
         query = esg.graph.get(query_id)
         datasets: defaultdict[str, DatasetCounter] = defaultdict(
             DatasetCounter

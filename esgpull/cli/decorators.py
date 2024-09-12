@@ -59,6 +59,12 @@ class args:
         nargs=1,
         required=False,
     )
+    query_id_required: Dec = click.argument(
+        "query_id",
+        type=str,
+        nargs=1,
+        required=True,
+    )
     query_ids: Dec = click.argument(
         "query_ids",
         type=str,
