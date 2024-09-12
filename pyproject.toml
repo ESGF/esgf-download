@@ -45,13 +45,13 @@ esgpull = "esgpull.cli:main"
 Repository = "https://github.com/ESGF/esgf-download"
 Documentation = "https://esgf.github.io/esgf-download/"
 
-[tool.coverage.run]
-branch = true
-source = ["esgpull/"]
-
 [tool.black]
 line-length = 79
 extend-exclude = "setup.py"
+
+[tool.coverage.run]
+branch = true
+source = ["esgpull/"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/esgpull"]
@@ -78,7 +78,7 @@ filterwarnings = [
 markers = [
   "slow: mark test as slow to run"
 ]
-addopts = "-r aR -n auto --cov=esgpull --cov-config=setup.cfg --cov-report term-missing:skip-covered --mypy"
+addopts = "-r aR -n auto --cov=esgpull --cov-config=pyproject.toml --cov-report term-missing:skip-covered --mypy"
 testpaths = [
   "tests/"
 ]
