@@ -29,6 +29,7 @@ from esgpull.exceptions import (
     DownloadCancelled,
     InvalidInstallPath,
     NoInstallPath,
+    UnknownDefaultQueryID,
 )
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
@@ -460,3 +461,31 @@ class Esgpull:
                 if use_db:
                     self.db.add(*cancelled)
         return files, errors
+
+    def replace_queries(
+        self,
+        graph: Graph,
+        mapping: tuple[str | None, str],
+    ) -> None:
+        to_replace = [
+            q for q in graph.queries.values() if q.require == mapping[0]
+        ]
+        for query in to_replace:
+            new_query = query.clone(compute_sha=False)
+            new_query.require = mapping[1]
+            new_query.compute_sha()
+            graph.replace(query, new_query)
+            self.replace_queries(graph, (query.sha, new_query.sha))
+
+    def insert_default_query(self, *queries: Query) -> list[Query]:
+        if self.config.api.default_query_id == "":
+            return list(queries)
+        default_query_id = self.config.api.default_query_id
+        try:
+            default_query = self.graph.get(default_query_id)
+        except KeyError:
+            raise UnknownDefaultQueryID(default_query_id)
+        graph = Graph(None)
+        graph.add(*queries)
+        self.replace_queries(graph, (None, default_query.sha))
+        return list(graph.queries.values())

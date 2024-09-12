@@ -21,20 +21,22 @@ from esgpull.tui import Verbosity
 @groups.query_def
 @opts.query_file
 @opts.track
+@opts.no_default_query
 @opts.record
 @opts.verbosity
 def add(
     facets: list[str],
-    # query options
+    ## query_def
     tags: list[str],
     require: str | None,
     distrib: str | None,
     latest: str | None,
     replica: str | None,
     retracted: str | None,
-    # since: str | None,
+    ## ungrouped
     query_file: Path | None,
     track: bool,
+    no_default_query: bool,
     record: bool,
     verbosity: Verbosity,
 ) -> None:
@@ -55,7 +57,11 @@ def add(
 
     To fetch files from ESGF and link them to a query, see the `track` and `update` commands.
     """
-    esg = init_esgpull(verbosity, record=record)
+    esg = init_esgpull(
+        verbosity,
+        record=record,
+        no_default_query=no_default_query,
+    )
     with esg.ui.logging("add", onraise=Abort):
         if query_file is not None:
             queries = serialize_queries_from_file(query_file)
@@ -77,6 +83,7 @@ def add(
                     expanded = query
                 query.track(expanded.options)
             queries = [query]
+        queries = esg.insert_default_query(*queries)
         subgraph = Graph(None)
         subgraph.add(*queries)
         esg.ui.print(subgraph)
