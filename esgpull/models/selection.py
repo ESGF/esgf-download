@@ -199,6 +199,7 @@ BaseFacets = [
     "member_id",
     "cmor_table",
     "grid_label",
+    "nominal_resolution",
 ]
 
 
