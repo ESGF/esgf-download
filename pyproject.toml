@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "esgpull"
-version = "0.6.5"
+version = "0.7.0"
 classifiers = [
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
@@ -91,6 +91,7 @@ extend-exclude = ["output/*", "esgpull/migrations/*"]
 extend-select = ["I"]
 
 [tool.rye]
+managed = true
 dev-dependencies = [
   "jupyter-console>=6.6.3",
   "typing-extensions>=4.12.2",

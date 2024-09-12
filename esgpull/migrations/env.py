@@ -43,8 +43,10 @@ def run_migrations_offline() -> None:
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
+        dialect_name="sqlite",
         dialect_opts={"paramstyle": "named"},
         version_table="version",
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -70,6 +72,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             version_table="version",
+            render_as_batch=True,
         )
 
         with context.begin_transaction():
