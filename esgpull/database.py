@@ -66,10 +66,10 @@ class Database:
             opts = {"version_table": "version"}
             ctx = MigrationContext.configure(conn, opts=opts)
             self.version = ctx.get_current_revision()
-        if self.version != head:
-            alembic.command.upgrade(alembic_config, __version__)
+        if head is not None and self.version != head:
+            alembic.command.upgrade(alembic_config, head)
             self.version = head
-        if self.version != __version__:
+        if "+dev" not in __version__ and self.version != __version__:
             alembic.command.revision(
                 alembic_config,
                 message="update tables",
