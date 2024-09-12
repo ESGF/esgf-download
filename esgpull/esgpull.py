@@ -13,6 +13,7 @@ from rich.progress import (
     DownloadColumn,
     MofNCompleteColumn,
     Progress,
+    ProgressColumn,
     SpinnerColumn,
     TaskID,
     TextColumn,
@@ -337,7 +338,10 @@ class Esgpull:
                                 data_node = (
                                     f"[blue]{task.fields['data_node']}[/]"
                                 )
-                                msg = " · ".join([sha, size, speed, data_node])
+                                parts = [sha, size, speed, data_node]
+                                if self.config.download.show_filename:
+                                    parts.append(task.fields["filename"])
+                                msg = " · ".join(parts)
                                 logger.info(msg)
                                 live.console.print(msg)
                                 yield result
@@ -366,7 +370,7 @@ class Esgpull:
             MofNCompleteColumn(),
             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
         )
-        file_progress = self.ui.make_progress(
+        file_columns: list[str | ProgressColumn] = [
             TextColumn("[cyan][{task.id}] [b blue]{task.fields[sha]}"),
             "[progress.percentage]{task.percentage:>3.0f}%",
             BarColumn(),
@@ -376,6 +380,16 @@ class Esgpull:
             TransferSpeedColumn(),
             "·",
             TextColumn("[blue]{task.fields[data_node]}"),
+        ]
+        if self.config.download.show_filename:
+            file_columns.extend(
+                [
+                    "·",
+                    TextColumn("{task.fields[filename]}"),
+                ]
+            )
+        file_progress = self.ui.make_progress(
+            *file_columns,
             transient=True,
         )
         file_task_shas = {}
@@ -387,6 +401,7 @@ class Esgpull:
                 visible=False,
                 start=False,
                 sha=short_sha(file.sha),
+                filename=file.filename,
                 data_node=file.data_node,
             )
             callback = partial(file_progress.start_task, task_id)
