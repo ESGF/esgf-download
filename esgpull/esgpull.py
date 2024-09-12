@@ -13,6 +13,7 @@ from rich.progress import (
     DownloadColumn,
     MofNCompleteColumn,
     Progress,
+    ProgressColumn,
     SpinnerColumn,
     TaskID,
     TextColumn,
@@ -369,7 +370,7 @@ class Esgpull:
             MofNCompleteColumn(),
             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
         )
-        file_columns = [
+        file_columns: list[str | ProgressColumn] = [
             TextColumn("[cyan][{task.id}] [b blue]{task.fields[sha]}"),
             "[progress.percentage]{task.percentage:>3.0f}%",
             BarColumn(),
