@@ -467,6 +467,8 @@ class Context:
             group = BaseExceptionGroup("fetch", excs)
             if self.noraise:
                 logger.exception(group)
+                for exc in excs:
+                    logger.exception(exc)
             else:
                 raise group
 
