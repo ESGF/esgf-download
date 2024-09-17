@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
 from dataclasses import dataclass, field
@@ -441,7 +442,9 @@ class Context:
             try:
                 resp = await self.client.send(result.request)
                 resp.raise_for_status()
-                result.json = resp.json()
+                result.json = json.loads(
+                    resp.content.decode(encoding="latin-1")
+                )
                 logger.info(f"✓ Fetched in {resp.elapsed}s {resp.url}")
             except HTTPError as exc:
                 result.exc = exc
@@ -464,6 +467,8 @@ class Context:
             group = BaseExceptionGroup("fetch", excs)
             if self.noraise:
                 logger.exception(group)
+                for exc in excs:
+                    logger.exception(exc)
             else:
                 raise group
 
