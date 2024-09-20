@@ -102,5 +102,10 @@ dev-dependencies = [
   "types-pyyaml>=6.0.12.20240808",
   "types-aiofiles>=24.1.0.20240626",
   "pytest-mypy>=0.10.3",
-  "pytest-xdist>=3.6.1"
+  "pytest-xdist>=3.6.1",
+  "ipdb>=0.13.13",
+  "orjson>=3.10.7"
 ]
+
+[tool.rye.scripts]
+esg = {cmd = "esgpull", env-file = ".env"}

@@ -25,6 +25,18 @@ for dataset in datasets:
 - Command-line interface
 - HTTP download (async multi-file)
 
+## Installation
+
+Install `esgpull` using pip or conda:
+
+```shell
+pip install esgpull
+```
+
+```shell
+conda install -c conda-forge ipsl::esgpull
+```
+
 ## Usage
 
 ```console
