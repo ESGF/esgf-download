@@ -58,9 +58,7 @@ def main():
         attach_datasets_to_rucio(key, value)
         print('Dataset has {} files attached.'.format(len(value)))
         print('----------------------------------------')
-
-
-
+    print('Done!')
 
 if __name__ == '__main__':
     main()
