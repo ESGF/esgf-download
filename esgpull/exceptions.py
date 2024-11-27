@@ -109,8 +109,11 @@ class VirtualConfigError(EsgpullException):
     """
 
 
-class InstallException(EsgpullException):
-    ...
+class InstallException(EsgpullException): ...
+
+
+class UnknownDefaultQueryID(EsgpullException):
+    msg = "{}"
 
 
 class UntrackableQuery(EsgpullException):

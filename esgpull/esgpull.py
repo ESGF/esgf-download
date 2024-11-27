@@ -13,6 +13,7 @@ from rich.progress import (
     DownloadColumn,
     MofNCompleteColumn,
     Progress,
+    ProgressColumn,
     SpinnerColumn,
     TaskID,
     TextColumn,
@@ -28,6 +29,7 @@ from esgpull.exceptions import (
     DownloadCancelled,
     InvalidInstallPath,
     NoInstallPath,
+    UnknownDefaultQueryID,
 )
 from esgpull.fs import Filesystem
 from esgpull.graph import Graph
@@ -337,7 +339,10 @@ class Esgpull:
                                 data_node = (
                                     f"[blue]{task.fields['data_node']}[/]"
                                 )
-                                msg = " · ".join([sha, size, speed, data_node])
+                                parts = [sha, size, speed, data_node]
+                                if self.config.download.show_filename:
+                                    parts.append(task.fields["filename"])
+                                msg = " · ".join(parts)
                                 logger.info(msg)
                                 live.console.print(msg)
                                 yield result
@@ -366,7 +371,7 @@ class Esgpull:
             MofNCompleteColumn(),
             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
         )
-        file_progress = self.ui.make_progress(
+        file_columns: list[str | ProgressColumn] = [
             TextColumn("[cyan][{task.id}] [b blue]{task.fields[sha]}"),
             "[progress.percentage]{task.percentage:>3.0f}%",
             BarColumn(),
@@ -376,6 +381,16 @@ class Esgpull:
             TransferSpeedColumn(),
             "·",
             TextColumn("[blue]{task.fields[data_node]}"),
+        ]
+        if self.config.download.show_filename:
+            file_columns.extend(
+                [
+                    "·",
+                    TextColumn("{task.fields[filename]}"),
+                ]
+            )
+        file_progress = self.ui.make_progress(
+            *file_columns,
             transient=True,
         )
         file_task_shas = {}
@@ -387,6 +402,7 @@ class Esgpull:
                 visible=False,
                 start=False,
                 sha=short_sha(file.sha),
+                filename=file.filename,
                 data_node=file.data_node,
             )
             callback = partial(file_progress.start_task, task_id)
@@ -445,3 +461,31 @@ class Esgpull:
                 if use_db:
                     self.db.add(*cancelled)
         return files, errors
+
+    def replace_queries(
+        self,
+        graph: Graph,
+        mapping: tuple[str | None, str],
+    ) -> None:
+        to_replace = [
+            q for q in graph.queries.values() if q.require == mapping[0]
+        ]
+        for query in to_replace:
+            new_query = query.clone(compute_sha=False)
+            new_query.require = mapping[1]
+            new_query.compute_sha()
+            graph.replace(query, new_query)
+            self.replace_queries(graph, (query.sha, new_query.sha))
+
+    def insert_default_query(self, *queries: Query) -> list[Query]:
+        if self.config.api.default_query_id == "":
+            return list(queries)
+        default_query_id = self.config.api.default_query_id
+        try:
+            default_query = self.graph.get(default_query_id)
+        except KeyError:
+            raise UnknownDefaultQueryID(default_query_id)
+        graph = Graph(None)
+        graph.add(*queries)
+        self.replace_queries(graph, (None, default_query.sha))
+        return list(graph.queries.values())

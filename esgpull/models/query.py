@@ -235,7 +235,7 @@ class Query(Base):
             return nb_files is not None and nb_files > 0
 
     def files_count_size(self, *status: FileStatus) -> tuple[int, int]:
-        stmt: sa.Select[tuple[int, int | None]] = (
+        stmt: sa.Select[tuple[int, int]] = (
             sa.select(sa.func.count("*"), sa.func.sum(File.size))
             .join_from(query_file_proxy, File)
             .where(query_file_proxy.c.query_sha == self.sha)

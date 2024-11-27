@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Container, Iterator, Mapping
+from collections.abc import Iterator, Mapping
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, cast
 
 import tomlkit
-from attrs import Factory, define, field
+from attrs import Factory, define, field, fields
+from attrs import has as attrs_has
 from cattrs import Converter
 from cattrs.gen import make_dict_unstructure_fn, override
 from tomlkit import TOMLDocument
@@ -98,6 +99,7 @@ class Download:
     max_concurrent: int = 5
     disable_ssl: bool = False
     disable_checksum: bool = False
+    show_filename: bool = False
 
 
 @define
@@ -123,6 +125,7 @@ class API:
     max_concurrent: int = 5
     page_limit: int = 50
     default_options: DefaultOptions = Factory(DefaultOptions)
+    default_query_id: str = ""
 
 
 def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
@@ -298,15 +301,29 @@ class Config:
             doc.setdefault(part, {})
             doc = doc[part]
             obj = getattr(obj, part)
+        value_type = getattr(fields(type(obj)), last).type
         old_value = getattr(obj, last)
-        if isinstance(old_value, str):
-            ...
-        elif isinstance(old_value, Container):
+        if attrs_has(value_type):
             raise KeyError(key)
-        try:
-            value = int(value)
-        except ValueError:
+        elif value_type is str:
             ...
+        elif value_type is int:
+            try:
+                value = value_type(value)
+            except Exception:
+                ...
+        elif value_type is bool:
+            if isinstance(value, bool):
+                ...
+            elif isinstance(value, str):
+                if value.lower() in ["on", "true"]:
+                    value = True
+                elif value.lower() in ["off", "false"]:
+                    value = False
+                else:
+                    raise ValueError(value)
+            else:
+                raise TypeError(value)
         setattr(obj, last, value)
         doc[last] = value
         return old_value

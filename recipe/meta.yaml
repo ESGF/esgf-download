@@ -1,4 +1,4 @@
-{% set version = "0.6.2" %}
+{% set version = "0.6.5" %}
 
 package:
   name: esgpull
@@ -27,7 +27,7 @@ requirements:
     - setuptools
     - pdm
     - pdm-pep517
-
+    - pdm-backend
 
   run:
     - python >=3.10

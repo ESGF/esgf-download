@@ -1,0 +1,33 @@
+# This CITATION.cff file was generated with cffinit.
+
+cff-version: 1.2.0
+title: esgpull
+message: ESGF command line download tool esgpull
+type: software
+authors:
+  - given-names: Sven
+    family-names: Rodriguez
+    email: sven.rodriguez@ipsl.fr
+    affiliation: Sorbonne University
+  - given-names: Atef
+    family-names: Ben Nasser
+    email: abennasser@ipsl.fr
+    affiliation: Centre National de Recherche Scientifique
+    orcid: 'https://orcid.org/0000-0001-6948-8735'
+  - given-names: Guillaume
+    family-names: Levavasseur
+    email: glipsl@ipsl.fr
+    affiliation: Sorbonne University
+    orcid: 'https://orcid.org/0000-0002-0801-0890'
+repository-code: 'https://github.com/ESGF/esgf-download.git'
+url: 'https://esgf.github.io/esgf-download/'
+abstract: >-
+  esgpull is a modern ESGF data management tool, bundled
+  with a custom asynchronous interface with the ESGF Search
+  API. It handles scanning, downloading and updating
+  datasets, files and queries from ESGF.
+license: BSD-3-Clause
+commit: 762494e
+version: 0.7.4
+doi: 10.5281/zenodo.14228984
+date-released: '2024-11-27'
