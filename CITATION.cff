@@ -29,4 +29,5 @@ abstract: >-
 license: BSD-3-Clause
 commit: 762494e
 version: 0.7.4
+doi: 10.5281/zenodo.14228984
 date-released: '2024-11-27'
