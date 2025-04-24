@@ -140,8 +140,9 @@ def update(
             new_files = [file for file in qf.files if file.sha not in shas]
             nb_files = len(new_files)
             if export:
-                for descrip, file_list, dfl_fn in [("all files", qf.files, "all_files.json"),
-                                                   ("new files", new_files, "new_files.json")]:
+                hash = qf.query.name.strip("<>")
+                for descrip, file_list, dfl_fn in [("all files", qf.files, f"{hash}_all_files.json"),
+                                                   ("new files", new_files, f"{hash}_new_files.json")]:
                     fn = esg.ui.prompt(f"Filename to export {descrip} list:", dfl_fn)
                     with open(fn, "w") as fout:
                         json.dump([file.asdict() for file in file_list],
