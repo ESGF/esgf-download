@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 import sqlalchemy as sa
+from humanize import naturaldate
 from rich.console import Console, ConsoleOptions
 from rich.table import Table
 from rich.text import Text
@@ -153,7 +154,7 @@ class QueryDict(TypedDict):
     options: NotRequired[MutableMapping[str, bool | None]]
     selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
-    created_at: NotRequired[datetime]
+    created_at: NotRequired[str]
 
 
 class Query(Base):
@@ -197,6 +198,7 @@ class Query(Base):
         options: Options | MutableMapping[str, bool | None] | None = None,
         selection: Selection | MutableMapping[str, FacetValues] | None = None,
         files: list[FileDict] | None = None,
+        created_at: datetime | str | None = None,
     ) -> None:
         self.tracked = tracked
         self.require = require
@@ -225,6 +227,15 @@ class Query(Base):
         if files is not None:
             for file in files:
                 self.files.append(File.fromdict(file))
+        if created_at is not None:
+            if isinstance(created_at, str):
+                self.created_at = datetime.strptime(
+                    created_at, "%Y-%m-%d %H:%M:%S"
+                )
+            elif isinstance(created_at, datetime):
+                self.created_at = created_at
+        else:
+            self.created_at = datetime.now(timezone.utc)
 
     @property
     def has_files(self) -> bool:
@@ -319,6 +330,7 @@ class Query(Base):
             result["options"] = self.options.asdict()
         if self.selection:
             result["selection"] = self.selection.asdict()
+        result["created_at"] = self.created_at.strftime("%Y-%m-%d %H:%M:%S")
         return result
 
     def clone(self, compute_sha: bool = True) -> Query:
@@ -415,6 +427,7 @@ class Query(Base):
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
+        title.append(f"\n{naturaldate(self.created_at)}")
         contents = Table.grid(padding=(0, 1))
         if not hasattr(self, "_rich_no_require") and self.require is not None:
             if len(self.require) == 40:
