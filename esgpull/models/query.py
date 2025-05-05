@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, MutableMapping, Sequence
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 import sqlalchemy as sa
@@ -152,6 +153,7 @@ class QueryDict(TypedDict):
     options: NotRequired[MutableMapping[str, bool | None]]
     selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
+    created_at: NotRequired[datetime]
 
 
 class Query(Base):
@@ -180,6 +182,10 @@ class Query(Base):
         default_factory=list,
         back_populates="queries",
         repr=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(),
+        default_factory=lambda: datetime.now(timezone.utc),
     )
 
     def __init__(
