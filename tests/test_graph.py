@@ -4,6 +4,8 @@ from esgpull.database import Database
 from esgpull.graph import Graph
 from esgpull.models import Query
 
+from .utils import dict_equals_ignore
+
 
 @pytest.fixture
 def base():
@@ -106,42 +108,48 @@ def test_add_1_by_1_reverse(base, a, b, c):
 
 
 def test_asdict(graph, base, a, b, c):
-    assert graph.asdict() == {
-        base.sha: dict(
-            selection=dict(
-                project="CMIP5",
-                ensemble="r1i1p1",
-                realm="atmos",
-            )
-        ),
-        a.sha: dict(
-            require=base.sha,
-            selection=dict(
-                experiment=["historical", "rcp26"],
-                time_frequency="mon",
-                variable="tasmin",
+    assert dict_equals_ignore(
+        graph.asdict(),
+        {
+            base.sha: dict(
+                selection=dict(
+                    project="CMIP5",
+                    ensemble="r1i1p1",
+                    realm="atmos",
+                )
             ),
-        ),
-        b.sha: dict(
-            require=base.sha,
-            selection=dict(
-                experiment="rcp85",
-                time_frequency="day",
-                variable=["tas", "ua"],
+            a.sha: dict(
+                require=base.sha,
+                selection=dict(
+                    experiment=["historical", "rcp26"],
+                    time_frequency="mon",
+                    variable="tasmin",
+                ),
             ),
-        ),
-        c.sha: dict(
-            require=base.sha,
-            selection=dict(
-                time_frequency=sorted(["day", "mon", "fx"]),
-                variable="tasmax",
+            b.sha: dict(
+                require=base.sha,
+                selection=dict(
+                    experiment="rcp85",
+                    time_frequency="day",
+                    variable=["tas", "ua"],
+                ),
             ),
-        ),
-    }
+            c.sha: dict(
+                require=base.sha,
+                selection=dict(
+                    time_frequency=sorted(["day", "mon", "fx"]),
+                    variable="tasmax",
+                ),
+            ),
+        },
+        ignore_keys=["created_at", "updated_at"],
+    )
 
 
 def test_dump(graph, base, a, b, c):
-    assert graph.dump() == [
+    dump = graph.dump()
+    assert dict_equals_ignore(
+        dump[0],
         dict(
             selection=dict(
                 project="CMIP5",
@@ -149,6 +157,10 @@ def test_dump(graph, base, a, b, c):
                 realm="atmos",
             )
         ),
+        ignore_keys=["created_at", "updated_at"],
+    )
+    assert dict_equals_ignore(
+        dump[1],
         dict(
             require=base.sha,
             selection=dict(
@@ -157,6 +169,10 @@ def test_dump(graph, base, a, b, c):
                 variable="tasmin",
             ),
         ),
+        ignore_keys=["created_at", "updated_at"],
+    )
+    assert dict_equals_ignore(
+        dump[2],
         dict(
             require=base.sha,
             selection=dict(
@@ -165,6 +181,10 @@ def test_dump(graph, base, a, b, c):
                 variable=["tas", "ua"],
             ),
         ),
+        ignore_keys=["created_at", "updated_at"],
+    )
+    assert dict_equals_ignore(
+        dump[3],
         dict(
             require=base.sha,
             selection=dict(
@@ -172,39 +192,56 @@ def test_dump(graph, base, a, b, c):
                 variable="tasmax",
             ),
         ),
-    ]
+        ignore_keys=["created_at", "updated_at"],
+    )
 
 
 def test_expand(graph, base, a, b, c):
-    assert graph.expand(base.sha).asdict() == base.asdict()
-    assert graph.expand(a.sha).asdict() == dict(
-        selection=dict(
-            project="CMIP5",
-            ensemble="r1i1p1",
-            realm="atmos",
-            experiment=["historical", "rcp26"],
-            time_frequency="mon",
-            variable="tasmin",
-        )
+    assert dict_equals_ignore(
+        graph.expand(base.sha).asdict(),
+        base.asdict(),
+        ignore_keys=["created_at", "updated_at"],
     )
-    assert graph.expand(b.sha).asdict() == dict(
-        selection=dict(
-            project="CMIP5",
-            ensemble="r1i1p1",
-            realm="atmos",
-            experiment="rcp85",
-            time_frequency="day",
-            variable=["tas", "ua"],
-        )
+    assert dict_equals_ignore(
+        graph.expand(a.sha).asdict(),
+        dict(
+            selection=dict(
+                project="CMIP5",
+                ensemble="r1i1p1",
+                realm="atmos",
+                experiment=["historical", "rcp26"],
+                time_frequency="mon",
+                variable="tasmin",
+            )
+        ),
+        ignore_keys=["created_at", "updated_at"],
     )
-    assert graph.expand(c.sha).asdict() == dict(
-        selection=dict(
-            project="CMIP5",
-            ensemble="r1i1p1",
-            realm="atmos",
-            time_frequency=sorted(["day", "mon", "fx"]),
-            variable="tasmax",
-        )
+    assert dict_equals_ignore(
+        graph.expand(b.sha).asdict(),
+        dict(
+            selection=dict(
+                project="CMIP5",
+                ensemble="r1i1p1",
+                realm="atmos",
+                experiment="rcp85",
+                time_frequency="day",
+                variable=["tas", "ua"],
+            )
+        ),
+        ignore_keys=["created_at", "updated_at"],
+    )
+    assert dict_equals_ignore(
+        graph.expand(c.sha).asdict(),
+        dict(
+            selection=dict(
+                project="CMIP5",
+                ensemble="r1i1p1",
+                realm="atmos",
+                time_frequency=sorted(["day", "mon", "fx"]),
+                variable="tasmax",
+            )
+        ),
+        ignore_keys=["created_at", "updated_at"],
     )
 
 
