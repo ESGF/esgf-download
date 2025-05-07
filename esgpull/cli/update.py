@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 import click
 from click.exceptions import Abort, Exit
@@ -184,4 +185,6 @@ def update(
                         elif has_legacy and legacy in file_db.queries:
                             esg.db.unlink(query=legacy, file=file_db)
                         esg.db.link(query=qf.query, file=file)
+                    qf.query.updated_at = datetime.now(timezone.utc)
+                    esg.db.session.add(qf.query)
         esg.ui.raise_maybe_record(Exit(0))
