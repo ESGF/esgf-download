@@ -145,7 +145,7 @@ def test_asdict(graph, base, a, b, c):
         assert dict_equals_ignore(
             query_dict,
             expected[sha],
-            ignore_keys=["created_at", "updated_at"],
+            ignore_keys=["added_at", "updated_at"],
         )
 
 
@@ -160,7 +160,7 @@ def test_dump(graph, base, a, b, c):
                 realm="atmos",
             )
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         dump[1],
@@ -172,7 +172,7 @@ def test_dump(graph, base, a, b, c):
                 variable="tasmin",
             ),
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         dump[2],
@@ -184,7 +184,7 @@ def test_dump(graph, base, a, b, c):
                 variable=["tas", "ua"],
             ),
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         dump[3],
@@ -195,7 +195,7 @@ def test_dump(graph, base, a, b, c):
                 variable="tasmax",
             ),
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
 
 
@@ -203,7 +203,7 @@ def test_expand(graph, base, a, b, c):
     assert dict_equals_ignore(
         graph.expand(base.sha).asdict(),
         base.asdict(),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         graph.expand(a.sha).asdict(),
@@ -217,7 +217,7 @@ def test_expand(graph, base, a, b, c):
                 variable="tasmin",
             )
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         graph.expand(b.sha).asdict(),
@@ -231,7 +231,7 @@ def test_expand(graph, base, a, b, c):
                 variable=["tas", "ua"],
             )
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         graph.expand(c.sha).asdict(),
@@ -244,7 +244,7 @@ def test_expand(graph, base, a, b, c):
                 variable="tasmax",
             )
         ),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
 
 

@@ -165,7 +165,7 @@ class QueryDict(TypedDict):
     options: NotRequired[MutableMapping[str, bool | None]]
     selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
-    created_at: NotRequired[str]
+    added_at: NotRequired[str]
     updated_at: NotRequired[str]
 
 
@@ -196,7 +196,7 @@ class Query(Base):
         back_populates="queries",
         repr=False,
     )
-    created_at: Mapped[datetime] = mapped_column(
+    added_at: Mapped[datetime] = mapped_column(
         server_default=sa.func.now(),
         default_factory=lambda: datetime.now(timezone.utc),
     )
@@ -214,7 +214,7 @@ class Query(Base):
         options: Options | MutableMapping[str, bool | None] | None = None,
         selection: Selection | MutableMapping[str, FacetValues] | None = None,
         files: list[FileDict] | None = None,
-        created_at: datetime | str | None = None,
+        added_at: datetime | str | None = None,
         updated_at: datetime | str | None = None,
     ) -> None:
         self.tracked = tracked
@@ -244,10 +244,10 @@ class Query(Base):
         if files is not None:
             for file in files:
                 self.files.append(File.fromdict(file))
-        if created_at is not None:
-            self.created_at = parse_date(created_at)
+        if added_at is not None:
+            self.added_at = parse_date(added_at)
         else:
-            self.created_at = datetime.now(timezone.utc)
+            self.added_at = datetime.now(timezone.utc)
         if updated_at is not None:
             self.updated_at = parse_date(updated_at)
         else:
@@ -346,7 +346,7 @@ class Query(Base):
             result["options"] = self.options.asdict()
         if self.selection:
             result["selection"] = self.selection.asdict()
-        result["created_at"] = format_date(self.created_at)
+        result["added_at"] = format_date(self.added_at)
         result["updated_at"] = format_date(self.updated_at)
         return result
 
@@ -445,7 +445,7 @@ class Query(Base):
         if not self.tracked:
             title.append(" untracked", style="i red")
         title.append(
-            f"\n│ added    {format_date_iso(self.created_at)}"
+            f"\n│ added    {format_date_iso(self.added_at)}"
             f"\n│ updated  {format_date_iso(self.updated_at)}"
         )
         contents = Table.grid(padding=(0, 1))

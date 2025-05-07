@@ -84,19 +84,19 @@ def test_update_updates_timestamp(tmp_path):
     assert query.updated_at > initial_timestamp, (
         "updated_at timestamp was not updated after adding files"
     )
-    
+
     # Save the timestamp after files were added
     timestamp_after_update = query.updated_at
-    
+
     # Run a second update - no new files should be added
     result_update_2 = runner.invoke(update, [query_id, "--yes"])
     assert result_update_2.exit_code == 0
-    
+
     # Get the query again
     esg = Esgpull(install_path)  # Reinitialize to ensure fresh data
     esg.graph.load_db()
     query = esg.graph.get(query_id)
-    
+
     # Verify the timestamp was NOT updated when no new files were added
     assert query.updated_at == timestamp_after_update, (
         "updated_at timestamp should not change when no new files are added"

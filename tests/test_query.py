@@ -8,7 +8,7 @@ from .utils import dict_equals_ignore
 
 def test_empty_asdict():
     assert dict_equals_ignore(
-        Query().asdict(), {}, ignore_keys=["created_at", "updated_at"]
+        Query().asdict(), {}, ignore_keys=["added_at", "updated_at"]
     )
 
 
@@ -18,13 +18,13 @@ def test_clone_is_deepcopy():
     assert dict_equals_ignore(
         query.asdict(),
         clone.asdict(),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     clone.selection.variable_id = "tas"
     assert not dict_equals_ignore(
         query.asdict(),
         clone.asdict(),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
 
 
@@ -39,22 +39,22 @@ def test_combine():
     abcd_dict = (a << b << c << d).asdict()
     dcba_dict = (d << c << b << a).asdict()
     assert dict_equals_ignore(
-        ab_dict, ba_dict, ignore_keys=["created_at", "updated_at"]
+        ab_dict, ba_dict, ignore_keys=["added_at", "updated_at"]
     )
     assert dict_equals_ignore(
         ab_dict,
         dict(project="CMIP6", mip_era="CMIP6"),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         abcd_dict,
         dict(selection=ab_dict, options=dict(distrib=True)),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
     assert dict_equals_ignore(
         dcba_dict,
         dict(selection=ab_dict, options=dict(distrib=None)),
-        ignore_keys=["created_at", "updated_at"],
+        ignore_keys=["added_at", "updated_at"],
     )
 
 
@@ -91,7 +91,7 @@ def test_set_tags_ok():
     query.tags.append(Tag(name="tag"))
     query_dict = query.asdict()
     assert dict_equals_ignore(
-        query_dict, {"tags": "tag"}, ignore_keys=["created_at", "updated_at"]
+        query_dict, {"tags": "tag"}, ignore_keys=["added_at", "updated_at"]
     )
     query_copy = Query(**query_dict)
     query.compute_sha()
