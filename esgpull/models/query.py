@@ -167,6 +167,7 @@ class QueryDict(TypedDict):
     selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
     created_at: NotRequired[str]
+    updated_at: NotRequired[str]
 
 
 class Query(Base):
@@ -200,6 +201,10 @@ class Query(Base):
         server_default=sa.func.now(),
         default_factory=lambda: datetime.now(timezone.utc),
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(),
+        default_factory=lambda: datetime.now(timezone.utc),
+    )
 
     def __init__(
         self,
@@ -211,6 +216,7 @@ class Query(Base):
         selection: Selection | MutableMapping[str, FacetValues] | None = None,
         files: list[FileDict] | None = None,
         created_at: datetime | str | None = None,
+        updated_at: datetime | str | None = None,
     ) -> None:
         self.tracked = tracked
         self.require = require
@@ -243,6 +249,10 @@ class Query(Base):
             self.created_at = parse_date(created_at)
         else:
             self.created_at = datetime.now(timezone.utc)
+        if updated_at is not None:
+            self.updated_at = parse_date(updated_at)
+        else:
+            self.updated_at = datetime.now(timezone.utc)
 
     @property
     def has_files(self) -> bool:
@@ -338,6 +348,7 @@ class Query(Base):
         if self.selection:
             result["selection"] = self.selection.asdict()
         result["created_at"] = format_date(self.created_at)
+        result["updated_at"] = format_date(self.updated_at)
         return result
 
     def clone(self, compute_sha: bool = True) -> Query:
@@ -434,7 +445,9 @@ class Query(Base):
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
-        title.append(f"\n{naturaldate(self.created_at)}")
+        title.append(
+            f"\nadded {naturaldate(self.created_at)}, last updated {naturaldate(self.updated_at)}"
+        )
         contents = Table.grid(padding=(0, 1))
         if not hasattr(self, "_rich_no_require") and self.require is not None:
             if len(self.require) == 40:
