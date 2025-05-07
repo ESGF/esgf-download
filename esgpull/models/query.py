@@ -13,6 +13,7 @@ from rich.tree import Tree
 from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 from typing_extensions import NotRequired, TypedDict
 
+from esgpull import utils
 from esgpull.exceptions import UntrackableQuery
 from esgpull.models.base import Base, Sha
 from esgpull.models.file import FileDict, FileStatus
@@ -27,6 +28,17 @@ from esgpull.models.utils import (
     short_sha,
 )
 from esgpull.utils import format_size
+
+QUERY_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+
+
+def parse_date(d: datetime | str) -> datetime:
+    return utils.parse_date(d, fmt=QUERY_DATE_FMT)
+
+
+def format_date(d: datetime | str) -> str:
+    return utils.format_date(d, fmt=QUERY_DATE_FMT)
+
 
 query_file_proxy = sa.Table(
     "query_file",
@@ -228,12 +240,7 @@ class Query(Base):
             for file in files:
                 self.files.append(File.fromdict(file))
         if created_at is not None:
-            if isinstance(created_at, str):
-                self.created_at = datetime.strptime(
-                    created_at, "%Y-%m-%d %H:%M:%S"
-                )
-            elif isinstance(created_at, datetime):
-                self.created_at = created_at
+            self.created_at = parse_date(created_at)
         else:
             self.created_at = datetime.now(timezone.utc)
 
@@ -330,7 +337,7 @@ class Query(Base):
             result["options"] = self.options.asdict()
         if self.selection:
             result["selection"] = self.selection.asdict()
-        result["created_at"] = self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        result["created_at"] = format_date(self.created_at)
         return result
 
     def clone(self, compute_sha: bool = True) -> Query:
