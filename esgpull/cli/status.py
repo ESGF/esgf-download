@@ -44,8 +44,10 @@ def status(
             for status, count, total_size in status_count_size:
                 first_row = True
                 for query in esg.graph.queries.values():
-                    files = [f for f in query.files if f.status == status]
-                    if files:
+                    if not query.tracked:
+                        continue
+                    st_count, st_size = query.files_count_size(status)
+                    if st_count:
                         if first_row:
                             if first_line:
                                 first_line = False
@@ -61,7 +63,7 @@ def status(
                             first_row = False
                         table.add_row(
                             query.rich_name,
-                            str(len(files)),
-                            format_size(sum([f.size for f in files])),
+                            str(st_count),
+                            format_size(st_size),
                         )
         esg.ui.print(table)
