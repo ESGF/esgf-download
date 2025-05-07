@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 import sqlalchemy as sa
-from humanize import naturaldate
 from rich.console import Console, ConsoleOptions
 from rich.table import Table
 from rich.text import Text
@@ -27,7 +26,7 @@ from esgpull.models.utils import (
     rich_measure_impl,
     short_sha,
 )
-from esgpull.utils import format_size
+from esgpull.utils import format_date_iso, format_size
 
 QUERY_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 
@@ -446,7 +445,8 @@ class Query(Base):
         if not self.tracked:
             title.append(" untracked", style="i red")
         title.append(
-            f"\nadded {naturaldate(self.created_at)}, last updated {naturaldate(self.updated_at)}"
+            f"\n│ added    {format_date_iso(self.created_at)}"
+            f"\n│ updated  {format_date_iso(self.updated_at)}"
         )
         contents = Table.grid(padding=(0, 1))
         if not hasattr(self, "_rich_no_require") and self.require is not None:
