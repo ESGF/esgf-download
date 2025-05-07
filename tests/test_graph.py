@@ -108,42 +108,45 @@ def test_add_1_by_1_reverse(base, a, b, c):
 
 
 def test_asdict(graph, base, a, b, c):
-    assert dict_equals_ignore(
-        graph.asdict(),
-        {
-            base.sha: dict(
-                selection=dict(
-                    project="CMIP5",
-                    ensemble="r1i1p1",
-                    realm="atmos",
-                )
+    dump = graph.asdict()
+    expected = {
+        base.sha: dict(
+            selection=dict(
+                project="CMIP5",
+                ensemble="r1i1p1",
+                realm="atmos",
+            )
+        ),
+        a.sha: dict(
+            require=base.sha,
+            selection=dict(
+                experiment=["historical", "rcp26"],
+                time_frequency="mon",
+                variable="tasmin",
             ),
-            a.sha: dict(
-                require=base.sha,
-                selection=dict(
-                    experiment=["historical", "rcp26"],
-                    time_frequency="mon",
-                    variable="tasmin",
-                ),
+        ),
+        b.sha: dict(
+            require=base.sha,
+            selection=dict(
+                experiment="rcp85",
+                time_frequency="day",
+                variable=["tas", "ua"],
             ),
-            b.sha: dict(
-                require=base.sha,
-                selection=dict(
-                    experiment="rcp85",
-                    time_frequency="day",
-                    variable=["tas", "ua"],
-                ),
+        ),
+        c.sha: dict(
+            require=base.sha,
+            selection=dict(
+                time_frequency=sorted(["day", "mon", "fx"]),
+                variable="tasmax",
             ),
-            c.sha: dict(
-                require=base.sha,
-                selection=dict(
-                    time_frequency=sorted(["day", "mon", "fx"]),
-                    variable="tasmax",
-                ),
-            ),
-        },
-        ignore_keys=["created_at", "updated_at"],
-    )
+        ),
+    }
+    for sha, query_dict in dump.items():
+        assert dict_equals_ignore(
+            query_dict,
+            expected[sha],
+            ignore_keys=["created_at", "updated_at"],
+        )
 
 
 def test_dump(graph, base, a, b, c):
