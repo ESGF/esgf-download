@@ -51,10 +51,11 @@ def test_update_updates_timestamp(tmp_path):
         add,
         [
             "project:CMIP6",
-            "table_id:fx",  # Fixed fields are tiny
+            "table_id:fx",
             "variable_id:areacella",
+            "experiment_id:1pctCO2",
             "--distrib",
-            "false",  # Not distributed helps keep it small
+            "false",
             "--track",
         ],
     )
