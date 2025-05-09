@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 import click
 from click.exceptions import Abort, BadArgumentUsage, Exit
 
@@ -15,6 +17,18 @@ from esgpull.tui import Verbosity
 @groups.json_yaml
 @opts.files
 @opts.shas
+@click.option(
+    "--after",
+    type=click.DateTime(["%Y-%m-%d"]),
+    default=None,
+    help="Filter queries added after this date (YYYY-MM-DD)",
+)
+@click.option(
+    "--before",
+    type=click.DateTime(["%Y-%m-%d"]),
+    default=None,
+    help="Filter queries added before this date (YYYY-MM-DD)",
+)
 @opts.verbosity
 def show(
     query_id: str | None,
@@ -26,6 +40,8 @@ def show(
     json: bool,
     yaml: bool,
     shas: bool,
+    after: datetime | None,
+    before: datetime | None,
     verbosity: Verbosity,
 ) -> None:
     """
@@ -49,6 +65,19 @@ def show(
                 parents=parents,
                 keep_db=True,
             )
+
+        # Apply date filters if provided
+        if after or before:
+            filtered_queries = {}
+            for sha, query in graph.queries.items():
+                if after and query.added_at < after:
+                    continue
+                if before and query.added_at > before:
+                    continue
+                filtered_queries[sha] = query
+            graph.queries = filtered_queries
+            # Update the shas set to match the filtered queries
+            graph._shas = set(filtered_queries.keys())
         if tag is not None:
             tag_db = esg.graph.get_tag(tag)
             if tag_db is not None and tag_db.description is not None:

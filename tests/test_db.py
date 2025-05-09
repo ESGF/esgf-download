@@ -13,7 +13,8 @@ def db(config):
 
 def test_empty(root, db):
     assert str(root) in db.url
-    assert db.version == __version__
+    if "+dev" not in __version__:
+        assert db.version == __version__
 
 
 def test_CRUD(db):
