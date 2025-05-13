@@ -64,3 +64,11 @@ Commands:
   untrack   Untrack queries
   update    Fetch files, link files <-> queries, send files to download...
 ```
+
+## Useful links
+* [ESGF Webinar: An Introduction to esgpull, A Replacement for Synda](https://www.youtube.com/watch?v=xv2RVMd1iCA)
+
+
+## Contributions
+
+You can use the common github workflow (through pull requests and issues) to contribute.
