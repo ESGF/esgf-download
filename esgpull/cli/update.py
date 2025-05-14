@@ -100,12 +100,20 @@ def update(
         #   It might be interesting for the special case where all files already
         #   exist in db, then the detailed fetch could be skipped.
         for qf in qfs:
-            qf_results = esg.context.prepare_search_distributed(
-                qf.expanded,
-                file=True,
-                hints=[qf.hints],
-                max_hits=None,
-            )
+            if esg.config.api.use_custom_distribution_algorithm:
+                qf_results = esg.context.prepare_search_distributed(
+                    qf.expanded,
+                    file=True,
+                    hints=[qf.hints],
+                    max_hits=None,
+                )
+            else:
+                qf_results = esg.context.prepare_search(
+                    qf.expanded,
+                    file=True,
+                    hits=[qf.hits],
+                    max_hits=None,
+                )
             nb_req = len(qf_results)
             if nb_req > 50:
                 msg = (

@@ -126,6 +126,7 @@ class API:
     page_limit: int = 50
     default_options: DefaultOptions = Factory(DefaultOptions)
     default_query_id: str = ""
+    use_custom_distribution_algorithm: bool = False
 
 
 def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
