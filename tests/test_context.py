@@ -20,6 +20,7 @@ def empty():
 @pytest.fixture
 def cmip6_ipsl():
     query = Query()
+    query.options.distrib = False
     query.selection.mip_era = "CMIP6"
     query.selection.institution_id = "IPSL"
     return query

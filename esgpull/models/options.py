@@ -53,7 +53,7 @@ class Options(Base):
     replica: Mapped[Option] = mapped_column(sa.Enum(Option))
     retracted: Mapped[Option] = mapped_column(sa.Enum(Option))
 
-    _distrib_ = Option(False)
+    _distrib_ = Option(True)
     _latest_ = Option(True)
     _replica_ = Option(None)
     _retracted_ = Option(False)
