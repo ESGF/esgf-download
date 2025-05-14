@@ -31,7 +31,9 @@ def format_size(size: int) -> str:
     )
 
 
-def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
+def parse_date(
+    date: str | datetime.datetime, fmt: str = "%Y-%m-%d"
+) -> datetime.datetime:
     match date:
         case datetime.datetime():
             ...
@@ -39,7 +41,17 @@ def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
             date = datetime.datetime.strptime(date, fmt)
         case _:
             raise ValueError(date)
-    return date.replace(microsecond=0).isoformat() + "Z"
+    return date
+
+
+def format_date(date: str | datetime.datetime, fmt: str = "%Y-%m-%d") -> str:
+    return parse_date(date, fmt).strftime(fmt)
+
+
+def format_date_iso(
+    date: str | datetime.datetime, fmt: str = "%Y-%m-%d"
+) -> str:
+    return parse_date(date, fmt).replace(microsecond=0).isoformat() + "Z"
 
 
 def url2index(url: str) -> str:

@@ -18,7 +18,7 @@ from esgpull.config import Config
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import Dataset, File, Query
 from esgpull.tui import logger
-from esgpull.utils import format_date, index2url, sync
+from esgpull.utils import format_date_iso, index2url, sync
 
 # workaround for notebooks with running event loop
 if asyncio.get_event_loop().is_running():
@@ -77,9 +77,9 @@ class Result:
         else:
             params["fields"] = "instance_id"
         if date_from is not None:
-            params["from"] = format_date(date_from)
+            params["from"] = format_date_iso(date_from)
         if date_to is not None:
-            params["to"] = format_date(date_to)
+            params["to"] = format_date_iso(date_to)
         if facets_param is not None:
             if len(set(facets_param) & DangerousFacets) > 0:
                 raise SolrUnstableQueryError(pretty_repr(self.query))
@@ -90,9 +90,9 @@ class Result:
             facets_star = False
         # [?]TODO: add nominal temporal constraints `to`
         # if "start" in facets:
-        #     query["start"] = format_date(str(facets.pop("start")))
+        #     query["start"] = format_date_iso(str(facets.pop("start")))
         # if "end" in facets:
-        #     query["end"] = format_date(str(facets.pop("end")))
+        #     query["end"] = format_date_iso(str(facets.pop("end")))
         solr_terms: list[str] = []
         for name, values in self.query.selection.items():
             value_term = " ".join(values)
@@ -282,7 +282,7 @@ class Context:
     #     # if since is None:
     #     #     self.since = since
     #     # else:
-    #     #     self.since = format_date(since)
+    #     #     self.since = format_date_iso(since)
 
     async def __aenter__(self) -> Context:
         if hasattr(self, "client"):

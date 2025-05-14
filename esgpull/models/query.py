@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, MutableMapping, Sequence
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 import sqlalchemy as sa
@@ -11,6 +12,7 @@ from rich.tree import Tree
 from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 from typing_extensions import NotRequired, TypedDict
 
+from esgpull import utils
 from esgpull.exceptions import UntrackableQuery
 from esgpull.models.base import Base, Sha
 from esgpull.models.file import FileDict, FileStatus
@@ -24,7 +26,18 @@ from esgpull.models.utils import (
     rich_measure_impl,
     short_sha,
 )
-from esgpull.utils import format_size
+from esgpull.utils import format_date_iso, format_size
+
+QUERY_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+
+
+def parse_date(d: datetime | str) -> datetime:
+    return utils.parse_date(d, fmt=QUERY_DATE_FMT)
+
+
+def format_date(d: datetime | str) -> str:
+    return utils.format_date(d, fmt=QUERY_DATE_FMT)
+
 
 query_file_proxy = sa.Table(
     "query_file",
@@ -152,6 +165,8 @@ class QueryDict(TypedDict):
     options: NotRequired[MutableMapping[str, bool | None]]
     selection: NotRequired[MutableMapping[str, FacetValues]]
     files: NotRequired[list[FileDict]]
+    added_at: NotRequired[str]
+    updated_at: NotRequired[str]
 
 
 class Query(Base):
@@ -181,6 +196,14 @@ class Query(Base):
         back_populates="queries",
         repr=False,
     )
+    added_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(),
+        default_factory=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(),
+        default_factory=lambda: datetime.now(timezone.utc),
+    )
 
     def __init__(
         self,
@@ -191,6 +214,8 @@ class Query(Base):
         options: Options | MutableMapping[str, bool | None] | None = None,
         selection: Selection | MutableMapping[str, FacetValues] | None = None,
         files: list[FileDict] | None = None,
+        added_at: datetime | str | None = None,
+        updated_at: datetime | str | None = None,
     ) -> None:
         self.tracked = tracked
         self.require = require
@@ -219,6 +244,14 @@ class Query(Base):
         if files is not None:
             for file in files:
                 self.files.append(File.fromdict(file))
+        if added_at is not None:
+            self.added_at = parse_date(added_at)
+        else:
+            self.added_at = datetime.now(timezone.utc)
+        if updated_at is not None:
+            self.updated_at = parse_date(updated_at)
+        else:
+            self.updated_at = datetime.now(timezone.utc)
 
     @property
     def has_files(self) -> bool:
@@ -313,6 +346,8 @@ class Query(Base):
             result["options"] = self.options.asdict()
         if self.selection:
             result["selection"] = self.selection.asdict()
+        result["added_at"] = format_date(self.added_at)
+        result["updated_at"] = format_date(self.updated_at)
         return result
 
     def clone(self, compute_sha: bool = True) -> Query:
@@ -409,6 +444,10 @@ class Query(Base):
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
+        title.append(
+            f"\n│ added    {format_date_iso(self.added_at)}"
+            f"\n│ updated  {format_date_iso(self.updated_at)}"
+        )
         contents = Table.grid(padding=(0, 1))
         if not hasattr(self, "_rich_no_require") and self.require is not None:
             if len(self.require) == 40:
