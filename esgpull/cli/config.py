@@ -4,24 +4,9 @@ import click
 from click.exceptions import Abort, BadOptionUsage, Exit
 
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import init_esgpull
+from esgpull.cli.utils import extract_subdict, init_esgpull
 from esgpull.config import ConfigKind
 from esgpull.tui import Verbosity
-
-
-def extract_command(doc: dict, key: str | None) -> dict:
-    if key is None:
-        return doc
-    for part in key.split("."):
-        if not part:
-            raise KeyError(key)
-        elif part in doc:
-            doc = doc[part]
-        else:
-            raise KeyError(part)
-    for part in key.split(".")[::-1]:
-        doc = {part: doc}
-    return doc
 
 
 @click.command()
@@ -73,7 +58,7 @@ def config(
                 )
             kind = esg.config.kind
             old_value = esg.config.update_item(key, value, empty_ok=True)
-            info = extract_command(esg.config.dump(), key)
+            info = extract_subdict(esg.config.dump(), key)
             esg.config.write()
             esg.ui.print(info, toml=True)
             if kind == ConfigKind.NoFile:
@@ -86,12 +71,12 @@ def config(
         elif key is not None:
             if default:
                 old_value = esg.config.set_default(key)
-                info = extract_command(esg.config.dump(), key)
+                info = extract_subdict(esg.config.dump(), key)
                 esg.config.write()
                 esg.ui.print(info, toml=True)
                 esg.ui.print(f"Previous value: {old_value}")
             else:
-                info = extract_command(esg.config.dump(), key)
+                info = extract_subdict(esg.config.dump(), key)
                 esg.ui.print(info, toml=True)
         elif generate:
             overwrite = False
@@ -102,8 +87,7 @@ def config(
                 )
                 esg.ui.raise_maybe_record(Exit(0))
             elif esg.config.kind == ConfigKind.Partial and esg.ui.ask(
-                "A config file already exists,"
-                " fill it with missing defaults?",
+                "A config file already exists, fill it with missing defaults?",
                 default=False,
             ):
                 overwrite = True

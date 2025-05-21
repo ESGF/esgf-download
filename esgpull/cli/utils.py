@@ -103,7 +103,7 @@ def totable(docs: list[OrderedDict[str, Any]]) -> Table:
     table = Table(box=MINIMAL_DOUBLE_HEAD, show_edge=False)
     for key in docs[0].keys():
         justify: Literal["left", "right", "center"]
-        if key in ["file", "dataset"]:
+        if key in ["file", "dataset", "plugin"]:
             justify = "left"
         else:
             justify = "right"
@@ -243,3 +243,18 @@ def get_queries(
             kids = graph.get_all_children(query.sha)
             queries.extend(kids)
     return queries
+
+
+def extract_subdict(doc: dict, key: str | None) -> dict:
+    if key is None:
+        return doc
+    for part in key.split("."):
+        if not part:
+            raise KeyError(key)
+        elif part in doc:
+            doc = doc[part]
+        else:
+            raise KeyError(part)
+    for part in key.split(".")[::-1]:
+        doc = {part: doc}
+    return doc

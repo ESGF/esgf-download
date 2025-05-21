@@ -34,7 +34,8 @@ dependencies = [
   "attrs>=22.1.0",
   "cattrs>=22.2.0",
   "platformdirs>=2.6.2",
-  "pyparsing>=3.0.9"
+  "pyparsing>=3.0.9",
+  "packaging>=25.0",
 ]
 license.text = "BSD-3-Clause"
 

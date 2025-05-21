@@ -45,6 +45,13 @@ from esgpull.models import (
     sql,
 )
 from esgpull.models.utils import short_sha
+from esgpull.plugin import (
+    Event,
+    PluginManager,
+    emit,
+    get_plugin_manager,
+    set_plugin_manager,
+)
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, DummyLive, Verbosity, logger
@@ -118,6 +125,19 @@ class Esgpull:
         if load_db:
             self.db = Database.from_config(self.config)
             self.graph = Graph(self.db)
+        # Initialize plugin system
+        plugin_config = self.path / "plugins" / "plugins.toml"
+        try:
+            self.plugin_manager = get_plugin_manager()
+            self.plugin_manager.__init__(config_path=plugin_config)
+        except ValueError:
+            self.plugin_manager = PluginManager(config_path=plugin_config)
+            set_plugin_manager(self.plugin_manager)
+        if self.config.plugins.enabled:
+            self.plugin_manager.enabled = True
+            plugins_dir = self.path / "plugins"
+            plugins_dir.mkdir(exist_ok=True, parents=True)
+            self.plugin_manager.discover_plugins(plugins_dir=plugins_dir)
 
     def fetch_index_nodes(self) -> list[str]:
         """
@@ -346,12 +366,22 @@ class Esgpull:
                                 msg = " · ".join(parts)
                                 logger.info(msg)
                                 live.console.print(msg)
+
+                                # Trigger file_downloaded event in background
+                                emit(Event.file_downloaded, file=file)
+
                                 yield result
                             case Err(_, err):
                                 progress.remove_task(task.id)
-                                yield Err(result.data, err)
-                case Err():
+                                yield Err(result.data, err=err)
+                case Err(_, err):
                     progress.remove_task(task.id)
+                    emit(
+                        Event.download_failure,
+                        file=result.data.file,
+                        exception=err,
+                    )
+
                     yield result
                 case _:
                     raise ValueError("Unexpected result")
