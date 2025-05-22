@@ -398,6 +398,7 @@ class PluginManager:
                     logger.error(
                         f"Plugin {plugin.name} failed on {event_type}: {e}"
                     )
+                    logger.exception(e)
                     if reraise:
                         raise
 
