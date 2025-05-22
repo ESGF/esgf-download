@@ -92,36 +92,41 @@ def list_plugins(verbosity: Verbosity, json_output: bool = False):
                 # Create handler rows with event type and function names
                 for event_type, handler_names in events_by_type.items():
                     for handler_name in handler_names:
-                        handler_rows.append({
-                            "event": event_type,
-                            "function": handler_name
-                        })
+                        handler_rows.append(
+                            {"event": event_type, "function": handler_name}
+                        )
 
                 # First row with plugin info and first handler
                 if handler_rows:
                     first_handler = handler_rows[0]
-                    first_row = OrderedDict([
-                        ("plugin", plugin_name),
-                        ("event", first_handler["event"]),
-                        ("function", first_handler["function"])
-                    ])
+                    first_row = OrderedDict(
+                        [
+                            ("plugin", plugin_name),
+                            ("event", first_handler["event"]),
+                            ("function", first_handler["function"]),
+                        ]
+                    )
                     table_data.append(first_row)
 
                     # Additional rows for remaining handlers
                     for handler in handler_rows[1:]:
-                        additional_row = OrderedDict([
-                            ("plugin", ""),
-                            ("event", handler["event"]),
-                            ("function", handler["function"])
-                        ])
+                        additional_row = OrderedDict(
+                            [
+                                ("plugin", ""),
+                                ("event", handler["event"]),
+                                ("function", handler["function"]),
+                            ]
+                        )
                         table_data.append(additional_row)
                 else:
                     # Plugin with no handlers
-                    row = OrderedDict([
-                        ("plugin", plugin_name),
-                        ("event", ""),
-                        ("function", "")
-                    ])
+                    row = OrderedDict(
+                        [
+                            ("plugin", plugin_name),
+                            ("event", ""),
+                            ("function", ""),
+                        ]
+                    )
                     table_data.append(row)
 
             # Create and print table
@@ -320,14 +325,25 @@ def test_plugin(
 @click.argument(
     "event_type",
     type=click.Choice([e.value for e in Event]),
+    required=False,
 )
-def show_signatures(event_type: str):
-    """Show example implementation for an event handler."""
-    event = Event(event_type)
-    spec = EventSpecs[event]
-    source = spec.source.replace("@spec", "@on")
-    syntax = Syntax(source, "python")
-    TempUI.print(syntax)
+def show_signatures(event_type: str | None = None):
+    """Show example implementation for event handlers."""
+    if event_type is None:
+        # Show all signatures
+        for event in Event:
+            spec = EventSpecs[event]
+            source = spec.source.replace("@spec", "@on")
+            syntax = Syntax(source, "python")
+            TempUI.print(syntax)
+            print()
+    else:
+        # Show specific signature
+        event = Event(event_type)
+        spec = EventSpecs[event]
+        source = spec.source.replace("@spec", "@on")
+        syntax = Syntax(source, "python")
+        TempUI.print(syntax)
 
 
 @plugins.command("create")
