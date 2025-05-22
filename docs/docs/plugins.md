@@ -15,7 +15,7 @@ $ esgpull config plugins.enabled true
 ```shell
 $ esgpull config plugins.enabled true
 $ esgpull plugins ls
-$ esgpull plugins create notification_plugin
+$ esgpull plugins create -n notification_plugin
 $ esgpull plugins enable notification_plugin
 $ esgpull plugins ls
 ```
@@ -39,13 +39,13 @@ $ esgpull plugins ls --json
 Create a plugin template with all available events:
 
 ```shell
-$ esgpull plugins create my_plugin
+$ esgpull plugins create -n my_plugin
 ```
 
 Create a plugin for specific events only:
 
 ```shell
-$ esgpull plugins create notification_plugin --events file_downloaded
+$ esgpull plugins create -n notification_plugin file_downloaded
 ```
 
 ### Enable and disable plugins
@@ -62,6 +62,22 @@ See available events and their handler signatures:
 ```shell
 $ esgpull plugins signatures
 ```
+
+### Test plugins
+
+Test plugins by triggering events with sample data:
+
+```shell
+# Test all enabled plugins with sample events
+$ esgpull plugins test
+
+# Test specific event types
+$ esgpull plugins test file_downloaded
+$ esgpull plugins test download_failure
+$ esgpull plugins test query_updated
+```
+
+This is the primary debugging tool for plugin development. Use it to verify handlers work correctly before running actual downloads or updates.
 
 ## Plugin example
 
