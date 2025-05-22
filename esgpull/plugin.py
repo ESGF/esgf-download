@@ -86,8 +86,8 @@ class EventHandler:
     plugin_name: str
     priority: Literal["low", "normal", "high"] = "normal"
 
-    def __post_init__(self):
-        # Validate handler signature based on parameter names
+    def validate_signature(self):
+        """Validate handler signature based on parameter names"""
         sig = inspect.signature(self.func)
         spec = EventSpecs[self.event]
         checked: set[str] = set()
@@ -258,11 +258,15 @@ class PluginManager:
             spec.loader.exec_module(module)
             logger.debug(f"Successfully executed module code for {name}")
 
-            # Check compatibility
+            # Check compatibility after module execution
             if not plugin.is_compatible():
                 raise ValueError(
                     f"Plugin {name} is not compatible with current app version"
                 )
+
+            # Validate handler signatures after version compatibility check
+            for handler in plugin.handlers:
+                handler.validate_signature()
 
             # Apply configuration
             if plugin.config_class is not None:
