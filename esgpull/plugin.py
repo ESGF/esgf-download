@@ -3,6 +3,7 @@ import inspect
 import logging
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
@@ -388,21 +389,39 @@ class PluginManager:
                 ):
                     continue
 
+                # Execute handler with timing
+                start_time = time.perf_counter()
                 try:
-                    # Execute handler
                     plugin_logger = logging.getLogger(
                         f"esgpull.plugins.{plugin.name}"
                     )
                     result = handler.func(
                         logger=plugin_logger, **handler_kwargs
                     )
+                    end_time = time.perf_counter()
+                    execution_time = (end_time - start_time) * 1000  # Convert to ms
+                    
+                    # Always log trace info (will only show at INFO level)
+                    logger.info(
+                        f"[TRACE] Plugin {plugin.name}.{handler.func.__name__} executed ({execution_time:.1f}ms)"
+                    )
+                    
                     results.append(result)
 
                 except Exception as e:
+                    end_time = time.perf_counter()
+                    execution_time = (end_time - start_time) * 1000
+                    
                     logger.error(
                         f"Plugin {plugin.name} failed on {event_type}: {e}"
                     )
                     logger.exception(e)
+                    
+                    # Always log trace info for failed execution too
+                    logger.info(
+                        f"[TRACE] Plugin {plugin.name}.{handler.func.__name__} failed ({execution_time:.1f}ms)"
+                    )
+                    
                     if reraise:
                         raise
 
