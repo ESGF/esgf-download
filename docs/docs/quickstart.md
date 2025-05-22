@@ -87,5 +87,17 @@ $ esgpull status
 
 Loop at the [download page](../download) for more information.
 
+## Extending with plugins
+
+`esgpull` can be extended with custom plugins that respond to download events:
+
+```shell
+$ esgpull config plugins.enabled true
+$ esgpull plugins create notification_plugin --events file_downloaded
+$ esgpull plugins enable notification_plugin
+```
+
+See the [Plugins page](../plugins) for more details on creating and managing plugins.
+
 
 [ESGF Search API]: https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html

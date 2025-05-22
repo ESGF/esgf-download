@@ -10,6 +10,7 @@ It handles scanning, downloading and updating **datasets**, **files** and *queri
 - Simple syntax for fast data exploration
 - Asynchronous download
 - Highly configurable
+- Plugin system for extensibility
 
 !!! tip "Search datasets"
 
