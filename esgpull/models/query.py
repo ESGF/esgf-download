@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
@@ -19,6 +19,9 @@ from esgpull.models.file import FileDict, FileStatus
 from esgpull.models.options import Options
 from esgpull.models.selection import FacetValues, Selection
 from esgpull.models.tag import Tag
+
+if TYPE_CHECKING:
+    from esgpull.models.dataset import Dataset
 from esgpull.models.utils import (
     find_int,
     find_str,
@@ -57,7 +60,9 @@ class File(Base):
     __tablename__ = "file"
 
     file_id: Mapped[str] = mapped_column(sa.String(255), unique=True)
-    dataset_id: Mapped[str] = mapped_column(sa.String(255))
+    dataset_id: Mapped[str] = mapped_column(
+        sa.String(255), sa.ForeignKey("dataset.dataset_id")
+    )
     master_id: Mapped[str] = mapped_column(sa.String(255))
     url: Mapped[str] = mapped_column(sa.String(255))
     version: Mapped[str] = mapped_column(sa.String(16))
@@ -74,6 +79,11 @@ class File(Base):
         secondary=query_file_proxy,
         default_factory=list,
         back_populates="files",
+        repr=False,
+    )
+    dataset: Mapped["Dataset"] = relationship(
+        back_populates="files",
+        init=False,
         repr=False,
     )
 
@@ -398,6 +408,7 @@ class Query(Base):
     def no_require(self) -> Query:
         cl = self.clone(compute_sha=False)
         cl._rich_no_require = True  # type: ignore [attr-defined]
+        cl._original_query = self  # type: ignore [attr-defined]
         return cl
 
     def __lshift__(self, child: Query) -> Query:
@@ -483,8 +494,43 @@ class Query(Base):
             count_total, size_total = self.files_count_size()
             sizes = f"{format_size(size_ondisk)} / {format_size(size_total)}"
             lens = f"{count_ondisk}/{count_total}"
+            
+            # Add dataset completion info
+            dataset_info = ""
+            session = object_session(self)
+            
+            # If this is a cloned query without session, try to get session from _original_query
+            if session is None and hasattr(self, '_original_query'):
+                session = object_session(self._original_query)
+            
+            if session is not None:
+                from esgpull.models.dataset import Dataset
+                
+                # Get unique dataset IDs from files in this query
+                stmt = (
+                    sa.select(File.dataset_id)
+                    .distinct()
+                    .join(query_file_proxy)
+                    .where(query_file_proxy.c.query_sha == self.sha)
+                    .where(File.dataset_id.isnot(None))
+                )
+                
+                # Use no_autoflush to avoid warnings with cloned queries
+                with session.no_autoflush:
+                    dataset_ids = session.execute(stmt).scalars().all()
+                    
+                    if dataset_ids:
+                        # Count complete datasets
+                        complete_datasets = 0
+                        for dataset_id in dataset_ids:
+                            dataset = session.query(Dataset).filter_by(dataset_id=dataset_id).first()
+                            if dataset and dataset.is_complete:
+                                complete_datasets += 1
+                        
+                        dataset_info = f" [datasets: {complete_datasets}/{len(dataset_ids)}]"
+            
             contents.add_row(
-                "files:", Text(f"{sizes} [{lens}]", style="magenta")
+                "files:", Text(f"{sizes} [files: {lens}]{dataset_info}", style="magenta")
             )
         tree = Tree("", hide_root=True, guide_style="dim").add(title)
         if contents.row_count:

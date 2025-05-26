@@ -1,0 +1,153 @@
+import pytest
+from datetime import datetime, timezone
+
+from esgpull.database import Database
+from esgpull.models import Dataset, DatasetRecord, File, FileStatus, Query
+
+
+@pytest.fixture
+def db(config):
+    return Database.from_config(config)
+
+
+def test_dataset_record_serialize():
+    """Test DatasetRecord can parse ESGF API response."""
+    source = {
+        "instance_id": "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308|esgf-data.ucar.edu",
+        "data_node": "esgf-data.ucar.edu",
+        "size": 123456789,
+        "number_of_files": 10,
+    }
+    
+    record = DatasetRecord.serialize(source)
+    
+    assert record.dataset_id == "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308"
+    assert record.master_id == "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn"
+    assert record.version == "v20190308"
+    assert record.data_node == "esgf-data.ucar.edu"
+    assert record.size == 123456789
+    assert record.number_of_files == 10
+
+
+def test_dataset_model_creation(db):
+    """Test creating and retrieving Dataset model."""
+    dataset_id = "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308"
+    dataset = Dataset(
+        dataset_id=dataset_id,
+        total_files=10,
+    )
+    
+    db.session.add(dataset)
+    db.session.commit()
+    
+    # Retrieve the dataset
+    retrieved = db.session.query(Dataset).filter_by(dataset_id=dataset_id).first()
+    assert retrieved is not None
+    assert retrieved.dataset_id == dataset_id
+    assert retrieved.total_files == 10
+    assert isinstance(retrieved.created_at, datetime)
+    assert isinstance(retrieved.updated_at, datetime)
+
+
+def test_dataset_completion_tracking(db):
+    """Test dataset completion calculation."""
+    # Create a dataset
+    dataset_id = "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308"
+    dataset = Dataset(
+        dataset_id=dataset_id,
+        total_files=3,
+    )
+    db.session.add(dataset)
+    
+    # Create files for the dataset
+    files = []
+    for i in range(3):
+        file = File(
+            file_id=f"{dataset_id}.nc_{i}",
+            dataset_id=dataset_id,
+            master_id="master",
+            url=f"http://example.com/file{i}.nc",
+            version="v20190308",
+            filename=f"file{i}.nc",
+            local_path=f"/data/file{i}.nc",
+            data_node="example.com",
+            checksum=f"checksum{i}",
+            checksum_type="sha256",
+            size=1000 + i,
+            status=FileStatus.New if i < 2 else FileStatus.Done,
+        )
+        file.compute_sha()
+        files.append(file)
+        db.session.add(file)
+    
+    db.session.commit()
+    
+    # Test completion properties
+    assert dataset.completed_files == 1  # Only file2 is done
+    assert dataset.is_complete is False
+    assert dataset.completion_percentage == pytest.approx(33.33, rel=0.01)
+    
+    # Mark all files as done
+    for file in files:
+        file.status = FileStatus.Done
+    db.session.commit()
+    
+    # Test completion after all files are done
+    assert dataset.completed_files == 3
+    assert dataset.is_complete is True
+    assert dataset.completion_percentage == 100.0
+
+
+def test_dataset_file_relationship(db):
+    """Test the relationship between Dataset and File models."""
+    # Create a dataset
+    dataset_id = "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308"
+    dataset = Dataset(
+        dataset_id=dataset_id,
+        total_files=2,
+    )
+    db.session.add(dataset)
+    
+    # Create files
+    file1 = File(
+        file_id=f"{dataset_id}.nc_1",
+        dataset_id=dataset_id,
+        master_id="master",
+        url="http://example.com/file1.nc",
+        version="v20190308",
+        filename="file1.nc",
+        local_path="/data/file1.nc",
+        data_node="example.com",
+        checksum="checksum1",
+        checksum_type="sha256",
+        size=1000,
+    )
+    file1.compute_sha()
+    db.session.add(file1)
+    
+    db.session.commit()
+    
+    # Test relationship
+    assert len(dataset.files) == 1
+    assert dataset.files[0].file_id == file1.file_id
+    assert file1.dataset == dataset
+
+
+def test_dataset_asdict(db):
+    """Test Dataset.asdict() method."""
+    dataset = Dataset(
+        dataset_id="test.dataset.v1",
+        total_files=5,
+    )
+    db.session.add(dataset)
+    db.session.commit()
+    
+    result = dataset.asdict()
+    
+    assert result["dataset_id"] == "test.dataset.v1"
+    assert result["total_files"] == 5
+    assert "created_at" in result
+    assert "updated_at" in result
+    assert result["completed_files"] == 0
+    assert result["is_complete"] is False
+    assert result["completion_percentage"] == 0.0

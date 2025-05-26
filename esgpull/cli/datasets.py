@@ -8,7 +8,7 @@ from rich.table import Table
 
 from esgpull.cli.decorators import args, groups, opts
 from esgpull.cli.utils import init_esgpull, valid_name_tag
-from esgpull.models import FileStatus
+from esgpull.models import Dataset, FileStatus
 from esgpull.tui import Verbosity
 
 
@@ -49,10 +49,24 @@ def datasets(
         datasets: defaultdict[str, DatasetCounter] = defaultdict(
             DatasetCounter
         )
-        for file in query.files:
-            datasets[file.dataset_id].total += 1
-            if file.status == FileStatus.Done:
-                datasets[file.dataset_id].done += 1
+        
+        # Get unique dataset IDs from files in this query
+        dataset_ids = {file.dataset_id for file in query.files if file.dataset_id}
+        
+        # For each dataset, get the info from our Dataset table
+        for dataset_id in dataset_ids:
+            dataset = esg.db.session.query(Dataset).filter_by(dataset_id=dataset_id).first()
+            if dataset:
+                # Use the authoritative total from the Dataset record
+                datasets[dataset_id].total = dataset.total_files
+                datasets[dataset_id].done = dataset.completed_files
+            else:
+                # Fallback to counting from files if dataset record doesn't exist
+                for file in query.files:
+                    if file.dataset_id == dataset_id:
+                        datasets[dataset_id].total += 1
+                        if file.status == FileStatus.Done:
+                            datasets[dataset_id].done += 1
         if json or yaml:
             datasets_dict = {
                 dataset_id: counts.asdict()
@@ -68,11 +82,14 @@ def datasets(
             table.add_column("done", justify="center")
             table.add_column("total", justify="center")
             table.add_column("complete", justify="center")
+            table.add_column("percentage", justify="center")
             for dataset_id, counts in datasets.items():
+                percentage = f"{(counts.done / counts.total * 100):.1f}%" if counts.total > 0 else "0.0%"
                 table.add_row(
                     dataset_id,
                     str(counts.done),
                     str(counts.total),
                     str(counts.is_complete()),
+                    percentage,
                 )
             esg.ui.print(table)

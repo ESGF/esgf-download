@@ -1,7 +1,7 @@
 from typing import TypeVar
 
 from esgpull.models.base import Base
-from esgpull.models.dataset import Dataset
+from esgpull.models.dataset import Dataset, DatasetRecord
 from esgpull.models.facet import Facet
 from esgpull.models.file import FastFile, FileStatus
 from esgpull.models.options import Option, Options
@@ -15,6 +15,7 @@ Table = TypeVar("Table", bound=Base)
 __all__ = [
     "Base",
     "Dataset",
+    "DatasetRecord",
     "Facet",
     "FastFile",
     "File",
