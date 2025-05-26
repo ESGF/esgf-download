@@ -89,6 +89,7 @@ def add(
         esg.ui.print(subgraph)
         empty = Query()
         empty.compute_sha()
+        next_steps_queries = []
         for query in queries:
             query.compute_sha()
             esg.graph.resolve_require(query)
@@ -99,7 +100,8 @@ def add(
                 esg.ui.print(f"Skipping existing query: {query.rich_name}")
             else:
                 esg.graph.add(query)
-                esg.ui.print(f"New query added: {query.rich_name}")
+                if query.tracked:
+                    next_steps_queries.append(query)
         new_queries = esg.graph.merge()
         nb = len(new_queries)
         ies = "ies" if nb > 1 else "y"
@@ -107,4 +109,8 @@ def add(
             esg.ui.print(f":+1: {nb} new quer{ies} added.")
         else:
             esg.ui.print(":stop_sign: No new query was added.")
+        if next_steps_queries:
+            esg.ui.print("\nNext steps:\n")
+            for query in next_steps_queries:
+                esg.ui.print(f"\tesgpull update {query.sha[:6]}")
         esg.ui.raise_maybe_record(Exit(0))
