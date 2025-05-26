@@ -418,7 +418,7 @@ class Graph:
                 if keep_require:
                     query_tree = query._rich_tree()
                 else:
-                    query_tree = query.no_require()._rich_tree()
+                    query_tree = query._rich_tree(hide_require=True)
             if query_tree is not None:
                 tree.add(query_tree)
                 self.fill_tree(query, query_tree)

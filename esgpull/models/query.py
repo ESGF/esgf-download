@@ -405,11 +405,6 @@ class Query(Base):
             self.tags.remove(tag)
         return tag is not None
 
-    def no_require(self) -> Query:
-        cl = self.clone(compute_sha=False)
-        cl._rich_no_require = True  # type: ignore [attr-defined]
-        cl._original_query = self  # type: ignore [attr-defined]
-        return cl
 
     def __lshift__(self, child: Query) -> Query:
         result = self.clone(compute_sha=False)
@@ -451,7 +446,7 @@ class Query(Base):
 
     __rich_measure__ = rich_measure_impl
 
-    def _rich_tree(self) -> Tree:
+    def _rich_tree(self, hide_require: bool = False) -> Tree:
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
@@ -460,7 +455,7 @@ class Query(Base):
             f"\n│ updated  {format_date_iso(self.updated_at)}"
         )
         contents = Table.grid(padding=(0, 1))
-        if not hasattr(self, "_rich_no_require") and self.require is not None:
+        if not hide_require and self.require is not None:
             if len(self.require) == 40:
                 require = Text(short_sha(self.require), style="i green")
             else:
@@ -498,10 +493,6 @@ class Query(Base):
             # Add dataset completion info
             dataset_info = ""
             session = object_session(self)
-            
-            # If this is a cloned query without session, try to get session from _original_query
-            if session is None and hasattr(self, '_original_query'):
-                session = object_session(self._original_query)
             
             if session is not None:
                 from esgpull.models.dataset import Dataset
