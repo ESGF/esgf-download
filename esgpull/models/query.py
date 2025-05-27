@@ -498,62 +498,33 @@ class Query(Base):
             session = object_session(self)
 
             if session is not None:
-                # Get datasets for the query
-                subquery = (
-                    sa.select(File.dataset_id)
-                    .distinct()
+                dataset_stats = (
+                    session.query(
+                        Dataset.dataset_id,
+                        Dataset.total_files,
+                        sa.func.count(
+                            sa.case((File.status == FileStatus.Done, 1))
+                        ).label("done_count"),
+                    )
+                    .join(File)
                     .join(query_file_proxy)
-                    .where(query_file_proxy.c.query_sha == self.sha)
-                    .where(File.dataset_id.isnot(None))
+                    .filter(query_file_proxy.c.query_sha == self.sha)
+                    .filter(File.dataset_id.isnot(None))
+                    .group_by(Dataset.dataset_id, Dataset.total_files)
+                    .all()
                 )
 
-                # Count done files and group by dataset
-                done_files_subquery = (
-                    sa.select(
-                        File.dataset_id,
-                        sa.func.count(File.sha).label("done_count"),
-                    )
-                    .where(File.status == FileStatus.Done)
-                    .group_by(File.dataset_id)
-                    .subquery()
+                # Compute counts in Python - simpler and more maintainable
+                total_datasets = len(dataset_stats)
+                valid_datasets = sum(
+                    1 for d in dataset_stats if d.total_files > 0
                 )
-
-                # Get total, valid and complete counts directly
-                stmt = (
-                    sa.select(
-                        sa.func.count(Dataset.dataset_id).label("total"),
-                        sa.func.count(
-                            sa.case((Dataset.total_files > 0, 1), else_=None)
-                        ).label("valid"),
-                        sa.func.count(
-                            sa.case(
-                                (
-                                    sa.and_(
-                                        Dataset.total_files > 0,
-                                        Dataset.total_files
-                                        == sa.func.coalesce(
-                                            done_files_subquery.c.done_count, 0
-                                        ),
-                                    ),
-                                    1,
-                                ),
-                                else_=None,
-                            )
-                        ).label("complete"),
-                    )
-                    .select_from(Dataset)
-                    .outerjoin(
-                        done_files_subquery,
-                        Dataset.dataset_id == done_files_subquery.c.dataset_id,
-                    )
-                    .where(Dataset.dataset_id.in_(subquery))
+                complete_datasets = sum(
+                    1
+                    for d in dataset_stats
+                    if d.total_files > 0 and d.done_count == d.total_files
                 )
-
-                result = session.execute(stmt).one()
-                total_datasets = result.total
-                valid_datasets_count = result.valid
-                complete_datasets = result.complete
-                invalid_datasets = total_datasets - valid_datasets_count
+                invalid_datasets = total_datasets - valid_datasets
 
             contents.add_row("files:", Text(f"{lens}", style="magenta"))
             datasets_text = f"{complete_datasets} / {total_datasets}"
