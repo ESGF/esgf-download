@@ -20,10 +20,13 @@ class QueryFiles:
     query: Query
     expanded: Query
     skip: bool = False
+    datasets: list[Dataset] = field(default_factory=list)
     files: list[File] = field(default_factory=list)
+    dataset_hits: int = field(init=False)
     hits: int = field(init=False)
     hints: HintsDict = field(init=False)
     results: list[ResultSearch] = field(init=False)
+    dataset_results: list[ResultSearch] = field(init=False)
 
 
 @click.command()
@@ -80,71 +83,40 @@ def update(
             file=True,
             facets=["index_node"],
         )
-        for qf, qf_hints in zip(qfs, hints):
+        dataset_hits = esg.context.hits(
+            *[qf.expanded for qf in qfs],
+            file=False,
+        )
+        for qf, qf_hints, qf_dataset_hits in zip(qfs, hints, dataset_hits):
             qf.hits = sum(esg.context.hits_from_hints(qf_hints))
             if qf_hints:
                 qf.hints = qf_hints
+                qf.dataset_hits = qf_dataset_hits
             else:
                 qf.skip = True
         for qf in qfs:
             s = "s" if qf.hits > 1 else ""
-            esg.ui.print(f"{qf.query.rich_name} -> {qf.hits} file{s}.")
+            esg.ui.print(
+                f"{qf.query.rich_name} -> {qf.hits} file{s} (includes replicas)."
+            )
         total_hits = sum([qf.hits for qf in qfs])
         if total_hits == 0:
             esg.ui.print("No files found.")
             esg.ui.raise_maybe_record(Exit(0))
-        else:
+        elif len(qfs) > 1:
             esg.ui.print(f"{total_hits} files found.")
         qfs = [qf for qf in qfs if not qf.skip]
-
-        # First, discover datasets for all queries
-        with esg.ui.spinner("Discovering datasets"):
-            all_dataset_records = []
-            for qf in qfs:
-                # Query datasets (file=False) to get dataset metadata
-                # We don't know how many datasets yet, so use None for hits
-                dataset_records = esg.context.datasets(
-                    qf.expanded,
-                    hits=None,  # Will be calculated from the query
-                    max_hits=None,
-                    keep_duplicates=False,
-                )
-                all_dataset_records.extend(dataset_records)
-
-            # Create or update Dataset records in the database
-            with esg.db.commit_context():
-                for record in all_dataset_records:
-                    # Check if dataset already exists
-                    existing = (
-                        esg.db.session.query(Dataset)
-                        .filter_by(dataset_id=record.dataset_id)
-                        .first()
-                    )
-
-                    if existing is None:
-                        # Create new dataset record
-                        dataset = Dataset(
-                            dataset_id=record.dataset_id,
-                            total_files=record.number_of_files,
-                        )
-                        esg.db.session.add(dataset)
-                        logger.debug(
-                            f"Created dataset {record.dataset_id} with {record.number_of_files} files"
-                        )
-                    else:
-                        # Update existing dataset record
-                        if existing.total_files != record.number_of_files:
-                            existing.total_files = record.number_of_files
-                            existing.updated_at = datetime.now(timezone.utc)
-                            logger.debug(
-                                f"Updated dataset {record.dataset_id} to {record.number_of_files} files"
-                            )
-
         # Prepare optimally distributed requests to ESGF
         # [?] TODO: fetch FastFile first to determine what to fetch in detail later
         #   It might be interesting for the special case where all files already
         #   exist in db, then the detailed fetch could be skipped.
         for qf in qfs:
+            qf_dataset_results = esg.context.prepare_search(
+                qf.expanded,
+                file=False,
+                hits=[qf.dataset_hits],
+                max_hits=None,
+            )
             if esg.config.api.use_custom_distribution_algorithm:
                 qf_results = esg.context.prepare_search_distributed(
                     qf.expanded,
@@ -159,7 +131,7 @@ def update(
                     hits=[qf.hits],
                     max_hits=None,
                 )
-            nb_req = len(qf_results)
+            nb_req = len(qf_dataset_results) + len(qf_results)
             if nb_req > 50:
                 msg = (
                     f"{nb_req} requests will be sent to ESGF to"
@@ -170,13 +142,32 @@ def update(
                         esg.ui.print(f"{qf.query.rich_name} is now untracked.")
                         qf.query.tracked = False
                         qf_results = []
+                        qf_dataset_results = []
                     case "n":
                         qf_results = []
+                        qf_dataset_results = []
                     case _:
                         ...
             qf.results = qf_results
+            qf.dataset_results = qf_dataset_results
         # Fetch files and update db
         # [?] TODO: dry_run to print urls here
+        with esg.ui.spinner("Fetching datasets"):
+            coros = []
+            for qf in qfs:
+                coro = esg.context._datasets(
+                    *qf.dataset_results, keep_duplicates=False
+                )
+                coros.append(coro)
+            datasets = esg.context.sync_gather(*coros)
+            for qf, qf_datasets in zip(qfs, datasets):
+                qf.datasets = [
+                    Dataset(
+                        dataset_id=record.dataset_id,
+                        total_files=record.number_of_files,
+                    )
+                    for record in qf_datasets
+                ]
         with esg.ui.spinner("Fetching files"):
             coros = []
             for qf in qfs:
@@ -186,23 +177,22 @@ def update(
             for qf, qf_files in zip(qfs, files):
                 qf.files = qf_files
         for qf in qfs:
-            shas = {f.sha for f in qf.query.files}
-            new_files: list[File] = []
-            for file in qf.files:
-                if file.sha not in shas:
-                    new_files.append(file)
+            new_files = [f for f in qf.files if f not in esg.db]
+            new_datasets = [d for d in qf.datasets if d not in esg.db]
+            nb_datasets = len(new_datasets)
             nb_files = len(new_files)
             if not qf.query.tracked:
                 esg.db.add(qf.query)
                 continue
-            elif nb_files == 0:
+            elif nb_datasets == nb_files == 0:
                 esg.ui.print(f"{qf.query.rich_name} is already up-to-date.")
                 continue
             size = sum([file.size for file in new_files])
             msg = (
-                f"\nUpdating {qf.query.rich_name} with {nb_files}"
-                f" new files ({format_size(size)})."
-                "\nSend to download queue?"
+                f"\n{qf.query.rich_name}: {nb_files} new"
+                f" files, {nb_datasets} new datasets"
+                f" ({format_size(size)})."
+                f"\nUpdate the database?"
             )
             if yes:
                 choice = "y"
@@ -219,9 +209,14 @@ def update(
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
                 with esg.db.commit_context():
+                    for dataset in esg.ui.track(
+                        new_datasets,
+                        description=f"{qf.query.rich_name} (datasets)",
+                    ):
+                        esg.db.session.add(dataset)
                     for file in esg.ui.track(
                         new_files,
-                        description=qf.query.rich_name,
+                        description=f"{qf.query.rich_name} (files)",
                     ):
                         file_db = esg.db.get(File, file.sha)
                         if file_db is None:
