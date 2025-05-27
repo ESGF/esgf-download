@@ -501,7 +501,7 @@ class Context:
             if dataset_result.processed:
                 for d in dataset_result.data:
                     if not keep_duplicates and d.dataset_id in ids:
-                        logger.warning(f"Duplicate dataset {d.dataset_id}")
+                        logger.debug(f"Duplicate dataset {d.dataset_id}")
                     else:
                         datasets.append(d)
                         ids.add(d.dataset_id)
@@ -520,7 +520,7 @@ class Context:
             if files_result.processed:
                 for file in files_result.data:
                     if not keep_duplicates and file.sha in shas:
-                        logger.warning(f"Duplicate file {file.file_id}")
+                        logger.debug(f"Duplicate file {file.file_id}")
                     else:
                         files.append(file)
                         shas.add(file.sha)
