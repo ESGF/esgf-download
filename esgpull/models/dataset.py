@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
-from collections.abc import Mapping
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 
-from esgpull.models.base import Base, BaseNoSHA
+from esgpull.models.base import BaseNoSHA
 from esgpull.models.utils import find_int, find_str
 
 if TYPE_CHECKING:
@@ -40,16 +40,11 @@ class DatasetRecord:
             number_of_files=number_of_files,
         )
 
-    def asdict(self) -> dict:
-        return asdict(self)
-
 
 class Dataset(BaseNoSHA):
     __tablename__ = "dataset"
-    
-    dataset_id: Mapped[str] = mapped_column(
-        sa.String(255), primary_key=True
-    )
+
+    dataset_id: Mapped[str] = mapped_column(sa.String(255), primary_key=True)
     total_files: Mapped[int] = mapped_column(sa.Integer)
     created_at: Mapped[datetime] = mapped_column(
         server_default=sa.func.now(),
@@ -87,14 +82,27 @@ class Dataset(BaseNoSHA):
             return session.scalar(stmt) or 0
 
     @property
+    def is_valid(self) -> bool:
+        """
+        Check if the dataset is valid.
+
+        An invalid dataset is most certainly a result of migrations, and needs to be updated/repaired.
+        """
+        return self.total_files > 0
+
+    @property
     def is_complete(self) -> bool:
         """Check if all files for this dataset are downloaded."""
+        if not self.is_valid:
+            raise ValueError("An invalid dataset has undefined completion.")
         return self.completed_files == self.total_files
 
     @property
     def completion_percentage(self) -> float:
         """Calculate the completion percentage."""
-        if self.total_files == 0:
+        if self.is_complete:
+            return 100.0
+        elif self.total_files == 0:
             return 0.0
         return (self.completed_files / self.total_files) * 100
 
@@ -108,3 +116,4 @@ class Dataset(BaseNoSHA):
             "is_complete": self.is_complete,
             "completion_percentage": self.completion_percentage,
         }
+

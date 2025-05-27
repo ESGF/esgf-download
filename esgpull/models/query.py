@@ -15,6 +15,7 @@ from typing_extensions import NotRequired, TypedDict
 from esgpull import utils
 from esgpull.exceptions import UntrackableQuery
 from esgpull.models.base import Base, Sha
+from esgpull.models.dataset import Dataset
 from esgpull.models.file import FileDict, FileStatus
 from esgpull.models.options import Options
 from esgpull.models.selection import FacetValues, Selection
@@ -22,6 +23,7 @@ from esgpull.models.tag import Tag
 
 if TYPE_CHECKING:
     from esgpull.models.dataset import Dataset
+
 from esgpull.models.utils import (
     find_int,
     find_str,
@@ -405,7 +407,6 @@ class Query(Base):
             self.tags.remove(tag)
         return tag is not None
 
-
     def __lshift__(self, child: Query) -> Query:
         result = self.clone(compute_sha=False)
         # if self.name != child.require:
@@ -488,41 +489,81 @@ class Query(Base):
             count_ondisk, size_ondisk = self.files_count_size(FileStatus.Done)
             count_total, size_total = self.files_count_size()
             sizes = f"{format_size(size_ondisk)} / {format_size(size_total)}"
-            lens = f"{count_ondisk}/{count_total}"
-            
+            lens = f"{count_ondisk} / {count_total}"
+
             # Add dataset completion info
-            dataset_info = ""
+            complete_datasets = 0
+            total_datasets = 0
+            invalid_datasets = 0
             session = object_session(self)
-            
+
             if session is not None:
-                from esgpull.models.dataset import Dataset
-                
-                # Get unique dataset IDs from files in this query
-                stmt = (
+                # Get datasets for the query
+                subquery = (
                     sa.select(File.dataset_id)
                     .distinct()
                     .join(query_file_proxy)
                     .where(query_file_proxy.c.query_sha == self.sha)
                     .where(File.dataset_id.isnot(None))
                 )
-                
-                # Use no_autoflush to avoid warnings with cloned queries
-                with session.no_autoflush:
-                    dataset_ids = session.execute(stmt).scalars().all()
-                    
-                    if dataset_ids:
-                        # Count complete datasets
-                        complete_datasets = 0
-                        for dataset_id in dataset_ids:
-                            dataset = session.query(Dataset).filter_by(dataset_id=dataset_id).first()
-                            if dataset and dataset.is_complete:
-                                complete_datasets += 1
-                        
-                        dataset_info = f" [datasets: {complete_datasets}/{len(dataset_ids)}]"
-            
+
+                # Count done files and group by dataset
+                done_files_subquery = (
+                    sa.select(
+                        File.dataset_id,
+                        sa.func.count(File.sha).label("done_count"),
+                    )
+                    .where(File.status == FileStatus.Done)
+                    .group_by(File.dataset_id)
+                    .subquery()
+                )
+
+                # Get total, valid and complete counts directly
+                stmt = (
+                    sa.select(
+                        sa.func.count(Dataset.dataset_id).label("total"),
+                        sa.func.count(
+                            sa.case((Dataset.total_files > 0, 1), else_=None)
+                        ).label("valid"),
+                        sa.func.count(
+                            sa.case(
+                                (
+                                    sa.and_(
+                                        Dataset.total_files > 0,
+                                        Dataset.total_files
+                                        == sa.func.coalesce(
+                                            done_files_subquery.c.done_count, 0
+                                        ),
+                                    ),
+                                    1,
+                                ),
+                                else_=None,
+                            )
+                        ).label("complete"),
+                    )
+                    .select_from(Dataset)
+                    .outerjoin(
+                        done_files_subquery,
+                        Dataset.dataset_id == done_files_subquery.c.dataset_id,
+                    )
+                    .where(Dataset.dataset_id.in_(subquery))
+                )
+
+                result = session.execute(stmt).one()
+                total_datasets = result.total
+                valid_datasets_count = result.valid
+                complete_datasets = result.complete
+                invalid_datasets = total_datasets - valid_datasets_count
+
+            contents.add_row("files:", Text(f"{lens}", style="magenta"))
+            datasets_text = f"{complete_datasets} / {total_datasets}"
+            if invalid_datasets:
+                datasets_text += "? (might need updating)"
             contents.add_row(
-                "files:", Text(f"{sizes} [files: {lens}]{dataset_info}", style="magenta")
+                "datasets:",
+                Text(datasets_text, style="magenta"),
             )
+            contents.add_row("size:", Text(f"{sizes}", style="magenta"))
         tree = Tree("", hide_root=True, guide_style="dim").add(title)
         if contents.row_count:
             tree.add(contents)
