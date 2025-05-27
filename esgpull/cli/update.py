@@ -10,7 +10,7 @@ from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
-from esgpull.models import Dataset, DatasetRecord, File, FileStatus, Query
+from esgpull.models import Dataset, File, FileStatus, Query
 from esgpull.tui import Verbosity, logger
 from esgpull.utils import format_size
 
@@ -96,7 +96,7 @@ def update(
         else:
             esg.ui.print(f"{total_hits} files found.")
         qfs = [qf for qf in qfs if not qf.skip]
-        
+
         # First, discover datasets for all queries
         with esg.ui.spinner("Discovering datasets"):
             all_dataset_records = []
@@ -110,15 +110,17 @@ def update(
                     keep_duplicates=False,
                 )
                 all_dataset_records.extend(dataset_records)
-            
+
             # Create or update Dataset records in the database
             with esg.db.commit_context():
                 for record in all_dataset_records:
                     # Check if dataset already exists
-                    existing = esg.db.session.query(Dataset).filter_by(
-                        dataset_id=record.dataset_id
-                    ).first()
-                    
+                    existing = (
+                        esg.db.session.query(Dataset)
+                        .filter_by(dataset_id=record.dataset_id)
+                        .first()
+                    )
+
                     if existing is None:
                         # Create new dataset record
                         dataset = Dataset(
@@ -126,14 +128,18 @@ def update(
                             total_files=record.number_of_files,
                         )
                         esg.db.session.add(dataset)
-                        logger.debug(f"Created dataset {record.dataset_id} with {record.number_of_files} files")
+                        logger.debug(
+                            f"Created dataset {record.dataset_id} with {record.number_of_files} files"
+                        )
                     else:
                         # Update existing dataset record
                         if existing.total_files != record.number_of_files:
                             existing.total_files = record.number_of_files
                             existing.updated_at = datetime.now(timezone.utc)
-                            logger.debug(f"Updated dataset {record.dataset_id} to {record.number_of_files} files")
-        
+                            logger.debug(
+                                f"Updated dataset {record.dataset_id} to {record.number_of_files} files"
+                            )
+
         # Prepare optimally distributed requests to ESGF
         # [?] TODO: fetch FastFile first to determine what to fetch in detail later
         #   It might be interesting for the special case where all files already

@@ -49,13 +49,19 @@ def datasets(
         datasets: defaultdict[str, DatasetCounter] = defaultdict(
             DatasetCounter
         )
-        
+
         # Get unique dataset IDs from files in this query
-        dataset_ids = {file.dataset_id for file in query.files if file.dataset_id}
-        
+        dataset_ids = {
+            file.dataset_id for file in query.files if file.dataset_id
+        }
+
         # For each dataset, get the info from our Dataset table
         for dataset_id in dataset_ids:
-            dataset = esg.db.session.query(Dataset).filter_by(dataset_id=dataset_id).first()
+            dataset = (
+                esg.db.session.query(Dataset)
+                .filter_by(dataset_id=dataset_id)
+                .first()
+            )
             if dataset:
                 # Use the authoritative total from the Dataset record
                 datasets[dataset_id].total = dataset.total_files
@@ -84,7 +90,11 @@ def datasets(
             table.add_column("complete", justify="center")
             table.add_column("percentage", justify="center")
             for dataset_id, counts in datasets.items():
-                percentage = f"{(counts.done / counts.total * 100):.1f}%" if counts.total > 0 else "0.0%"
+                percentage = (
+                    f"{(counts.done / counts.total * 100):.1f}%"
+                    if counts.total > 0
+                    else "0.0%"
+                )
                 table.add_row(
                     dataset_id,
                     str(counts.done),
