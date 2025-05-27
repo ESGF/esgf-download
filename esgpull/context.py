@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, TypeAlias, TypeVar
+from warnings import warn
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
@@ -404,6 +405,14 @@ class Context:
                 fields_param = FileFieldParams
             else:
                 fields_param = DatasetFieldParams
+        for hint in hints:
+            popped = hint["index_node"].pop("esgf-node.llnl.gov", None)
+            if popped:
+                warn(
+                    f"Skipping {popped} files from esgf-node.llnl.gov\n"
+                    "To avoid skipping this index_node, disable the custom distribution algorithm and re-run the update\n"
+                    "\tesgpull config api.use_custom_distribution_algorithm false"
+                )
         hits = self.hits_from_hints(*hints)
         if max_hits is not None:
             hits = _distribute_hits_impl(hits, max_hits)
