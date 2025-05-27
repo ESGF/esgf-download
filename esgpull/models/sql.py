@@ -11,15 +11,6 @@ from esgpull.models.synda_file import SyndaFile
 from esgpull.models.tag import Tag
 
 
-def count(item: Table) -> sa.Select[tuple[int]]:
-    table = item.__class__
-    return (
-        sa.select(sa.func.count("*"))
-        .select_from(table)
-        .filter_by(sha=item.sha)
-    )
-
-
 def count_table(table: type[Table]) -> sa.Select[tuple[int]]:
     return sa.select(sa.func.count("*")).select_from(table)
 

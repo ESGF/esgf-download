@@ -12,11 +12,13 @@ import sqlalchemy.orm
 from alembic.config import Config as AlembicConfig
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session, joinedload, make_transient
 
 from esgpull import __file__
 from esgpull.config import Config
 from esgpull.models import File, Query, Table, sql
+from esgpull.models.base import Base, BaseNoSHA
 from esgpull.version import __version__
 
 # from esgpull.exceptions import NoClauseError
@@ -151,8 +153,12 @@ class Database:
     def unlink(self, query: Query, file: File):
         self.session.execute(sql.query_file.unlink(query, file))
 
-    def __contains__(self, item: Table) -> bool:
-        return self.scalars(sql.count(item))[0] > 0
+    def __contains__(self, item: Base | BaseNoSHA) -> bool:
+        mapper = inspect(item.__class__)
+        pk_col = mapper.primary_key[0]
+        pk_value = getattr(item, pk_col.name)
+        stmt = sa.exists().where(pk_col == pk_value)
+        return self.scalars(sa.select(stmt))[0]
 
     def has_file_id(self, file: File) -> bool:
         return len(self.scalars(sql.file.with_file_id(file.file_id))) == 1
