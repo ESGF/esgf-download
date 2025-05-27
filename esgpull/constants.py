@@ -1,6 +1,9 @@
+import os
+
 CONFIG_FILENAME = "config.toml"
 INSTALLS_PATH_ENV = "ESGPULL_INSTALLS_PATH"
 ROOT_ENV = "ESGPULL_CURRENT"
+ESGPULL_DEBUG = os.environ.get("ESGPULL_DEBUG", "0") == "1"
 
 IDP = "/esgf-idp/openid/"
 CEDA_IDP = "/OpenID/Provider/server/"
