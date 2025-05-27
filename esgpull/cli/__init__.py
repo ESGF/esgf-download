@@ -7,7 +7,6 @@ from esgpull import __version__
 from esgpull.cli.add import add
 from esgpull.cli.config import config
 from esgpull.cli.convert import convert
-from esgpull.cli.datasets import datasets
 from esgpull.cli.download import download
 from esgpull.cli.login import login
 from esgpull.cli.remove import remove
@@ -35,7 +34,6 @@ SUBCOMMANDS: list[click.Command] = [
     # autoremove,
     config,
     convert,
-    datasets,
     download,
     # facet,
     # get,
