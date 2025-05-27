@@ -131,7 +131,8 @@ def test_search_distributed(ctx):
         datasets_distributed = ctx._sync(coro)
     dataset_ids_regular = {d.dataset_id for d in datasets_regular}
     dataset_ids_distributed = {d.dataset_id for d in datasets_distributed}
-    assert dataset_ids_regular == dataset_ids_distributed
+    # After disabling llnl, these sets are not always equal anymore.
+    assert dataset_ids_regular >= dataset_ids_distributed
     # assert t_regular.duration >= t_distributed.duration
     logging.info(f"{t_regular.duration}")
     logging.info(f"{t_distributed.duration}")
