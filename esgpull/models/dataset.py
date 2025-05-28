@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from esgpull.models.base import BaseNoSHA
 from esgpull.models.utils import find_int, find_str
@@ -63,48 +63,6 @@ class Dataset(BaseNoSHA):
         default_factory=list,
         init=False,
     )
-
-    @property
-    def completed_files(self) -> int:
-        """Count of files with status='done' for this dataset."""
-        from esgpull.models.file import FileStatus
-        from esgpull.models.query import File
-
-        session = object_session(self)
-        if session is None:
-            return sum(1 for f in self.files if f.status == FileStatus.Done)
-        else:
-            stmt = (
-                sa.select(sa.func.count(File.sha))
-                .where(File.dataset_id == self.dataset_id)
-                .where(File.status == FileStatus.Done)
-            )
-            return session.scalar(stmt) or 0
-
-    @property
-    def is_valid(self) -> bool:
-        """
-        Check if the dataset is valid.
-
-        An invalid dataset is most certainly a result of migrations, and needs to be updated/repaired.
-        """
-        return self.total_files > 0
-
-    @property
-    def is_complete(self) -> bool:
-        """Check if all files for this dataset are downloaded."""
-        if not self.is_valid:
-            raise ValueError("An invalid dataset has undefined completion.")
-        return self.completed_files == self.total_files
-
-    @property
-    def completion_percentage(self) -> float:
-        """Calculate the completion percentage."""
-        if self.is_complete:
-            return 100.0
-        elif self.total_files == 0:
-            return 0.0
-        return (self.completed_files / self.total_files) * 100
 
     def asdict(self) -> Mapping[str, Any]:
         return {

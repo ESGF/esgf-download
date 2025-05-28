@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from esgpull.database import Database
-from esgpull.models import Dataset, DatasetRecord, File, FileStatus
+from esgpull.models import Dataset, DatasetRecord, File
 
 
 @pytest.fixture
@@ -58,57 +58,6 @@ def test_dataset_model_creation(db):
     assert retrieved.total_files == 10
     assert isinstance(retrieved.created_at, datetime)
     assert isinstance(retrieved.updated_at, datetime)
-
-
-def test_dataset_completion_tracking(db):
-    """Test dataset completion calculation."""
-    # Create a dataset
-    dataset_id = (
-        "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308"
-    )
-    dataset = Dataset(
-        dataset_id=dataset_id,
-        total_files=3,
-    )
-    db.session.add(dataset)
-
-    # Create files for the dataset
-    files = []
-    for i in range(3):
-        file = File(
-            file_id=f"{dataset_id}.nc_{i}",
-            dataset_id=dataset_id,
-            master_id="master",
-            url=f"http://example.com/file{i}.nc",
-            version="v20190308",
-            filename=f"file{i}.nc",
-            local_path=f"/data/file{i}.nc",
-            data_node="example.com",
-            checksum=f"checksum{i}",
-            checksum_type="sha256",
-            size=1000 + i,
-            status=FileStatus.New if i < 2 else FileStatus.Done,
-        )
-        file.compute_sha()
-        files.append(file)
-        db.session.add(file)
-
-    db.session.commit()
-
-    # Test completion properties
-    assert dataset.completed_files == 1  # Only file2 is done
-    assert dataset.is_complete is False
-    assert dataset.completion_percentage == pytest.approx(33.33, rel=0.01)
-
-    # Mark all files as done
-    for file in files:
-        file.status = FileStatus.Done
-    db.session.commit()
-
-    # Test completion after all files are done
-    assert dataset.completed_files == 3
-    assert dataset.is_complete is True
-    assert dataset.completion_percentage == 100.0
 
 
 def test_dataset_file_relationship(db):

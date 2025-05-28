@@ -527,13 +527,16 @@ class Query(Base):
                 invalid_datasets = total_datasets - valid_datasets
 
             contents.add_row("files:", Text(f"{lens}", style="magenta"))
-            datasets_text = f"{complete_datasets} / {total_datasets}"
-            if invalid_datasets:
-                datasets_text += "? (might need updating)"
-            contents.add_row(
-                "datasets:",
-                Text(datasets_text, style="magenta"),
-            )
+            if invalid_datasets > 0 or total_datasets == 0:
+                contents.add_row(
+                    "datasets:",
+                    "[magenta]? / ?[/]  [yellow italic]<- update for accurate datasets[/]",
+                )
+            else:
+                contents.add_row(
+                    "datasets:",
+                    f"[magenta]{complete_datasets} / {total_datasets}",
+                )
             contents.add_row("size:", Text(f"{sizes}", style="magenta"))
         tree = Tree("", hide_root=True, guide_style="dim").add(title)
         if contents.row_count:
