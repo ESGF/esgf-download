@@ -188,11 +188,15 @@ def update(
                 esg.ui.print(f"{qf.query.rich_name} is already up-to-date.")
                 continue
             size = sum([file.size for file in new_files])
+            if size > 0:
+                queue_msg = " and send new files to download queue"
+            else:
+                queue_msg = ""
             msg = (
                 f"\n{qf.query.rich_name}: {nb_files} new"
                 f" files, {nb_datasets} new datasets"
                 f" ({format_size(size)})."
-                f"\nUpdate the database?"
+                f"\nUpdate the database{queue_msg}?"
             )
             if yes:
                 choice = "y"
