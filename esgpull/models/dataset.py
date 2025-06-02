@@ -70,8 +70,5 @@ class Dataset(BaseNoSHA):
             "total_files": self.total_files,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "completed_files": self.completed_files,
-            "is_complete": self.is_complete,
-            "completion_percentage": self.completion_percentage,
         }
 
