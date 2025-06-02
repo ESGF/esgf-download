@@ -97,7 +97,7 @@ def update(
         for qf in qfs:
             s = "s" if qf.hits > 1 else ""
             esg.ui.print(
-                f"{qf.query.rich_name} -> {qf.hits} file{s} (includes replicas)."
+                f"{qf.query.rich_name} -> {qf.hits} file{s} (before replica de-duplication)."
             )
         total_hits = sum([qf.hits for qf in qfs])
         if total_hits == 0:
