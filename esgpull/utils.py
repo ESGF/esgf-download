@@ -63,4 +63,8 @@ def url2index(url: str) -> str:
 
 
 def index2url(index: str) -> str:
-    return "https://" + url2index(index) + "/esg-search/search"
+    url = "https://" + url2index(index)
+    if "esgf-1-5-bridge" in index:
+        return url
+    else:
+        return url + "/esg-search/search"
