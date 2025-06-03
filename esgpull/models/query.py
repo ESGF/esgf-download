@@ -494,8 +494,8 @@ class Query(Base):
             # Add dataset completion info
             complete_datasets = 0
             total_datasets = 0
-            invalid_datasets = 0
             session = object_session(self)
+            orphaned_dataset_count = 0
 
             if session is not None:
                 dataset_stats = (
@@ -514,20 +514,27 @@ class Query(Base):
                     .all()
                 )
 
+                # Check for orphaned datasets (dataset_ids from files not in Dataset table)
+                orphaned_dataset_count = (
+                    session.query(sa.func.count(sa.distinct(File.dataset_id)))
+                    .join(query_file_proxy)
+                    .filter(query_file_proxy.c.query_sha == self.sha)
+                    .filter(File.dataset_id.isnot(None))
+                    .filter(
+                        ~File.dataset_id.in_(session.query(Dataset.dataset_id))
+                    )
+                    .scalar()
+                    or 0
+                )
+
                 # Compute counts in Python - simpler and more maintainable
                 total_datasets = len(dataset_stats)
-                valid_datasets = sum(
-                    1 for d in dataset_stats if d.total_files > 0
-                )
                 complete_datasets = sum(
-                    1
-                    for d in dataset_stats
-                    if d.total_files > 0 and d.done_count == d.total_files
+                    1 for d in dataset_stats if d.done_count == d.total_files
                 )
-                invalid_datasets = total_datasets - valid_datasets
 
             contents.add_row("files:", Text(f"{lens}", style="magenta"))
-            if invalid_datasets > 0 or total_datasets == 0:
+            if orphaned_dataset_count > 0:
                 contents.add_row(
                     "datasets:",
                     "[magenta]? / ?[/]  [yellow italic]<- update for accurate datasets[/]",
