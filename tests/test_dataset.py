@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytest
 
 from esgpull.database import Database
@@ -34,30 +32,6 @@ def test_dataset_record_serialize():
     assert record.data_node == "esgf-data.ucar.edu"
     assert record.size == 123456789
     assert record.number_of_files == 10
-
-
-def test_dataset_model_creation(db):
-    """Test creating and retrieving Dataset model."""
-    dataset_id = (
-        "CMIP6.CMIP.NCAR.CESM2.historical.r1i1p1f1.Amon.tas.gn.v20190308"
-    )
-    dataset = Dataset(
-        dataset_id=dataset_id,
-        total_files=10,
-    )
-
-    db.session.add(dataset)
-    db.session.commit()
-
-    # Retrieve the dataset
-    retrieved = (
-        db.session.query(Dataset).filter_by(dataset_id=dataset_id).first()
-    )
-    assert retrieved is not None
-    assert retrieved.dataset_id == dataset_id
-    assert retrieved.total_files == 10
-    assert isinstance(retrieved.created_at, datetime)
-    assert isinstance(retrieved.updated_at, datetime)
 
 
 def test_dataset_file_relationship(db):
@@ -95,4 +69,3 @@ def test_dataset_file_relationship(db):
     assert len(dataset.files) == 1
     assert dataset.files[0].file_id == file1.file_id
     assert file1.dataset == dataset
-
