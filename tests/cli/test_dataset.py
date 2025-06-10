@@ -30,7 +30,6 @@ def test_update_displays_dataset_completion(tmp_path):
         add,
         [
             "project:CMIP6",
-            "institution_id:AWI",
             "table_id:fx",
             "variable_id:areacella",
             "experiment_id:1pctCO2",
