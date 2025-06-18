@@ -170,6 +170,14 @@ class dataset:
             .filter(~File.dataset_id.in_(sa.select(Dataset.dataset_id)))
         )
 
+    @staticmethod
+    @functools.cache
+    def is_complete(dataset: Dataset) -> sa.Select[tuple[bool]]:
+        return sa.select(
+            sa.func.count(sa.case((File.status == FileStatus.Done, 1)))
+            == dataset.total_files
+        ).where(File.dataset_id == dataset.dataset_id)
+
 
 class query:
     @staticmethod

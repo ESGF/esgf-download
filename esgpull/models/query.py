@@ -60,6 +60,9 @@ query_tag_proxy = sa.Table(
 
 class File(Base):
     __tablename__ = "file"
+    __table_args__ = (
+        sa.Index("ix_file_dataset_status", "dataset_id", "status"),
+    )
 
     file_id: Mapped[str] = mapped_column(sa.String(255), unique=True)
     dataset_id: Mapped[str] = mapped_column(
