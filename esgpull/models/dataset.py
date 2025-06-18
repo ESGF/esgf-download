@@ -73,3 +73,5 @@ class Dataset(BaseNoSHA):
             "updated_at": self.updated_at.isoformat(),
         }
 
+    def __hash__(self) -> int:
+        return hash(self.dataset_id)
