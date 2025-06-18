@@ -498,33 +498,15 @@ class Query(Base):
             orphaned_dataset_count = 0
 
             if session is not None:
-                dataset_stats = (
-                    session.query(
-                        Dataset.dataset_id,
-                        Dataset.total_files,
-                        sa.func.count(
-                            sa.case((File.status == FileStatus.Done, 1))
-                        ).label("done_count"),
-                    )
-                    .join(File)
-                    .join(query_file_proxy)
-                    .filter(query_file_proxy.c.query_sha == self.sha)
-                    .filter(File.dataset_id.isnot(None))
-                    .group_by(Dataset.dataset_id, Dataset.total_files)
-                    .all()
-                )
+                from esgpull.models import sql
+
+                dataset_stats = session.execute(
+                    sql.dataset.query_stats(self.sha)
+                ).all()
 
                 # Check for orphaned datasets (dataset_ids from files not in Dataset table)
                 orphaned_dataset_count = (
-                    session.query(sa.func.count(sa.distinct(File.dataset_id)))
-                    .join(query_file_proxy)
-                    .filter(query_file_proxy.c.query_sha == self.sha)
-                    .filter(File.dataset_id.isnot(None))
-                    .filter(
-                        ~File.dataset_id.in_(session.query(Dataset.dataset_id))
-                    )
-                    .scalar()
-                    or 0
+                    session.scalar(sql.dataset.orphaned(self.sha)) or 0
                 )
 
                 # Compute counts in Python - simpler and more maintainable

@@ -3,6 +3,7 @@ import functools
 import sqlalchemy as sa
 
 from esgpull.models import Table
+from esgpull.models.dataset import Dataset
 from esgpull.models.facet import Facet
 from esgpull.models.file import FileStatus
 from esgpull.models.query import File, Query, query_file_proxy, query_tag_proxy
@@ -137,6 +138,37 @@ class file:
         if not all_:
             stmt = stmt.where(File.status != FileStatus.Done)
         return stmt
+
+
+class dataset:
+    @staticmethod
+    @functools.cache
+    def query_stats(query_sha: str) -> sa.Select[tuple[str, int, int]]:
+        return (
+            sa.select(
+                Dataset.dataset_id,
+                Dataset.total_files,
+                sa.func.count(
+                    sa.case((File.status == FileStatus.Done, 1))
+                ).label("done_count"),
+            )
+            .join(File)
+            .join(query_file_proxy)
+            .filter(query_file_proxy.c.query_sha == query_sha)
+            .filter(File.dataset_id.isnot(None))
+            .group_by(Dataset.dataset_id, Dataset.total_files)
+        )
+
+    @staticmethod
+    @functools.cache
+    def orphaned(query_sha: str) -> sa.Select[tuple[int]]:
+        return (
+            sa.select(sa.func.count(sa.distinct(File.dataset_id)))
+            .join(query_file_proxy)
+            .filter(query_file_proxy.c.query_sha == query_sha)
+            .filter(File.dataset_id.isnot(None))
+            .filter(~File.dataset_id.in_(sa.select(Dataset.dataset_id)))
+        )
 
 
 class query:
