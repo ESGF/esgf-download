@@ -62,6 +62,7 @@ class Dataset(BaseNoSHA):
         primaryjoin="Dataset.dataset_id==File.dataset_id",
         default_factory=list,
         init=False,
+        repr=False,
     )
 
     def asdict(self) -> Mapping[str, Any]:
