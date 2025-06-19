@@ -84,7 +84,7 @@ class Task:
         self,
         semaphore: asyncio.Semaphore,
         client: AsyncClient,
-    ) -> AsyncIterator[Result]:
+    ) -> AsyncIterator[Result[DownloadCtx]]:
         ctx = self.ctx
         try:
             async with semaphore, self.fs.open(ctx.file) as file_obj:
@@ -131,7 +131,7 @@ class Processor:
         self.auth = auth
         self.fs = fs
         self.files = list(filter(self.should_download, files))
-        self.tasks = []
+        self.tasks: list[Task] = []
         msg: str | None = None
         if not default_ssl_context_loaded:
             msg = load_default_ssl_context()
@@ -157,7 +157,7 @@ class Processor:
         else:
             return True
 
-    async def process(self) -> AsyncIterator[Result]:
+    async def process(self) -> AsyncIterator[Result[DownloadCtx]]:
         semaphore = asyncio.Semaphore(self.config.download.max_concurrent)
         async with AsyncClient(
             follow_redirects=True,

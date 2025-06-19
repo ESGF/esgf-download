@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import sqlalchemy as sa
 from rich.console import Console, ConsoleOptions
@@ -15,10 +15,15 @@ from typing_extensions import NotRequired, TypedDict
 from esgpull import utils
 from esgpull.exceptions import UntrackableQuery
 from esgpull.models.base import Base, Sha
+from esgpull.models.dataset import Dataset
 from esgpull.models.file import FileDict, FileStatus
 from esgpull.models.options import Options
 from esgpull.models.selection import FacetValues, Selection
 from esgpull.models.tag import Tag
+
+if TYPE_CHECKING:
+    from esgpull.models.dataset import Dataset
+
 from esgpull.models.utils import (
     find_int,
     find_str,
@@ -55,9 +60,14 @@ query_tag_proxy = sa.Table(
 
 class File(Base):
     __tablename__ = "file"
+    __table_args__ = (
+        sa.Index("ix_file_dataset_status", "dataset_id", "status"),
+    )
 
     file_id: Mapped[str] = mapped_column(sa.String(255), unique=True)
-    dataset_id: Mapped[str] = mapped_column(sa.String(255))
+    dataset_id: Mapped[str] = mapped_column(
+        sa.String(255), sa.ForeignKey("dataset.dataset_id")
+    )
     master_id: Mapped[str] = mapped_column(sa.String(255))
     url: Mapped[str] = mapped_column(sa.String(255))
     version: Mapped[str] = mapped_column(sa.String(16))
@@ -74,6 +84,11 @@ class File(Base):
         secondary=query_file_proxy,
         default_factory=list,
         back_populates="files",
+        repr=False,
+    )
+    dataset: Mapped["Dataset"] = relationship(
+        back_populates="files",
+        init=False,
         repr=False,
     )
 
@@ -395,11 +410,6 @@ class Query(Base):
             self.tags.remove(tag)
         return tag is not None
 
-    def no_require(self) -> Query:
-        cl = self.clone(compute_sha=False)
-        cl._rich_no_require = True  # type: ignore [attr-defined]
-        return cl
-
     def __lshift__(self, child: Query) -> Query:
         result = self.clone(compute_sha=False)
         # if self.name != child.require:
@@ -440,7 +450,7 @@ class Query(Base):
 
     __rich_measure__ = rich_measure_impl
 
-    def _rich_tree(self) -> Tree:
+    def _rich_tree(self, hide_require: bool = False) -> Tree:
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
@@ -449,7 +459,7 @@ class Query(Base):
             f"\n│ updated  {format_date_iso(self.updated_at)}"
         )
         contents = Table.grid(padding=(0, 1))
-        if not hasattr(self, "_rich_no_require") and self.require is not None:
+        if not hide_require and self.require is not None:
             if len(self.require) == 40:
                 require = Text(short_sha(self.require), style="i green")
             else:
@@ -482,10 +492,44 @@ class Query(Base):
             count_ondisk, size_ondisk = self.files_count_size(FileStatus.Done)
             count_total, size_total = self.files_count_size()
             sizes = f"{format_size(size_ondisk)} / {format_size(size_total)}"
-            lens = f"{count_ondisk}/{count_total}"
-            contents.add_row(
-                "files:", Text(f"{sizes} [{lens}]", style="magenta")
-            )
+            lens = f"{count_ondisk} / {count_total}"
+
+            # Add dataset completion info
+            complete_datasets = 0
+            total_datasets = 0
+            session = object_session(self)
+            orphaned_dataset_count = 0
+
+            if session is not None:
+                from esgpull.models import sql
+
+                dataset_stats = session.execute(
+                    sql.dataset.query_stats(self.sha)
+                ).all()
+
+                # Check for orphaned datasets (dataset_ids from files not in Dataset table)
+                orphaned_dataset_count = (
+                    session.scalar(sql.dataset.orphaned(self.sha)) or 0
+                )
+
+                # Compute counts in Python - simpler and more maintainable
+                total_datasets = len(dataset_stats)
+                complete_datasets = sum(
+                    1 for d in dataset_stats if d.done_count == d.total_files
+                )
+
+            contents.add_row("files:", Text(f"{lens}", style="magenta"))
+            if orphaned_dataset_count > 0:
+                contents.add_row(
+                    "datasets:",
+                    "[magenta]? / ?[/]  [yellow italic]<- update for accurate datasets[/]",
+                )
+            else:
+                contents.add_row(
+                    "datasets:",
+                    f"[magenta]{complete_datasets} / {total_datasets}",
+                )
+            contents.add_row("size:", Text(f"{sizes}", style="magenta"))
         tree = Tree("", hide_root=True, guide_style="dim").add(title)
         if contents.row_count:
             tree.add(contents)

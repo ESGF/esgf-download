@@ -16,7 +16,7 @@ from rich.pretty import pretty_repr
 
 from esgpull.config import Config
 from esgpull.exceptions import SolrUnstableQueryError
-from esgpull.models import Dataset, File, Query
+from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
 from esgpull.utils import format_date_iso, index2url, sync
 
@@ -151,7 +151,7 @@ class ResultHints(Result):
 
 @dataclass
 class ResultSearch(Result):
-    data: Sequence[File | Dataset] = field(init=False, repr=False)
+    data: Sequence[File | DatasetRecord] = field(init=False, repr=False)
 
     def process(self) -> None:
         raise NotImplementedError
@@ -159,14 +159,14 @@ class ResultSearch(Result):
 
 @dataclass
 class ResultDatasets(Result):
-    data: Sequence[Dataset] = field(init=False, repr=False)
+    data: Sequence[DatasetRecord] = field(init=False, repr=False)
 
     def process(self) -> None:
         self.data = []
         if self.success:
             for doc in self.json["response"]["docs"]:
                 try:
-                    dataset = Dataset.serialize(doc)
+                    dataset = DatasetRecord.serialize(doc)
                     self.data.append(dataset)
                 except KeyError as exc:
                     logger.exception(exc)
@@ -492,8 +492,8 @@ class Context:
         self,
         *results: ResultSearch,
         keep_duplicates: bool,
-    ) -> list[Dataset]:
-        datasets: list[Dataset] = []
+    ) -> list[DatasetRecord]:
+        datasets: list[DatasetRecord] = []
         ids: set[str] = set()
         async for result in self._fetch(*results):
             dataset_result = result.to(ResultDatasets)
@@ -501,7 +501,7 @@ class Context:
             if dataset_result.processed:
                 for d in dataset_result.data:
                     if not keep_duplicates and d.dataset_id in ids:
-                        logger.warning(f"Duplicate dataset {d.dataset_id}")
+                        logger.debug(f"Duplicate dataset {d.dataset_id}")
                     else:
                         datasets.append(d)
                         ids.add(d.dataset_id)
@@ -520,7 +520,7 @@ class Context:
             if files_result.processed:
                 for file in files_result.data:
                     if not keep_duplicates and file.sha in shas:
-                        logger.warning(f"Duplicate file {file.file_id}")
+                        logger.debug(f"Duplicate file {file.file_id}")
                     else:
                         files.append(file)
                         shas.add(file.sha)
@@ -627,7 +627,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[Dataset]:
+    ) -> list[DatasetRecord]:
         if hits is None:
             hits = self.hits(*queries, file=False)
         results = self.prepare_search(

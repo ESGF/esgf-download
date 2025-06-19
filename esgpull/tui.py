@@ -28,6 +28,7 @@ from tomlkit import dumps as tomlkit_dumps
 from yaml import dump as yaml_dump
 
 from esgpull.config import Config
+from esgpull.constants import ESGPULL_DEBUG
 
 logger = logging.getLogger("esgpull")
 logging.root.setLevel(logging.DEBUG)
@@ -188,7 +189,12 @@ class UI:
                     f"See [yellow]{temp_path}[/] for error log.",
                     err=True,
                 )
-            if onraise is not None:
+            if ESGPULL_DEBUG:
+                from rich.traceback import install
+
+                install()
+                raise
+            elif onraise is not None:
                 raise onraise
             elif self.default_onraise is not None:
                 raise self.default_onraise

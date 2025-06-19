@@ -10,7 +10,7 @@ from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
-from esgpull.models import File, FileStatus, Query
+from esgpull.models import Dataset, File, FileStatus, Query
 from esgpull.tui import Verbosity, logger
 from esgpull.utils import format_size
 
@@ -20,10 +20,13 @@ class QueryFiles:
     query: Query
     expanded: Query
     skip: bool = False
+    datasets: list[Dataset] = field(default_factory=list)
     files: list[File] = field(default_factory=list)
+    dataset_hits: int = field(init=False)
     hits: int = field(init=False)
     hints: HintsDict = field(init=False)
     results: list[ResultSearch] = field(init=False)
+    dataset_results: list[ResultSearch] = field(init=False)
 
 
 @click.command()
@@ -80,20 +83,27 @@ def update(
             file=True,
             facets=["index_node"],
         )
-        for qf, qf_hints in zip(qfs, hints):
+        dataset_hits = esg.context.hits(
+            *[qf.expanded for qf in qfs],
+            file=False,
+        )
+        for qf, qf_hints, qf_dataset_hits in zip(qfs, hints, dataset_hits):
             qf.hits = sum(esg.context.hits_from_hints(qf_hints))
             if qf_hints:
                 qf.hints = qf_hints
+                qf.dataset_hits = qf_dataset_hits
             else:
                 qf.skip = True
         for qf in qfs:
             s = "s" if qf.hits > 1 else ""
-            esg.ui.print(f"{qf.query.rich_name} -> {qf.hits} file{s}.")
+            esg.ui.print(
+                f"{qf.query.rich_name} -> {qf.hits} file{s} (before replica de-duplication)."
+            )
         total_hits = sum([qf.hits for qf in qfs])
         if total_hits == 0:
             esg.ui.print("No files found.")
             esg.ui.raise_maybe_record(Exit(0))
-        else:
+        elif len(qfs) > 1:
             esg.ui.print(f"{total_hits} files found.")
         qfs = [qf for qf in qfs if not qf.skip]
         # Prepare optimally distributed requests to ESGF
@@ -101,6 +111,12 @@ def update(
         #   It might be interesting for the special case where all files already
         #   exist in db, then the detailed fetch could be skipped.
         for qf in qfs:
+            qf_dataset_results = esg.context.prepare_search(
+                qf.expanded,
+                file=False,
+                hits=[qf.dataset_hits],
+                max_hits=None,
+            )
             if esg.config.api.use_custom_distribution_algorithm:
                 qf_results = esg.context.prepare_search_distributed(
                     qf.expanded,
@@ -115,7 +131,7 @@ def update(
                     hits=[qf.hits],
                     max_hits=None,
                 )
-            nb_req = len(qf_results)
+            nb_req = len(qf_dataset_results) + len(qf_results)
             if nb_req > 50:
                 msg = (
                     f"{nb_req} requests will be sent to ESGF to"
@@ -126,13 +142,32 @@ def update(
                         esg.ui.print(f"{qf.query.rich_name} is now untracked.")
                         qf.query.tracked = False
                         qf_results = []
+                        qf_dataset_results = []
                     case "n":
                         qf_results = []
+                        qf_dataset_results = []
                     case _:
                         ...
             qf.results = qf_results
+            qf.dataset_results = qf_dataset_results
         # Fetch files and update db
         # [?] TODO: dry_run to print urls here
+        with esg.ui.spinner("Fetching datasets"):
+            coros = []
+            for qf in qfs:
+                coro = esg.context._datasets(
+                    *qf.dataset_results, keep_duplicates=False
+                )
+                coros.append(coro)
+            datasets = esg.context.sync_gather(*coros)
+            for qf, qf_datasets in zip(qfs, datasets):
+                qf.datasets = [
+                    Dataset(
+                        dataset_id=record.dataset_id,
+                        total_files=record.number_of_files,
+                    )
+                    for record in qf_datasets
+                ]
         with esg.ui.spinner("Fetching files"):
             coros = []
             for qf in qfs:
@@ -142,23 +177,26 @@ def update(
             for qf, qf_files in zip(qfs, files):
                 qf.files = qf_files
         for qf in qfs:
-            shas = {f.sha for f in qf.query.files}
-            new_files: list[File] = []
-            for file in qf.files:
-                if file.sha not in shas:
-                    new_files.append(file)
+            new_files = [f for f in qf.files if f not in esg.db]
+            new_datasets = [d for d in qf.datasets if d not in esg.db]
+            nb_datasets = len(new_datasets)
             nb_files = len(new_files)
             if not qf.query.tracked:
                 esg.db.add(qf.query)
                 continue
-            elif nb_files == 0:
+            elif nb_datasets == nb_files == 0:
                 esg.ui.print(f"{qf.query.rich_name} is already up-to-date.")
                 continue
             size = sum([file.size for file in new_files])
+            if size > 0:
+                queue_msg = " and send new files to download queue"
+            else:
+                queue_msg = ""
             msg = (
-                f"\nUpdating {qf.query.rich_name} with {nb_files}"
-                f" new files ({format_size(size)})."
-                "\nSend to download queue?"
+                f"\n{qf.query.rich_name}: {nb_files} new"
+                f" files, {nb_datasets} new datasets"
+                f" ({format_size(size)})."
+                f"\nUpdate the database{queue_msg}?"
             )
             if yes:
                 choice = "y"
@@ -175,9 +213,14 @@ def update(
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
                 with esg.db.commit_context():
+                    for dataset in esg.ui.track(
+                        new_datasets,
+                        description=f"{qf.query.rich_name} (datasets)",
+                    ):
+                        esg.db.session.add(dataset)
                     for file in esg.ui.track(
                         new_files,
-                        description=qf.query.rich_name,
+                        description=f"{qf.query.rich_name} (files)",
                     ):
                         file_db = esg.db.get(File, file.sha)
                         if file_db is None:

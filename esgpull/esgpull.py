@@ -25,6 +25,7 @@ from esgpull.auth import Auth, Credentials
 from esgpull.config import Config
 from esgpull.context import Context
 from esgpull.database import Database
+from esgpull.download import DownloadCtx
 from esgpull.exceptions import (
     DownloadCancelled,
     InvalidInstallPath,
@@ -309,7 +310,7 @@ class Esgpull:
         progress: Progress,
         task_ids: dict[str, TaskID],
         live: Live | DummyLive,
-    ) -> AsyncIterator[Result]:
+    ) -> AsyncIterator[Result[DownloadCtx]]:
         async for result in processor.process():
             task_idx = progress.task_ids.index(task_ids[result.data.file.sha])
             task = progress.tasks[task_idx]
