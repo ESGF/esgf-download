@@ -88,6 +88,7 @@ class Paths:
     db: Path = field(converter=Path)
     log: Path = field(converter=Path)
     tmp: Path = field(converter=Path)
+    plugins: Path = field(converter=Path)
 
     @auth.default
     def _auth_factory(self) -> Path:
@@ -129,12 +130,21 @@ class Paths:
             root = InstallConfig.default
         return root / "tmp"
 
+    @plugins.default
+    def _plugins_factory(self) -> Path:
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "plugins"
+
     def __iter__(self) -> Iterator[Path]:
         yield self.auth
         yield self.data
         yield self.db
         yield self.log
         yield self.tmp
+        yield self.plugins
 
 
 @define

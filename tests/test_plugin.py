@@ -337,15 +337,15 @@ def test_download_event_workflow(assets_path, tmp_path):
     # Copy the sample plugin to the plugins directory
     plugin_name = "sample_plugin"
     plugin_file = f"{plugin_name}.py"
-    plugins_dir = install_path / "plugins"
-    plugins_dir.mkdir(exist_ok=True)
-    shutil.copy(assets_path / plugin_file, plugins_dir / plugin_file)
+    shutil.copy(
+        assets_path / plugin_file, esg.config.paths.plugins / plugin_file
+    )
 
     # Create an Esgpull instance
     esg = Esgpull(install_path)
     esg.plugin_manager.enabled = True
     esg.plugin_manager.enable_plugin(plugin_name)
-    esg.plugin_manager.discover_plugins(plugins_dir)
+    esg.plugin_manager.discover_plugins(esg.config.paths.plugins)
     assert plugin_name in esg.plugin_manager.plugins
     module = esg.plugin_manager.plugins[plugin_name].module
 

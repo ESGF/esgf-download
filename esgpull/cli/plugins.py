@@ -39,8 +39,9 @@ def list_plugins(verbosity: Verbosity, json_output: bool = False):
 
     with esg.ui.logging("plugins", onraise=Abort):
         check_enabled(esg)
-        plugins_dir = esg.path / "plugins"
-        esg.plugin_manager.discover_plugins(plugins_dir, load_all=True)
+        esg.plugin_manager.discover_plugins(
+            esg.config.paths.plugins, load_all=True
+        )
         if json_output:
             # Format for JSON output
             result = {}
@@ -140,12 +141,7 @@ def list_plugins(verbosity: Verbosity, json_output: bool = False):
 def enable_plugin_cmd(plugin_name: str, verbosity: Verbosity):
     """Enable a plugin."""
     esg = init_esgpull(verbosity=verbosity)
-
-    # Get plugins directory from Esgpull instance
-    plugins_dir = esg.path / "plugins"
-
-    # Check if the plugin file exists (even if not loaded)
-    plugin_path = plugins_dir / f"{plugin_name}.py"
+    plugin_path = esg.config.paths.plugins / f"{plugin_name}.py"
     if not plugin_path.exists():
         esg.ui.print(f"Plugin file '{plugin_name}.py' not found.")
         return
@@ -164,11 +160,8 @@ def disable_plugin_cmd(plugin_name: str, verbosity: Verbosity):
     """Disable a plugin."""
     esg = init_esgpull(verbosity=verbosity)
 
-    # Get plugins directory from Esgpull instance
-    plugins_dir = esg.path / "plugins"
-
     # Check if the plugin file exists (even if not loaded)
-    plugin_path = plugins_dir / f"{plugin_name}.py"
+    plugin_path = esg.config.paths.plugins / f"{plugin_name}.py"
     if not plugin_path.exists():
         esg.ui.print(f"Plugin file '{plugin_name}.py' not found.")
         return
@@ -200,11 +193,12 @@ def config_plugin(
 
     with esg.ui.logging("plugins", onraise=Abort):
         check_enabled(esg)
+        esg.plugin_manager.discover_plugins(
+            esg.config.paths.plugins, load_all=True
+        )
         if key is not None:
-            # KEY NOT NONE, PLUGIN=KEY.split('.')[0]"
             plugin_name = key.split(".", 1)[0]
-            plugins_dir = esg.path / "plugins"
-            plugin_path = plugins_dir / f"{plugin_name}.py"
+            plugin_path = esg.config.paths.plugins / f"{plugin_name}.py"
             if not plugin_path.exists():
                 esg.ui.print(f"Plugin file '{plugin_name}.py' not found.")
                 raise Abort
@@ -360,13 +354,8 @@ def create_plugin(
     """Create a new plugin template."""
     esg = init_esgpull(verbosity=verbosity)
 
-    # Get the plugins directory from the Esgpull instance
-    plugins_dir = esg.path / "plugins"
-    plugins_dir.mkdir(parents=True, exist_ok=True)
-
     # Create plugin file path
-    plugin_path = plugins_dir / f"{name}.py"
-
+    plugin_path = esg.config.paths.plugins / f"{name}.py"
     if plugin_path.exists():
         esg.ui.print(f"Plugin file already exists: {plugin_path}")
         return

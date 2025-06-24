@@ -126,18 +126,16 @@ class Esgpull:
             self.db = Database.from_config(self.config)
             self.graph = Graph(self.db)
         # Initialize plugin system
-        plugin_config = self.path / "plugins" / "plugins.toml"
+        plugin_config_path = self.config.paths.plugins / "plugins.toml"
         try:
             self.plugin_manager = get_plugin_manager()
-            self.plugin_manager.__init__(config_path=plugin_config)
+            self.plugin_manager.__init__(config_path=plugin_config_path)
         except ValueError:
-            self.plugin_manager = PluginManager(config_path=plugin_config)
+            self.plugin_manager = PluginManager(config_path=plugin_config_path)
             set_plugin_manager(self.plugin_manager)
         if self.config.plugins.enabled:
             self.plugin_manager.enabled = True
-            plugins_dir = self.path / "plugins"
-            plugins_dir.mkdir(exist_ok=True, parents=True)
-            self.plugin_manager.discover_plugins(plugins_dir=plugins_dir)
+            self.plugin_manager.discover_plugins(self.config.paths.plugins)
 
     def fetch_index_nodes(self) -> list[str]:
         """
