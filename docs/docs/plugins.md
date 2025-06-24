@@ -1,24 +1,33 @@
 # Plugins
 
-`esgpull` includes a plugin system that allows you to extend functionality by running custom code when specific events occur during data operations. Plugins can respond to file downloads, query updates, and download failures.
+`esgpull` includes a plugin system that allows you to extend functionality by running custom code when specific events occur during data operations.
+
+## Available events
+
+- **file_downloaded**: Triggered when a file download completes successfully
+      - Handler receives: `file` (the downloaded file) and `logger`
+- **download_failure**: Triggered when a file download fails
+      - Handler receives: `file` (the failed file), `exception` (the error that occurred), and `logger`
+- **query_updated**: Triggered when query data is refreshed from ESGF
+      - Handler receives: `query` (the updated query) and `logger`
+
+Each event handler receives only the parameters relevant to that specific event. Use `esgpull plugins signatures` to see the exact type signatures for each event handler.
 
 ## Enable plugins
 
-Plugins are disabled by default. Enable them using the configuration command:
+Plugins are disabled by default. Enable them using the main config command:
 
 ```shell
 $ esgpull config plugins.enabled true
 ```
 
-## Basic workflow example
-
 ```shell
-$ esgpull config plugins.enabled true
-$ esgpull plugins ls
-$ esgpull plugins create -n notification_plugin
-$ esgpull plugins enable notification_plugin
-$ esgpull plugins ls
+[plugins]
+enabled = true
+
+Previous value: False
 ```
+
 
 ## Plugin management
 
@@ -28,53 +37,76 @@ $ esgpull plugins ls
 $ esgpull plugins ls
 ```
 
-View detailed information in JSON format:
-
 ```shell
-$ esgpull plugins ls --json
+        plugin        │      event       │        function         
+══════════════════════╪══════════════════╪═════════════════════════
+ 🟢 notification     │  file_downloaded │       notify_download   
+                      │ download_failure │        notify_failure   
+ 🔴 checksum_verify  │  file_downloaded │      verify_checksum    
+ 🔴 archive_backup   │  file_downloaded │      backup_to_archive  
+                      │    query_updated │  update_archive_catalog 
 ```
+
+This detailed information can also be shown with JSON format with `--json`.
 
 ### Create a new plugin
 
 Create a plugin template with all available events:
 
 ```shell
-$ esgpull plugins create -n my_plugin
+$ esgpull plugins create -n notification
+```
+
+```shell
+Plugin template created at: /path/to/esgpull/plugins/notification.py
+Edit the file to implement your custom plugin logic.
 ```
 
 Create a plugin for specific events only:
 
 ```shell
-$ esgpull plugins create -n notification_plugin file_downloaded
+$ esgpull plugins create -n notification file_downloaded download_failure
+```
+
+```shell
+Plugin template created at: /path/to/esgpull/plugins/notification.py
+Edit the file to implement your custom plugin logic.
 ```
 
 ### Enable and disable plugins
 
 ```shell
-$ esgpull plugins enable my_plugin
-$ esgpull plugins disable my_plugin
+$ esgpull plugins enable notification
 ```
-
-### View event signatures
-
-See available events and their handler signatures:
 
 ```shell
-$ esgpull plugins signatures
+Plugin 'notification' enabled.
 ```
+
+```shell
+$ esgpull plugins disable notification
+```
+
+```shell
+Plugin 'notification' disabled.
+```
+
 
 ### Test plugins
 
-Test plugins by triggering events with sample data:
+Test plugins by triggering one event with sample data:
 
 ```shell
-# Test all enabled plugins with sample events
-$ esgpull plugins test
-
-# Test specific event types
 $ esgpull plugins test file_downloaded
-$ esgpull plugins test download_failure
-$ esgpull plugins test query_updated
+```
+
+```shell
+[2025-06-19 17:33:09]  INFO      esgpull.plugins.notification
+✅ Downloaded: tas_Amon_CESM2_historical_r1i1p1f1_gn_185001-201412.nc
+   Size: 524288000 bytes
+
+[2025-06-19 17:33:09]  INFO      esgpull.plugins.checksum_verify
+✓ Checksum verified for tas_Amon_CESM2_historical_r1i1p1f1_gn_185001-201412.nc
 ```
 
 This is the primary debugging tool for plugin development. Use it to verify handlers work correctly before running actual downloads or updates.
@@ -83,18 +115,20 @@ This is the primary debugging tool for plugin development. Use it to verify hand
 
 Here's a simple notification plugin that sends a message when files are downloaded:
 
-```python title="plugins/notification_plugin.py"
+```python title="plugins/notification.py"
+import logging
 from esgpull.plugin import Event, on
+import esgpull.models
 
 @on(Event.file_downloaded, priority="normal")
-def notify_download(file, logger):
+def notify_download(file: esgpull.models.File, logger: logging.Logger):
     """Send notification when a file is downloaded."""
     print(f"✅ Downloaded: {file.filename}")
     print(f"   Size: {file.size} bytes")
     logger.info(f"Notified download: {file.filename}")
 
 @on(Event.download_failure, priority="normal") 
-def notify_failure(file, exception, logger):
+def notify_failure(file: esgpull.models.File, exception: Exception, logger: logging.Logger):
     """Send notification when a download fails."""
     print(f"❌ Failed: {file.filename}")
     print(f"   Error: {exception}")
@@ -103,46 +137,147 @@ def notify_failure(file, exception, logger):
 
 ## Plugin configuration
 
-Plugins can define their own configuration options by including a `Config` class in the plugin code:
+Plugins are configured via an optional `Config` class in the plugin code. The `Config` class attributes define parameters and must include default values.
 
-```python title="plugins/configurable_plugin.py"
+Plugin configuration is stored separately from esgpull's main config file. This file contains a manifest of enabled/disabled plugins and their custom configurations (which override the `Config` class defaults). Use the `esgpull plugins config` subcommand to manage these settings.
+
+Let's extend our notification plugin with configuration:
+
+```python title="plugins/notification.py"
+import logging
 from esgpull.plugin import Event, on
+import esgpull.models
 
 class Config:
-    notification_enabled = True
-    max_retries = 3
+    enabled = True
     email_address = "user@example.com"
+    include_size = True
+    failure_alerts = True
 
 @on(Event.file_downloaded, priority="normal")
-def notify_download(file, logger):
-    if Config.notification_enabled:
-        print(f"Sending notification to {Config.email_address}")
+def notify_download(file: esgpull.models.File, logger: logging.Logger):
+    """Send notification when a file is downloaded."""
+    if Config.enabled:
         print(f"✅ Downloaded: {file.filename}")
-        logger.info(f"Sent notification for {file.filename}")
+        if Config.include_size:
+            print(f"   Size: {file.size} bytes")
+        logger.info(f"Notified download to {Config.email_address}: {file.filename}")
+
+@on(Event.download_failure, priority="normal") 
+def notify_failure(file: esgpull.models.File, exception: Exception, logger: logging.Logger):
+    """Send notification when a download fails."""
+    if Config.enabled and Config.failure_alerts:
+        print(f"❌ Failed: {file.filename}")
+        print(f"   Error: {exception}")
+        logger.error(f"Notified failure to {Config.email_address}: {file.filename}")
 ```
 
-View and modify plugin settings:
+View all plugin configurations:
+```shell
+$ esgpull plugins config
+```
 
 ```shell
-# View all plugin configurations
-$ esgpull plugins config
+─ /path/to/esgpull/plugins.toml ─
+[notification]
+enabled = true
+email_address = "admin@myproject.org"
+include_size = true
+failure_alerts = true
 
-# View specific plugin configuration
-$ esgpull plugins config configurable_plugin
+[checksum_verify]
+enabled = false
+algorithm = "sha256"
 
-# Set a configuration value
-$ esgpull plugins config configurable_plugin.email_address user@newdomain.com
-
-# Reset to default value
-$ esgpull plugins config configurable_plugin.email_address --default
+[archive_backup]
+enabled = false
+archive_path = "/backup/esgf"
 ```
+
+View specific plugin configuration:
+```shell
+$ esgpull plugins config notification
+```
+
+```shell
+[notification]
+enabled = true
+email_address = "admin@myproject.org"
+include_size = true
+failure_alerts = true
+```
+
+View a specific configuration value:
+```shell
+$ esgpull plugins config notification.email_address
+```
+
+```shell
+[notification]
+email_address = "admin@myproject.org"
+```
+
+Set a configuration value:
+```shell
+$ esgpull plugins config notification.email_address alerts@newdomain.com
+```
+
+```shell
+[notification]
+email_address = "alerts@newdomain.com"
+
+Previous value: admin@myproject.org
+```
+
+Reset to default value:
+```shell
+$ esgpull plugins config notification.email_address --default
+```
+
+```shell
+👍 Config reset to default for notification.email_address
+```
+
+### Config class details
+
+The `Config` class supports these data types:
+
+- **Strings** (`str`): Text values like `"INFO"` or `"user@example.com"`
+- **Integers** (`int`): Whole numbers like `3` or `100`  
+- **Floats** (`float`): Decimal numbers like `0.5` or `10.75`
+- **Booleans** (`bool`): `True` or `False` values
+
+```python
+class Config:
+    """Example showing all supported data types"""
+    # String configuration
+    log_level = "INFO"
+    email_address = "user@example.com"
+    
+    # Integer configuration  
+    max_retries = 3
+    timeout_seconds = 30
+    
+    # Float configuration
+    threshold = 0.75
+    delay_factor = 1.5
+    
+    # Boolean configuration
+    notifications_enabled = True
+    debug_mode = False
+```
+
+**Important limitations:**
+- Lists and dictionaries are **not supported** (e.g., `file_types = [".nc", ".netcdf"]` won't work)
+- Only simple scalar values are allowed
+- Configuration values are automatically type-checked when modified
+
+### Configuration management
 
 Plugin configurations are stored separately from the main `esgpull` configuration in a `plugins.toml` file. Only plugins with a `Config` class can be configured.
 
-## Available events
+The configuration system follows these principles:
 
-- **file_downloaded**: Triggered when a file download completes successfully
-- **download_failure**: Triggered when a file download fails
-- **query_updated**: Triggered when query data is refreshed from ESGF
-
-Each event provides relevant data to the handler function. Use `esgpull plugins signatures` to see the exact parameters for each event type.
+- **Defaults in code**: Class attributes define default values
+- **Overrides in file**: Only explicitly changed values are saved to `plugins.toml`
+- **Type safety**: Values are automatically converted and validated based on the default type
