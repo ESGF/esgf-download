@@ -135,6 +135,7 @@ class Esgpull:
             set_plugin_manager(self.plugin_manager)
         if self.config.plugins.enabled:
             self.plugin_manager.enabled = True
+            self.config.paths.plugins.mkdir(exist_ok=True, parents=True)
             self.plugin_manager.discover_plugins(self.config.paths.plugins)
 
     def fetch_index_nodes(self) -> list[str]:
