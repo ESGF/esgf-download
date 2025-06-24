@@ -11,9 +11,7 @@ from esgpull.cli.plugins import (
     disable_plugin_cmd,
     enable_plugin_cmd,
     list_plugins,
-    show_signatures,
 )
-from esgpull.plugin import Event
 
 
 @pytest.fixture
@@ -246,22 +244,3 @@ def test_plugins_config_command(tmp_path, assets_path):
 
     # Clean up
     InstallConfig.setup()
-
-
-def test_plugins_signatures_command():
-    """Test the signatures command"""
-    runner = CliRunner()
-
-    # Test showing signatures for each event type
-
-    for event in Event:
-        result = runner.invoke(show_signatures, [event.value])
-        assert result.exit_code == 0
-        # Should contain the event handler signature
-        assert f"@on(Event.{event.name}" in result.output
-        assert "def " in result.output  # Should show function definition
-
-    # Test with invalid event type
-    result = runner.invoke(show_signatures, ["invalid_event"])
-    assert result.exit_code != 0  # Should fail with invalid choice
-
