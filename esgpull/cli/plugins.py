@@ -3,14 +3,13 @@ from textwrap import dedent
 
 import click
 from click.exceptions import Abort, BadOptionUsage
-from rich.syntax import Syntax
 
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import extract_subdict, init_esgpull, totable
 from esgpull.models import File, FileStatus, Query
-from esgpull.plugin import Event, EventSpecs, emit
-from esgpull.tui import TempUI, Verbosity
+from esgpull.plugin import Event, emit
+from esgpull.tui import Verbosity
 from esgpull.version import __version__
 
 
@@ -315,31 +314,6 @@ def test_plugin(
         )
 
 
-@plugins.command("signatures")
-@click.argument(
-    "event_type",
-    type=click.Choice([e.value for e in Event]),
-    required=False,
-)
-def show_signatures(event_type: str | None = None):
-    """Show example implementation for event handlers."""
-    if event_type is None:
-        # Show all signatures
-        for event in Event:
-            spec = EventSpecs[event]
-            source = spec.source.replace("@spec", "@on")
-            syntax = Syntax(source, "python")
-            TempUI.print(syntax)
-            print()
-    else:
-        # Show specific signature
-        event = Event(event_type)
-        spec = EventSpecs[event]
-        source = spec.source.replace("@spec", "@on")
-        syntax = Syntax(source, "python")
-        TempUI.print(syntax)
-
-
 @plugins.command("create")
 @click.argument(
     "events",
@@ -407,7 +381,7 @@ def handle_download_failure(file: File, exception: Exception, logger: Logger):
         "query_updated": """
 # Query updated event handler
 @on(Event.query_updated, priority="normal")
-def handle_query_updated(query, logger):
+def handle_query_updated(query: Query, logger: Logger):
     \"""Handle query updated event\"""
     logger.info(f"Query updated: {query.name}")
     # Add your custom logic here
