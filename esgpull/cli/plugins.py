@@ -61,7 +61,6 @@ def list_plugins(verbosity: Verbosity, json_output: bool = False):
                 result[name] = {
                     "enabled": esg.plugin_manager.is_plugin_enabled(name),
                     "handlers": handlers,
-                    "timeout": p.timeout,
                     "min_version": p.min_version,
                     "max_version": p.max_version,
                 }

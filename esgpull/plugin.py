@@ -114,7 +114,6 @@ class Plugin:
     name: str
     module: Any
     handlers: list[EventHandler] = field(default_factory=list)
-    timeout: float = 5.0  # Default timeout in seconds
 
     @property
     def config_class(self) -> type | None:
