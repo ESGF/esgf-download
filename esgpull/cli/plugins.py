@@ -361,11 +361,11 @@ class Config:
 
     # Add handlers for requested events
     handlers = {
-        "file_downloaded": """
-# File downloaded event handler
-@on(Event.file_downloaded, priority="normal")
-def handle_file_downloaded(file: File, logger: Logger):
-    \"""Handle file downloaded event\"""
+        "file_complete": """
+# File complete event handler
+@on(Event.file_complete, priority="normal")
+def handle_file_complete(file: File, logger: Logger):
+    \"""Handle file complete event\"""
     logger.info(f"File downloaded: {file.filename}")
     # Add your custom logic here
 """,

@@ -96,7 +96,7 @@ def test_plugins_create_command(tmp_path):
     # Test creating a plugin with specific events
     result = runner.invoke(
         create_plugin,
-        ["--name", "test_plugin", "file_downloaded", "download_failure"],
+        ["--name", "test_plugin", "file_complete", "download_failure"],
     )
     assert result.exit_code == 0
 
@@ -106,9 +106,9 @@ def test_plugins_create_command(tmp_path):
 
     # Verify content contains expected handlers
     content = plugin_file.read_text()
-    assert "handle_file_downloaded" in content
+    assert "handle_file_complete" in content
     assert "handle_download_failure" in content
-    assert "@on(Event.file_downloaded" in content
+    assert "@on(Event.file_complete" in content
     assert "@on(Event.download_failure" in content
     assert (
         "handle_query_updated" not in content
@@ -122,7 +122,7 @@ def test_plugins_create_command(tmp_path):
     assert plugin_file_all.exists()
 
     content_all = plugin_file_all.read_text()
-    assert "handle_file_downloaded" in content_all
+    assert "handle_file_complete" in content_all
     assert "handle_download_failure" in content_all
     assert "handle_query_updated" in content_all
 

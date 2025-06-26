@@ -90,8 +90,8 @@ def test_plugin_discovery_and_loading(
 
     # Check that handlers are registered for the right events
     assert any(
-        h.plugin_name == sample_plugin and h.event == Event.file_downloaded
-        for h in plugin_manager._handlers_by_event[Event.file_downloaded]
+        h.plugin_name == sample_plugin and h.event == Event.file_complete
+        for h in plugin_manager._handlers_by_event[Event.file_complete]
     )
     assert any(
         h.plugin_name == sample_plugin and h.event == Event.download_failure
@@ -105,7 +105,7 @@ def test_plugin_discovery_and_loading(
     # Verify priorities
     file_dl_handler = next(
         h
-        for h in plugin_manager._handlers_by_event[Event.file_downloaded]
+        for h in plugin_manager._handlers_by_event[Event.file_complete]
         if h.plugin_name == sample_plugin
     )
     assert file_dl_handler.priority == "normal"
@@ -170,18 +170,18 @@ def test_triggered_plugin(plugin_dir, plugin_manager, sample_plugin):
     )
 
     plugin_manager.enable_plugin(sample_plugin)
-    plugin_manager.plugins[sample_plugin].module.calls["file_downloaded"] = 0
-    plugin_manager.trigger_event(Event.file_downloaded, file=test_file)
+    plugin_manager.plugins[sample_plugin].module.calls["file_complete"] = 0
+    plugin_manager.trigger_event(Event.file_complete, file=test_file)
     assert (
-        plugin_manager.plugins[sample_plugin].module.calls["file_downloaded"]
+        plugin_manager.plugins[sample_plugin].module.calls["file_complete"]
         == 1
     )
 
     plugin_manager.disable_plugin(sample_plugin)
-    plugin_manager.plugins[sample_plugin].module.calls["file_downloaded"] = 0
-    plugin_manager.trigger_event(Event.file_downloaded, file=test_file)
+    plugin_manager.plugins[sample_plugin].module.calls["file_complete"] = 0
+    plugin_manager.trigger_event(Event.file_complete, file=test_file)
     assert (
-        plugin_manager.plugins[sample_plugin].module.calls["file_downloaded"]
+        plugin_manager.plugins[sample_plugin].module.calls["file_complete"]
         == 0
     )
 
@@ -200,11 +200,11 @@ def test_version_compatibility(
     # Check that only the compatible plugin's handlers are registered
     assert any(
         h.plugin_name == sample_plugin
-        for h in plugin_manager._handlers_by_event[Event.file_downloaded]
+        for h in plugin_manager._handlers_by_event[Event.file_complete]
     )
     assert not any(
         h.plugin_name == incompatible_plugin
-        for h in plugin_manager._handlers_by_event[Event.file_downloaded]
+        for h in plugin_manager._handlers_by_event[Event.file_complete]
     )
 
 
@@ -230,7 +230,7 @@ def test_priority_order(plugin_dir, plugin_manager, priority_test_plugin):
         size=1000,
         status=FileStatus.Done,
     )
-    plugin_manager.trigger_event(Event.file_downloaded, file=test_file)
+    plugin_manager.trigger_event(Event.file_complete, file=test_file)
     assert plugin.module.execution_order == ["high", "normal", "low"]
 
 
@@ -293,8 +293,8 @@ def test_error_isolation(
     assert error_plugin in plugin_manager.plugins
     error_plugin_calls = plugin_manager.plugins[error_plugin].module.calls
     sample_plugin_calls = plugin_manager.plugins[sample_plugin].module.calls
-    error_plugin_calls["file_downloaded"] = 0
-    sample_plugin_calls["file_downloaded"] = 0
+    error_plugin_calls["file_complete"] = 0
+    sample_plugin_calls["file_complete"] = 0
 
     # Create a test File object
     test_file = File(
@@ -313,18 +313,18 @@ def test_error_isolation(
     )
 
     # All handlers are correctly called even if one raises
-    plugin_manager.trigger_event(Event.file_downloaded, file=test_file)
-    assert error_plugin_calls["file_downloaded"] == 1
-    assert sample_plugin_calls["file_downloaded"] == 1
+    plugin_manager.trigger_event(Event.file_complete, file=test_file)
+    assert error_plugin_calls["file_complete"] == 1
+    assert sample_plugin_calls["file_complete"] == 1
 
     with pytest.raises(ValueError):
-        # Trigger the file_downloaded event
+        # Trigger the file_complete event
         # The error_plugin has high priority and will run first and raise an exception
         plugin_manager.trigger_event(
-            Event.file_downloaded, file=test_file, reraise=True
+            Event.file_complete, file=test_file, reraise=True
         )
-    assert error_plugin_calls["file_downloaded"] == 2
-    assert sample_plugin_calls["file_downloaded"] == 1
+    assert error_plugin_calls["file_complete"] == 2
+    assert sample_plugin_calls["file_complete"] == 1
 
 
 def test_download_event_workflow(assets_path, tmp_path):
@@ -365,13 +365,13 @@ def test_download_event_workflow(assets_path, tmp_path):
         status=FileStatus.Queued,
     )
     test_file.compute_sha()
-    module.calls["file_downloaded"] = 0
+    module.calls["file_complete"] = 0
     module.calls["download_failure"] = 0
     coro = esg.download([test_file], show_progress=False, use_db=False)
     downloaded, errors = asyncio.run(coro)
     assert len(downloaded) == 1
     assert len(errors) == 0
-    assert module.calls["file_downloaded"] == 1
+    assert module.calls["file_complete"] == 1
     assert module.calls["download_failure"] == 0
 
     # Create a File object with a nonexistent URL
@@ -390,11 +390,11 @@ def test_download_event_workflow(assets_path, tmp_path):
         status=FileStatus.Queued,
     )
     failing_file.compute_sha()
-    module.calls["file_downloaded"] = 0
+    module.calls["file_complete"] = 0
     module.calls["download_failure"] = 0
     coro = esg.download([failing_file], show_progress=False, use_db=False)
     downloaded, errors = asyncio.run(coro)
     assert len(downloaded) == 0
     assert len(errors) == 1
-    assert module.calls["file_downloaded"] == 0
+    assert module.calls["file_complete"] == 0
     assert module.calls["download_failure"] == 1

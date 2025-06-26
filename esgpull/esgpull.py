@@ -366,8 +366,8 @@ class Esgpull:
                                 logger.info(msg)
                                 live.console.print(msg)
 
-                                # Trigger file_downloaded event in background
-                                emit(Event.file_downloaded, file=file)
+                                # Trigger file_complete event in background
+                                emit(Event.file_complete, file=file)
 
                                 yield result
                             case Err(_, err):

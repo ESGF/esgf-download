@@ -20,7 +20,7 @@ from esgpull.version import __version__
 
 # Define event types
 class Event(str, Enum):
-    file_downloaded = "file_downloaded"
+    file_complete = "file_complete"
     download_failure = "download_failure"
     query_updated = "query_updated"
 
@@ -52,12 +52,12 @@ def spec(event: Event):
     return decorator
 
 
-@spec(Event.file_downloaded)
-def my_file_downloaded(
+@spec(Event.file_complete)
+def my_file_complete(
     file: esgpull.models.File,
     logger: logging.Logger,
 ):
-    """Example Event.file_downloaded handler."""
+    """Spec for Event.file_complete handler."""
 
 
 @spec(Event.download_failure)
@@ -66,7 +66,7 @@ def my_download_failure(
     exception: Exception,
     logger: logging.Logger,
 ):
-    """Example Event.download_failure handler."""
+    """Spec for Event.download_failure handler."""
 
 
 @spec(Event.query_updated)
@@ -74,7 +74,7 @@ def my_query_updated(
     query: esgpull.models.Query,
     logger: logging.Logger,
 ):
-    """Example Event.query_updated handler."""
+    """Spec for Event.query_updated handler."""
 
 
 @dataclass

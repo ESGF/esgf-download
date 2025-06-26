@@ -93,7 +93,7 @@ Loop at the [download page](../download) for more information.
 
 ```shell
 $ esgpull config plugins.enabled true
-$ esgpull plugins create -n notification file_downloaded
+$ esgpull plugins create -n notification file_complete
 $ esgpull plugins enable notification
 ```
 

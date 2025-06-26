@@ -4,7 +4,7 @@
 
 ## Available events
 
-- **file_downloaded**: Triggered when a file download completes successfully
+- **file_complete**: Triggered when a file download completes successfully
       - Handler receives: `file` (the downloaded file) and `logger`
 - **download_failure**: Triggered when a file download fails
       - Handler receives: `file` (the failed file), `exception` (the error that occurred), and `logger`
@@ -40,10 +40,10 @@ $ esgpull plugins ls
 ```shell
         plugin        │      event       │        function         
 ══════════════════════╪══════════════════╪═════════════════════════
- 🟢 notification     │  file_downloaded │       notify_download   
+ 🟢 notification     │  file_complete │       notify_download   
                       │ download_failure │        notify_failure   
- 🔴 checksum_verify  │  file_downloaded │      verify_checksum    
- 🔴 archive_backup   │  file_downloaded │      backup_to_archive  
+ 🔴 checksum_verify  │  file_complete │      verify_checksum    
+ 🔴 archive_backup   │  file_complete │      backup_to_archive  
                       │    query_updated │  update_archive_catalog 
 ```
 
@@ -65,7 +65,7 @@ Edit the file to implement your custom plugin logic.
 Create a plugin for specific events only:
 
 ```shell
-$ esgpull plugins create -n notification file_downloaded download_failure
+$ esgpull plugins create -n notification file_complete download_failure
 ```
 
 ```shell
@@ -97,7 +97,7 @@ Plugin 'notification' disabled.
 Test plugins by triggering one event with sample data:
 
 ```shell
-$ esgpull plugins test file_downloaded
+$ esgpull plugins test file_complete
 ```
 
 ```shell
@@ -120,7 +120,7 @@ import logging
 from esgpull.plugin import Event, on
 import esgpull.models
 
-@on(Event.file_downloaded, priority="normal")
+@on(Event.file_complete, priority="normal")
 def notify_download(file: esgpull.models.File, logger: logging.Logger):
     """Send notification when a file is downloaded."""
     print(f"✅ Downloaded: {file.filename}")
@@ -154,7 +154,7 @@ class Config:
     include_size = True
     failure_alerts = True
 
-@on(Event.file_downloaded, priority="normal")
+@on(Event.file_complete, priority="normal")
 def notify_download(file: esgpull.models.File, logger: logging.Logger):
     """Send notification when a file is downloaded."""
     if Config.enabled:
