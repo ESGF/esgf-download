@@ -93,8 +93,8 @@ Loop at the [download page](../download) for more information.
 
 ```shell
 $ esgpull config plugins.enabled true
-$ esgpull plugins create notification_plugin --events file_downloaded
-$ esgpull plugins enable notification_plugin
+$ esgpull plugins create -n notification file_downloaded
+$ esgpull plugins enable notification
 ```
 
 See the [Plugins page](../plugins) for more details on creating and managing plugins.
