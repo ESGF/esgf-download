@@ -268,9 +268,10 @@ class Config:
 ```
 
 **Important limitations:**
-- Lists and dictionaries are **not supported** (e.g., `file_types = [".nc", ".netcdf"]` won't work)
-- Only simple scalar values are allowed
-- Configuration values are automatically type-checked when modified
+- Lists and dictionaries can be used in the `Config` class, but cannot be configured through the CLI `esgpull plugins config` command
+- For list/dictionary attributes, you must edit the `plugins.toml` file directly
+- Only simple scalar values (strings, integers, floats, booleans) can be managed via CLI commands
+- Configuration values are automatically type-checked when modified through CLI
 
 ### Configuration management
 
