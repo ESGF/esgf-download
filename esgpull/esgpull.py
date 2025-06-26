@@ -365,22 +365,12 @@ class Esgpull:
                                 msg = " · ".join(parts)
                                 logger.info(msg)
                                 live.console.print(msg)
-
-                                # Trigger file_complete event in background
-                                emit(Event.file_complete, file=file)
-
                                 yield result
                             case Err(_, err):
                                 progress.remove_task(task.id)
                                 yield Err(result.data, err=err)
-                case Err(_, err):
+                case Err():
                     progress.remove_task(task.id)
-                    emit(
-                        Event.file_error,
-                        file=result.data.file,
-                        exception=err,
-                    )
-
                     yield result
                 case _:
                     raise ValueError("Unexpected result")
@@ -470,13 +460,20 @@ class Esgpull:
                             main_progress.update(main_task_id, advance=1)
                             result.data.file.status = FileStatus.Done
                             files.append(result.data.file)
-                        case Err():
+                            emit(Event.file_complete, file=result.data.file)
+                        case Err(_, err):
                             queue_size -= 1
                             main_progress.update(
                                 main_task_id, total=queue_size
                             )
                             result.data.file.status = FileStatus.Error
                             errors.append(result)
+                            emit(
+                                Event.file_error,
+                                file=result.data.file,
+                                exception=err,
+                            )
+
                     if use_db:
                         self.db.add(result.data.file)
                     remaining_dict.pop(result.data.file.sha, None)
