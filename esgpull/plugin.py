@@ -4,7 +4,6 @@ import logging
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -167,7 +166,6 @@ class PluginManager:
         self.config_path = config_path
         self.config = PluginConfig()
         self.load_config()
-        self._executor = ThreadPoolExecutor(max_workers=4)
         self._lock = threading.RLock()
         self.enabled = False
 
@@ -398,45 +396,35 @@ class PluginManager:
                         logger=plugin_logger, **handler_kwargs
                     )
                     end_time = time.perf_counter()
-                    execution_time = (end_time - start_time) * 1000  # Convert to ms
-                    
+                    execution_time = (
+                        end_time - start_time
+                    ) * 1000  # Convert to ms
+
                     # Always log trace info (will only show at INFO level)
                     logger.info(
                         f"[TRACE] Plugin {plugin.name}.{handler.func.__name__} executed ({execution_time:.1f}ms)"
                     )
-                    
+
                     results.append(result)
 
                 except Exception as e:
                     end_time = time.perf_counter()
                     execution_time = (end_time - start_time) * 1000
-                    
+
                     logger.error(
                         f"Plugin {plugin.name} failed on {event_type}: {e}"
                     )
                     logger.exception(e)
-                    
+
                     # Always log trace info for failed execution too
                     logger.info(
                         f"[TRACE] Plugin {plugin.name}.{handler.func.__name__} failed ({execution_time:.1f}ms)"
                     )
-                    
+
                     if reraise:
                         raise
 
             return results
-
-    def trigger_event_async(self, event_type: Event, *args, **kwargs) -> None:
-        """
-        Trigger an event asynchronously, executing all registered handlers in a separate thread.
-
-        This method returns immediately and does not provide access to the results.
-        """
-        # Skip if plugins are globally disabled
-        if not self.enabled:
-            return
-
-        self._executor.submit(self.trigger_event, event_type, *args, **kwargs)
 
     # Configuration management methods
     def enable_plugin(self, plugin_name: str) -> bool:
@@ -575,17 +563,8 @@ def on(
 
 def emit(event_type, **kwargs):
     """
-    Emit an event to be handled by plugins synchronously.
+    Emit an event to be handled by plugins.
 
     This function runs handlers in the current thread and returns their results.
     """
     return get_plugin_manager().trigger_event(event_type, **kwargs)
-
-
-# def emit_async(event_type, *args, **kwargs):
-#     """
-#     Emit an event to be handled by plugins asynchronously.
-#
-#     This function runs handlers in a background thread and returns immediately.
-#     """
-#     get_plugin_manager().trigger_event_async(event_type, *args, **kwargs)
