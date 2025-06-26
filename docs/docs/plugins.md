@@ -6,7 +6,7 @@
 
 - **file_complete**: Triggered when a file download completes successfully
       - Handler receives: `file` (the downloaded file) and `logger`
-- **download_failure**: Triggered when a file download fails
+- **file_error**: Triggered when a file download fails
       - Handler receives: `file` (the failed file), `exception` (the error that occurred), and `logger`
 - **query_updated**: Triggered when query data is refreshed from ESGF
       - Handler receives: `query` (the updated query) and `logger`
@@ -41,7 +41,7 @@ $ esgpull plugins ls
         plugin        │      event       │        function         
 ══════════════════════╪══════════════════╪═════════════════════════
  🟢 notification     │  file_complete │       notify_download   
-                      │ download_failure │        notify_failure   
+                      │ file_error │        notify_error   
  🔴 checksum_verify  │  file_complete │      verify_checksum    
  🔴 archive_backup   │  file_complete │      backup_to_archive  
                       │    query_updated │  update_archive_catalog 
@@ -65,7 +65,7 @@ Edit the file to implement your custom plugin logic.
 Create a plugin for specific events only:
 
 ```shell
-$ esgpull plugins create -n notification file_complete download_failure
+$ esgpull plugins create -n notification file_complete file_error
 ```
 
 ```shell
@@ -127,12 +127,12 @@ def notify_download(file: esgpull.models.File, logger: logging.Logger):
     print(f"   Size: {file.size} bytes")
     logger.info(f"Notified download: {file.filename}")
 
-@on(Event.download_failure, priority="normal") 
-def notify_failure(file: esgpull.models.File, exception: Exception, logger: logging.Logger):
+@on(Event.file_error, priority="normal") 
+def notify_error(file: esgpull.models.File, exception: Exception, logger: logging.Logger):
     """Send notification when a download fails."""
     print(f"❌ Failed: {file.filename}")
     print(f"   Error: {exception}")
-    logger.error(f"Notified failure: {file.filename}")
+    logger.error(f"Notified error: {file.filename}")
 ```
 
 ## Plugin configuration
@@ -152,7 +152,7 @@ class Config:
     enabled = True
     email_address = "user@example.com"
     include_size = True
-    failure_alerts = True
+    error_alerts = True
 
 @on(Event.file_complete, priority="normal")
 def notify_download(file: esgpull.models.File, logger: logging.Logger):
@@ -163,13 +163,13 @@ def notify_download(file: esgpull.models.File, logger: logging.Logger):
             print(f"   Size: {file.size} bytes")
         logger.info(f"Notified download to {Config.email_address}: {file.filename}")
 
-@on(Event.download_failure, priority="normal") 
-def notify_failure(file: esgpull.models.File, exception: Exception, logger: logging.Logger):
+@on(Event.file_error, priority="normal") 
+def notify_error(file: esgpull.models.File, exception: Exception, logger: logging.Logger):
     """Send notification when a download fails."""
-    if Config.enabled and Config.failure_alerts:
+    if Config.enabled and Config.error_alerts:
         print(f"❌ Failed: {file.filename}")
         print(f"   Error: {exception}")
-        logger.error(f"Notified failure to {Config.email_address}: {file.filename}")
+        logger.error(f"Notified error to {Config.email_address}: {file.filename}")
 ```
 
 View all plugin configurations:
@@ -183,7 +183,7 @@ $ esgpull plugins config
 enabled = true
 email_address = "admin@myproject.org"
 include_size = true
-failure_alerts = true
+error_alerts = true
 
 [checksum_verify]
 enabled = false
@@ -204,7 +204,7 @@ $ esgpull plugins config notification
 enabled = true
 email_address = "admin@myproject.org"
 include_size = true
-failure_alerts = true
+error_alerts = true
 ```
 
 View a specific configuration value:

@@ -369,11 +369,11 @@ def handle_file_complete(file: File, logger: Logger):
     logger.info(f"File downloaded: {file.filename}")
     # Add your custom logic here
 """,
-        "download_failure": """
-# Download failure event handler
-@on(Event.download_failure, priority="normal")
-def handle_download_failure(file: File, exception: Exception, logger: Logger):
-    \"""Handle download failure event\"""
+        "file_error": """
+# Download error event handler
+@on(Event.file_error, priority="normal")
+def handle_file_error(file: File, exception: Exception, logger: Logger):
+    \"""Handle file error event\"""
     logger.error(f"Download failed for {file.filename}: {exception}")
     # Add your custom logic here
 """,

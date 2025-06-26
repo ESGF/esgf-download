@@ -94,8 +94,8 @@ def test_plugin_discovery_and_loading(
         for h in plugin_manager._handlers_by_event[Event.file_complete]
     )
     assert any(
-        h.plugin_name == sample_plugin and h.event == Event.download_failure
-        for h in plugin_manager._handlers_by_event[Event.download_failure]
+        h.plugin_name == sample_plugin and h.event == Event.file_error
+        for h in plugin_manager._handlers_by_event[Event.file_error]
     )
     assert any(
         h.plugin_name == sample_plugin and h.event == Event.query_updated
@@ -110,12 +110,12 @@ def test_plugin_discovery_and_loading(
     )
     assert file_dl_handler.priority == "normal"
 
-    dl_fail_handler = next(
+    file_error_handler = next(
         h
-        for h in plugin_manager._handlers_by_event[Event.download_failure]
+        for h in plugin_manager._handlers_by_event[Event.file_error]
         if h.plugin_name == sample_plugin
     )
-    assert dl_fail_handler.priority == "high"
+    assert file_error_handler.priority == "high"
 
     query_handler = next(
         h
@@ -366,13 +366,13 @@ def test_download_event_workflow(assets_path, tmp_path):
     )
     test_file.compute_sha()
     module.calls["file_complete"] = 0
-    module.calls["download_failure"] = 0
+    module.calls["file_error"] = 0
     coro = esg.download([test_file], show_progress=False, use_db=False)
     downloaded, errors = asyncio.run(coro)
     assert len(downloaded) == 1
     assert len(errors) == 0
     assert module.calls["file_complete"] == 1
-    assert module.calls["download_failure"] == 0
+    assert module.calls["file_error"] == 0
 
     # Create a File object with a nonexistent URL
     failing_file = File(
@@ -391,10 +391,10 @@ def test_download_event_workflow(assets_path, tmp_path):
     )
     failing_file.compute_sha()
     module.calls["file_complete"] = 0
-    module.calls["download_failure"] = 0
+    module.calls["file_error"] = 0
     coro = esg.download([failing_file], show_progress=False, use_db=False)
     downloaded, errors = asyncio.run(coro)
     assert len(downloaded) == 0
     assert len(errors) == 1
     assert module.calls["file_complete"] == 0
-    assert module.calls["download_failure"] == 1
+    assert module.calls["file_error"] == 1

@@ -21,7 +21,7 @@ from esgpull.version import __version__
 # Define event types
 class Event(str, Enum):
     file_complete = "file_complete"
-    download_failure = "download_failure"
+    file_error = "file_error"
     query_updated = "query_updated"
 
 
@@ -60,13 +60,13 @@ def my_file_complete(
     """Spec for Event.file_complete handler."""
 
 
-@spec(Event.download_failure)
-def my_download_failure(
+@spec(Event.file_error)
+def my_file_error(
     file: esgpull.models.File,
     exception: Exception,
     logger: logging.Logger,
 ):
-    """Spec for Event.download_failure handler."""
+    """Spec for Event.file_error handler."""
 
 
 @spec(Event.query_updated)

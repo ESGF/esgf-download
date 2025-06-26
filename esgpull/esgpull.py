@@ -376,7 +376,7 @@ class Esgpull:
                 case Err(_, err):
                     progress.remove_task(task.id)
                     emit(
-                        Event.download_failure,
+                        Event.file_error,
                         file=result.data.file,
                         exception=err,
                     )
