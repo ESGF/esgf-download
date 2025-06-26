@@ -458,9 +458,19 @@ class Esgpull:
                     match result:
                         case Ok():
                             main_progress.update(main_task_id, advance=1)
-                            result.data.file.status = FileStatus.Done
-                            files.append(result.data.file)
-                            emit(Event.file_complete, file=result.data.file)
+                            file = result.data.file
+                            file.status = FileStatus.Done
+                            files.append(file)
+                            emit(Event.file_complete, file=file)
+                            if file.dataset is not None:
+                                is_dataset_complete = self.db.scalars(
+                                    sql.dataset.is_complete(file.dataset)
+                                )[0]
+                                if is_dataset_complete:
+                                    emit(
+                                        Event.dataset_complete,
+                                        dataset=file.dataset,
+                                    )
                         case Err(_, err):
                             queue_size -= 1
                             main_progress.update(
