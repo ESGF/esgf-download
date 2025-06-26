@@ -22,7 +22,7 @@ from esgpull.version import __version__
 class Event(str, Enum):
     file_complete = "file_complete"
     file_error = "file_error"
-    query_updated = "query_updated"
+    dataset_complete = "dataset_complete"
 
 
 @dataclass
@@ -69,12 +69,12 @@ def my_file_error(
     """Spec for Event.file_error handler."""
 
 
-@spec(Event.query_updated)
-def my_query_updated(
-    query: esgpull.models.Query,
+@spec(Event.dataset_complete)
+def my_dataset_complete(
+    dataset: esgpull.models.Dataset,
     logger: logging.Logger,
 ):
-    """Spec for Event.query_updated handler."""
+    """Spec for Event.dataset_complete handler."""
 
 
 @dataclass

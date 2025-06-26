@@ -4,14 +4,11 @@
 
 ## Available events
 
-- **file_complete**: Triggered when a file download completes successfully
-      - Handler receives: `file` (the downloaded file) and `logger`
-- **file_error**: Triggered when a file download fails
-      - Handler receives: `file` (the failed file), `exception` (the error that occurred), and `logger`
-- **query_updated**: Triggered when query data is refreshed from ESGF
-      - Handler receives: `query` (the updated query) and `logger`
+- **file_complete**: A file download completes successfully
+- **file_error**: A file download fails
+- **dataset_complete**: All files from a dataset are downloaded
 
-Each event handler receives only the parameters relevant to that specific event. Use `esgpull plugins signatures` to see the exact type signatures for each event handler.
+Each event handler receives only the parameters relevant to that specific event.
 
 ## Enable plugins
 
@@ -43,8 +40,8 @@ $ esgpull plugins ls
  🟢 notification     │  file_complete │       notify_download   
                       │ file_error │        notify_error   
  🔴 checksum_verify  │  file_complete │      verify_checksum    
- 🔴 archive_backup   │  file_complete │      backup_to_archive  
-                      │    query_updated │  update_archive_catalog 
+ 🔴 archive_backup   │  file_complete │      backup_file  
+                    │  dataset_complete │        backup_dataset
 ```
 
 This detailed information can also be shown with JSON format with `--json`.

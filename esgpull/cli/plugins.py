@@ -7,7 +7,7 @@ from click.exceptions import Abort, BadOptionUsage
 from esgpull import Esgpull
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import extract_subdict, init_esgpull, totable
-from esgpull.models import File, FileStatus, Query
+from esgpull.models import Dataset, File, FileStatus
 from esgpull.plugin import Event, emit
 from esgpull.tui import Verbosity
 from esgpull.version import __version__
@@ -294,22 +294,14 @@ def test_plugin(
         file2 = file1.clone()
         file2.file_id = "file2"
         file2.status = FileStatus.Done
-
-        query = Query(
-            selection={"variable_id": "tas"}, options={"latest": True}
-        )
-        old_query = query.clone()
-        old_query.selection.experiment_id = "historical"
-
         error = ValueError("Placeholder example error")
+        dataset = Dataset(dataset_id="dataset", total_files=2)
+        dataset.files = [file1, file2]
         emit(
             event,
-            query=query,
-            old_query=old_query,
             file=file1,
-            files=[file1, file2],
+            dataset=dataset,
             error=error,
-            errors=[error, error],
         )
 
 
@@ -377,12 +369,12 @@ def handle_file_error(file: File, exception: Exception, logger: Logger):
     logger.error(f"Download failed for {file.filename}: {exception}")
     # Add your custom logic here
 """,
-        "query_updated": """
-# Query updated event handler
-@on(Event.query_updated, priority="normal")
-def handle_query_updated(query: Query, logger: Logger):
-    \"""Handle query updated event\"""
-    logger.info(f"Query updated: {query.name}")
+        "dataset_complete": """
+# Dataset complete event handler
+@on(Event.dataset_complete, priority="normal")
+def handle_dataset_complete(dataset: Dataset, logger: Logger):
+    \"""Handle dataset complete event\"""
+    logger.error(f"Dataset downloaded: {dataset.dataset_id}")
     # Add your custom logic here
 """,
     }

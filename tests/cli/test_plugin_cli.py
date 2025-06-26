@@ -111,7 +111,7 @@ def test_plugins_create_command(tmp_path):
     assert "@on(Event.file_complete" in content
     assert "@on(Event.file_error" in content
     assert (
-        "handle_query_updated" not in content
+        "handle_dataset_complete" not in content
     )  # Should only include specified events
 
     # Test creating a plugin with no specific events (should include all)
@@ -123,8 +123,8 @@ def test_plugins_create_command(tmp_path):
 
     content_all = plugin_file_all.read_text()
     assert "handle_file_complete" in content_all
-    assert "handle_query_updated" in content_all
     assert "handle_file_error" in content_all
+    assert "handle_dataset_complete" in content_all
 
     # Test creating a plugin that already exists
     result = runner.invoke(create_plugin, ["--name", "test_plugin"])

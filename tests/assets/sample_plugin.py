@@ -18,7 +18,7 @@ class Config:
 
 
 # Track calls for testing
-calls = {"file_complete": 0, "download_failure": 0, "query_updated": 0}
+calls = {"file_complete": 0, "file_error": 0, "dataset_complete": 0}
 
 
 @on(Event.file_complete, priority="normal")
@@ -28,16 +28,15 @@ def handle_file_complete(file, logger):
     calls["file_complete"] += 1
 
 
-@on(Event.download_failure, priority="high")
-def handle_download_failure(file, exception, logger):
-    """Handle download failure event"""
+@on(Event.file_error, priority="high")
+def handle_file_error(file, exception, logger):
+    """Handle file error event"""
     logger.error(f"Download failed for {file.filename}: {exception}")
-    calls["download_failure"] += 1
+    calls["file_error"] += 1
 
 
-@on(Event.query_updated, priority="low")
-def handle_query_updated(query, logger):
-    """Handle query updated event"""
-    logger.info(f"Query updated: {query.name if query.name else 'unnamed'}")
-    calls["query_updated"] += 1
-
+@on(Event.dataset_complete, priority="low")
+def handle_dataset_complete(dataset, logger):
+    """Handle dataset_complete updated event"""
+    logger.info(f"Dataset downloaded: {dataset.dataset_id}")
+    calls["dataset_complete"] += 1

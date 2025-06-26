@@ -98,17 +98,17 @@ def test_plugin_discovery_and_loading(
         for h in plugin_manager._handlers_by_event[Event.file_error]
     )
     assert any(
-        h.plugin_name == sample_plugin and h.event == Event.query_updated
-        for h in plugin_manager._handlers_by_event[Event.query_updated]
+        h.plugin_name == sample_plugin and h.event == Event.dataset_complete
+        for h in plugin_manager._handlers_by_event[Event.dataset_complete]
     )
 
     # Verify priorities
-    file_dl_handler = next(
+    file_complete_handler = next(
         h
         for h in plugin_manager._handlers_by_event[Event.file_complete]
         if h.plugin_name == sample_plugin
     )
-    assert file_dl_handler.priority == "normal"
+    assert file_complete_handler.priority == "normal"
 
     file_error_handler = next(
         h
@@ -117,12 +117,12 @@ def test_plugin_discovery_and_loading(
     )
     assert file_error_handler.priority == "high"
 
-    query_handler = next(
+    dataset_complete_handler = next(
         h
-        for h in plugin_manager._handlers_by_event[Event.query_updated]
+        for h in plugin_manager._handlers_by_event[Event.dataset_complete]
         if h.plugin_name == sample_plugin
     )
-    assert query_handler.priority == "low"
+    assert dataset_complete_handler.priority == "low"
 
 
 def test_discovery_only_enabled(

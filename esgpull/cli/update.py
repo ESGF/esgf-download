@@ -11,7 +11,6 @@ from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
 from esgpull.models import Dataset, File, FileStatus, Query
-from esgpull.plugin import Event, emit
 from esgpull.tui import Verbosity, logger
 from esgpull.utils import format_size
 
@@ -239,7 +238,4 @@ def update(
                         esg.db.link(query=qf.query, file=file)
                     qf.query.updated_at = datetime.now(timezone.utc)
                     esg.db.session.add(qf.query)
-
-                    # Trigger query_updated event
-                    emit(Event.query_updated, query=qf.query)
         esg.ui.raise_maybe_record(Exit(0))
