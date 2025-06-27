@@ -520,7 +520,7 @@ class PluginManager:
 
 
 # Lazy-loaded singleton
-_plugin_manager = None
+_plugin_manager: PluginManager | None = None
 
 
 def set_plugin_manager(pm: PluginManager) -> None:
