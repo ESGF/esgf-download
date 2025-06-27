@@ -113,12 +113,13 @@ This is the primary debugging tool for plugin development. Use it to verify hand
 Here's a simple notification plugin that sends a message when files are downloaded:
 
 ```python title="plugins/notification.py"
+import pathlib
 import logging
 from esgpull.plugin import Event, on
 import esgpull.models
 
 @on(Event.file_complete, priority="normal")
-def notify_download(file: esgpull.models.File, logger: logging.Logger):
+def notify_download(file: esgpull.models.File, destination: pathlib.Path, logger: logging.Logger):
     """Send notification when a file is downloaded."""
     print(f"✅ Downloaded: {file.filename}")
     print(f"   Size: {file.size} bytes")
@@ -141,6 +142,7 @@ Plugin configuration is stored separately from esgpull's main config file. This 
 Let's extend our notification plugin with configuration:
 
 ```python title="plugins/notification.py"
+import pathlib
 import logging
 from esgpull.plugin import Event, on
 import esgpull.models
@@ -152,7 +154,7 @@ class Config:
     error_alerts = True
 
 @on(Event.file_complete, priority="normal")
-def notify_download(file: esgpull.models.File, logger: logging.Logger):
+def notify_download(file: esgpull.models.File, destination: pathlib.Path, logger: logging.Logger):
     """Send notification when a file is downloaded."""
     if Config.enabled:
         print(f"✅ Downloaded: {file.filename}")

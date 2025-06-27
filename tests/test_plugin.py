@@ -168,10 +168,13 @@ def test_triggered_plugin(plugin_dir, plugin_manager, sample_plugin):
         size=1000,
         status=FileStatus.Done,
     )
+    destination = Path()
 
     plugin_manager.enable_plugin(sample_plugin)
     plugin_manager.plugins[sample_plugin].module.calls["file_complete"] = 0
-    plugin_manager.trigger_event(Event.file_complete, file=test_file)
+    plugin_manager.trigger_event(
+        Event.file_complete, file=test_file, destination=destination
+    )
     assert (
         plugin_manager.plugins[sample_plugin].module.calls["file_complete"]
         == 1
@@ -179,7 +182,9 @@ def test_triggered_plugin(plugin_dir, plugin_manager, sample_plugin):
 
     plugin_manager.disable_plugin(sample_plugin)
     plugin_manager.plugins[sample_plugin].module.calls["file_complete"] = 0
-    plugin_manager.trigger_event(Event.file_complete, file=test_file)
+    plugin_manager.trigger_event(
+        Event.file_complete, file=test_file, destination=destination
+    )
     assert (
         plugin_manager.plugins[sample_plugin].module.calls["file_complete"]
         == 0
@@ -230,7 +235,10 @@ def test_priority_order(plugin_dir, plugin_manager, priority_test_plugin):
         size=1000,
         status=FileStatus.Done,
     )
-    plugin_manager.trigger_event(Event.file_complete, file=test_file)
+    destination = Path()
+    plugin_manager.trigger_event(
+        Event.file_complete, file=test_file, destination=destination
+    )
     assert plugin.module.execution_order == ["high", "normal", "low"]
 
 
@@ -311,9 +319,12 @@ def test_error_isolation(
         size=1000,
         status=FileStatus.Done,
     )
+    destination = Path()
 
     # All handlers are correctly called even if one raises
-    plugin_manager.trigger_event(Event.file_complete, file=test_file)
+    plugin_manager.trigger_event(
+        Event.file_complete, file=test_file, destination=destination
+    )
     assert error_plugin_calls["file_complete"] == 1
     assert sample_plugin_calls["file_complete"] == 1
 
@@ -321,7 +332,10 @@ def test_error_isolation(
         # Trigger the file_complete event
         # The error_plugin has high priority and will run first and raise an exception
         plugin_manager.trigger_event(
-            Event.file_complete, file=test_file, reraise=True
+            Event.file_complete,
+            file=test_file,
+            destination=destination,
+            reraise=True,
         )
     assert error_plugin_calls["file_complete"] == 2
     assert sample_plugin_calls["file_complete"] == 1

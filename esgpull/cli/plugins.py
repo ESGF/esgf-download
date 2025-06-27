@@ -333,6 +333,7 @@ def create_plugin(
     template = f"""# {name} plugin for ESGPull
 # 
 # This plugin was auto-generated. Edit as needed.
+from pathlib import Path
 from logging import Logger
 
 from esgpull.models import File, Query
@@ -356,7 +357,7 @@ class Config:
         "file_complete": """
 # File complete event handler
 @on(Event.file_complete, priority="normal")
-def handle_file_complete(file: File, logger: Logger):
+def handle_file_complete(file: File, destination: Path, logger: Logger):
     \"""Handle file complete event\"""
     logger.info(f"File downloaded: {file.filename}")
     # Add your custom logic here

@@ -22,7 +22,7 @@ calls = {"file_complete": 0, "file_error": 0, "dataset_complete": 0}
 
 
 @on(Event.file_complete, priority="normal")
-def handle_file_complete(file, logger):
+def handle_file_complete(file, destination, logger):
     """Handle file complete event"""
     logger.info(f"File downloaded: {file.filename}")
     calls["file_complete"] += 1

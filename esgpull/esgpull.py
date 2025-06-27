@@ -461,7 +461,11 @@ class Esgpull:
                             file = result.data.file
                             file.status = FileStatus.Done
                             files.append(file)
-                            emit(Event.file_complete, file=file)
+                            emit(
+                                Event.file_complete,
+                                file=file,
+                                destination=self.fs[file].drs,
+                            )
                             if file.dataset is not None:
                                 is_dataset_complete = self.db.scalars(
                                     sql.dataset.is_complete(file.dataset)

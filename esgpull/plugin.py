@@ -55,6 +55,7 @@ def spec(event: Event):
 @spec(Event.file_complete)
 def my_file_complete(
     file: esgpull.models.File,
+    destination: Path,
     logger: logging.Logger,
 ):
     """Spec for Event.file_complete handler."""
