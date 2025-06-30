@@ -1,5 +1,6 @@
 import asyncio
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -173,7 +174,11 @@ def test_triggered_plugin(plugin_dir, plugin_manager, sample_plugin):
     plugin_manager.enable_plugin(sample_plugin)
     plugin_manager.plugins[sample_plugin].module.calls["file_complete"] = 0
     plugin_manager.trigger_event(
-        Event.file_complete, file=test_file, destination=destination
+        Event.file_complete,
+        file=test_file,
+        destination=destination,
+        start_time=datetime.now(),
+        end_time=datetime.now(),
     )
     assert (
         plugin_manager.plugins[sample_plugin].module.calls["file_complete"]
@@ -183,7 +188,11 @@ def test_triggered_plugin(plugin_dir, plugin_manager, sample_plugin):
     plugin_manager.disable_plugin(sample_plugin)
     plugin_manager.plugins[sample_plugin].module.calls["file_complete"] = 0
     plugin_manager.trigger_event(
-        Event.file_complete, file=test_file, destination=destination
+        Event.file_complete,
+        file=test_file,
+        destination=destination,
+        start_time=datetime.now(),
+        end_time=datetime.now(),
     )
     assert (
         plugin_manager.plugins[sample_plugin].module.calls["file_complete"]
@@ -237,7 +246,11 @@ def test_priority_order(plugin_dir, plugin_manager, priority_test_plugin):
     )
     destination = Path()
     plugin_manager.trigger_event(
-        Event.file_complete, file=test_file, destination=destination
+        Event.file_complete,
+        file=test_file,
+        destination=destination,
+        start_time=datetime.now(),
+        end_time=datetime.now(),
     )
     assert plugin.module.execution_order == ["high", "normal", "low"]
 
@@ -323,7 +336,11 @@ def test_error_isolation(
 
     # All handlers are correctly called even if one raises
     plugin_manager.trigger_event(
-        Event.file_complete, file=test_file, destination=destination
+        Event.file_complete,
+        file=test_file,
+        destination=destination,
+        start_time=datetime.now(),
+        end_time=datetime.now(),
     )
     assert error_plugin_calls["file_complete"] == 1
     assert sample_plugin_calls["file_complete"] == 1
@@ -335,6 +352,8 @@ def test_error_isolation(
             Event.file_complete,
             file=test_file,
             destination=destination,
+            start_time=datetime.now(),
+            end_time=datetime.now(),
             reraise=True,
         )
     assert error_plugin_calls["file_complete"] == 2

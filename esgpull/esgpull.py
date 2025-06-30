@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from datetime import datetime
 from functools import cached_property, partial
 from pathlib import Path
 from warnings import warn
@@ -465,6 +466,8 @@ class Esgpull:
                                 Event.file_complete,
                                 file=file,
                                 destination=self.fs[file].drs,
+                                start_time=result.data.start_time,
+                                end_time=datetime.now(),
                             )
                             if file.dataset is not None:
                                 is_dataset_complete = self.db.scalars(

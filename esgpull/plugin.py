@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Literal
@@ -56,6 +57,8 @@ def spec(event: Event):
 def my_file_complete(
     file: esgpull.models.File,
     destination: Path,
+    start_time: datetime,
+    end_time: datetime,
     logger: logging.Logger,
 ):
     """Spec for Event.file_complete handler."""

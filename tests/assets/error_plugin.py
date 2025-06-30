@@ -9,7 +9,7 @@ calls = {"file_complete": 0}
 @on(
     Event.file_complete, priority="high"
 )  # High priority to run before other plugins
-def handle_file_complete(file, destination, logger):
+def handle_file_complete(file, destination, start_time, end_time, logger):
     """Handler that raises an exception"""
     logger.info(f"About to raise an exception for: {file.filename}")
     calls["file_complete"] += 1

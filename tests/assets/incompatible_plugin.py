@@ -21,7 +21,7 @@ calls = {"file_complete": 0}
 
 
 @on(Event.file_complete)
-def handle_file_complete(file, destination, logger):
+def handle_file_complete(file, destination, start_time, end_time, logger):
     """Handle file complete event"""
     logger.info(f"This shouldn't run: {file.filename}")
     calls["file_complete"] += 1
