@@ -1,6 +1,7 @@
 # from math import ceil
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
+from datetime import datetime
 
 from httpx import AsyncClient
 
@@ -19,6 +20,7 @@ class DownloadCtx:
     completed: int = 0
     chunk: bytes | None = None
     digest: Digest | None = None
+    start_time: datetime | None = None
 
     @property
     def finished(self) -> bool:
@@ -54,6 +56,7 @@ class Simple(BaseDownloader):
         ctx: DownloadCtx,
         chunk_size: int,
     ) -> AsyncGenerator[DownloadCtx, None]:
+        ctx.start_time = datetime.now()
         async with client.stream("GET", ctx.file.url) as resp:
             resp.raise_for_status()
             async for chunk in resp.aiter_bytes(chunk_size=chunk_size):

@@ -92,6 +92,15 @@ LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 FILE_DATE_FORMAT = "%Y-%m-%d_%H-%M-%S"
 
 
+class ExceptionToDebugFilter(logging.Filter):
+    def filter(self, record):
+        # If it's an exception record, change its level to DEBUG
+        if record.exc_info is not None:
+            record.levelno = logging.DEBUG
+            record.levelname = "DEBUG"
+        return True
+
+
 @define
 class UI:
     path: Path = field(converter=Path)
@@ -156,9 +165,16 @@ class UI:
             temp_path = self.path / filename
             handler = logging.FileHandler(temp_path)
             handler.setLevel(logging.DEBUG)
+            error_print_handler = logging.StreamHandler()
+            error_print_handler.setLevel(logging.ERROR)
+            error_print_handler.setFormatter(
+                logging.Formatter(fmt=fmt, datefmt=datefmt)
+            )
+            logging.root.addHandler(error_print_handler)
         else:
             handler = logging.NullHandler()
         handler.setFormatter(logging.Formatter(fmt=fmt, datefmt=datefmt))
+        logger.addFilter(ExceptionToDebugFilter())
         logging.root.addHandler(handler)
         try:
             yield

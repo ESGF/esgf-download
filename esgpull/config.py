@@ -4,10 +4,10 @@ import logging
 from collections.abc import Iterator, Mapping
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypeVar, Union, cast, overload
 
 import tomlkit
-from attrs import Factory, define, field, fields
+from attrs import Factory, define, field
 from attrs import has as attrs_has
 from cattrs import Converter
 from cattrs.gen import make_dict_unstructure_fn, override
@@ -20,6 +20,66 @@ from esgpull.models.options import Options
 
 logger = logging.getLogger("esgpull")
 
+T = TypeVar("T")
+
+
+@overload
+def cast_value(
+    target: str, value: Union[str, int, bool, float], key: str
+) -> str: ...
+
+
+@overload
+def cast_value(
+    target: bool, value: Union[str, int, bool, float], key: str
+) -> bool: ...
+
+
+@overload
+def cast_value(
+    target: int, value: Union[str, int, bool, float], key: str
+) -> int: ...
+
+
+@overload
+def cast_value(
+    target: float, value: Union[str, int, bool, float], key: str
+) -> float: ...
+
+
+def cast_value(
+    target: Any, value: Union[str, int, bool, float], key: str
+) -> Any:
+    if isinstance(value, type(target)):
+        return value
+    elif attrs_has(type(target)):
+        raise KeyError(key)
+    elif isinstance(target, str):
+        return str(value)
+    elif isinstance(target, float):
+        try:
+            return float(value)
+        except Exception:
+            raise ValueError(value)
+    elif isinstance(target, bool):
+        if isinstance(value, str):
+            if value.lower() in ["on", "true"]:
+                return True
+            elif value.lower() in ["off", "false"]:
+                return False
+            else:
+                raise ValueError(value)
+        else:
+            raise TypeError(value)
+    elif isinstance(target, int):
+        # int must be after bool, because isinstance(True, int) == True
+        try:
+            return int(value)
+        except Exception:
+            raise ValueError(value)
+    else:
+        raise TypeError(value)
+
 
 @define
 class Paths:
@@ -28,6 +88,7 @@ class Paths:
     db: Path = field(converter=Path)
     log: Path = field(converter=Path)
     tmp: Path = field(converter=Path)
+    plugins: Path = field(converter=Path)
 
     @auth.default
     def _auth_factory(self) -> Path:
@@ -69,12 +130,21 @@ class Paths:
             root = InstallConfig.default
         return root / "tmp"
 
+    @plugins.default
+    def _plugins_factory(self) -> Path:
+        if InstallConfig.current is not None:
+            root = InstallConfig.current.path
+        else:
+            root = InstallConfig.default
+        return root / "plugins"
+
     def __iter__(self) -> Iterator[Path]:
         yield self.auth
         yield self.data
         yield self.db
         yield self.log
         yield self.tmp
+        yield self.plugins
 
 
 @define
@@ -214,6 +284,13 @@ def iter_keys(
 
 
 @define
+class Plugins:
+    """Configuration for the plugin system"""
+
+    enabled: bool = False
+
+
+@define
 class Config:
     paths: Paths = Factory(Paths)
     credentials: Credentials = Factory(Credentials)
@@ -221,6 +298,7 @@ class Config:
     db: Db = Factory(Db)
     download: Download = Factory(Download)
     api: API = Factory(API)
+    plugins: Plugins = Factory(Plugins)
     _raw: TOMLDocument | None = field(init=False, default=None)
     _config_file: Path | None = field(init=False, default=None)
 
@@ -287,7 +365,7 @@ class Config:
     def update_item(
         self,
         key: str,
-        value: int | str,
+        value: str | int | bool,
         empty_ok: bool = False,
     ) -> int | str | None:
         if self._raw is None and empty_ok:
@@ -302,29 +380,8 @@ class Config:
             doc.setdefault(part, {})
             doc = doc[part]
             obj = getattr(obj, part)
-        value_type = getattr(fields(type(obj)), last).type
         old_value = getattr(obj, last)
-        if attrs_has(value_type):
-            raise KeyError(key)
-        elif value_type is str:
-            ...
-        elif value_type is int:
-            try:
-                value = value_type(value)
-            except Exception:
-                ...
-        elif value_type is bool:
-            if isinstance(value, bool):
-                ...
-            elif isinstance(value, str):
-                if value.lower() in ["on", "true"]:
-                    value = True
-                elif value.lower() in ["off", "false"]:
-                    value = False
-                else:
-                    raise ValueError(value)
-            else:
-                raise TypeError(value)
+        value = cast_value(old_value, value, key)
         setattr(obj, last, value)
         doc[last] = value
         return old_value

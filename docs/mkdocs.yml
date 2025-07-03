@@ -7,6 +7,7 @@ nav:
   # - Queries: queries.md
   - Data discovery: search.md
   - Download: download.md
+  - Plugins: plugins.md
   - Glossary: glossary.md
   # - Usage guide: usage.md
   # - API Reference: reference.md

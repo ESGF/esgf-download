@@ -41,6 +41,9 @@ distrib = "false"
 latest = "true"
 replica = "none"
 retracted = "false"
+
+[plugins]
+enabled = "false"
 ```
 
 To modify a config item from the command line, the dot-separated path to that item must
@@ -124,3 +127,13 @@ Certificates are missing.
 
 The credentials will then be saved under the ``~/.esgpull/auth`` directory, within
 ``credentials.toml``, which can then be used for future sessions.
+
+## Plugins
+
+Plugin functionality is disabled by default and can be enabled with:
+
+```shell
+$ esgpull config plugins.enabled true
+```
+
+Plugin-specific configurations are managed separately through the `esgpull plugins config` command and stored in a dedicated `plugins.toml` file. See the [Plugins page](plugins) for more information.

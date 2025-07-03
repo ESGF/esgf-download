@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from datetime import datetime
 from functools import cached_property, partial
 from pathlib import Path
 from warnings import warn
@@ -45,6 +46,13 @@ from esgpull.models import (
     sql,
 )
 from esgpull.models.utils import short_sha
+from esgpull.plugin import (
+    Event,
+    PluginManager,
+    emit,
+    get_plugin_manager,
+    set_plugin_manager,
+)
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import UI, DummyLive, Verbosity, logger
@@ -118,6 +126,18 @@ class Esgpull:
         if load_db:
             self.db = Database.from_config(self.config)
             self.graph = Graph(self.db)
+        # Initialize plugin system
+        plugin_config_path = self.config.paths.plugins / "plugins.toml"
+        try:
+            self.plugin_manager = get_plugin_manager()
+            self.plugin_manager.__init__(config_path=plugin_config_path)
+        except ValueError:
+            self.plugin_manager = PluginManager(config_path=plugin_config_path)
+            set_plugin_manager(self.plugin_manager)
+        if self.config.plugins.enabled:
+            self.plugin_manager.enabled = True
+            self.config.paths.plugins.mkdir(exist_ok=True, parents=True)
+            self.plugin_manager.discover_plugins(self.config.paths.plugins)
 
     def fetch_index_nodes(self) -> list[str]:
         """
@@ -349,7 +369,7 @@ class Esgpull:
                                 yield result
                             case Err(_, err):
                                 progress.remove_task(task.id)
-                                yield Err(result.data, err)
+                                yield Err(result.data, err=err)
                 case Err():
                     progress.remove_task(task.id)
                     yield result
@@ -439,15 +459,38 @@ class Esgpull:
                     match result:
                         case Ok():
                             main_progress.update(main_task_id, advance=1)
-                            result.data.file.status = FileStatus.Done
-                            files.append(result.data.file)
-                        case Err():
+                            file = result.data.file
+                            file.status = FileStatus.Done
+                            files.append(file)
+                            emit(
+                                Event.file_complete,
+                                file=file,
+                                destination=self.fs[file].drs,
+                                start_time=result.data.start_time,
+                                end_time=datetime.now(),
+                            )
+                            if file.dataset is not None:
+                                is_dataset_complete = self.db.scalars(
+                                    sql.dataset.is_complete(file.dataset)
+                                )[0]
+                                if is_dataset_complete:
+                                    emit(
+                                        Event.dataset_complete,
+                                        dataset=file.dataset,
+                                    )
+                        case Err(_, err):
                             queue_size -= 1
                             main_progress.update(
                                 main_task_id, total=queue_size
                             )
                             result.data.file.status = FileStatus.Error
                             errors.append(result)
+                            emit(
+                                Event.file_error,
+                                file=result.data.file,
+                                exception=err,
+                            )
+
                     if use_db:
                         self.db.add(result.data.file)
                     remaining_dict.pop(result.data.file.sha, None)
