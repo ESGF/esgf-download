@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.15">
     
     
       
@@ -394,6 +394,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#extending-with-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extending with plugins
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -437,6 +446,28 @@
   
   <span class="md-ellipsis">
     Download
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Plugins
     
   </span>
   
@@ -549,6 +580,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#extending-with-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extending with plugins
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -624,6 +664,13 @@ it will be used as a tag on the converted query.</p>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>$<span class="w"> </span>esgpull<span class="w"> </span>status
 </code></pre></div>
 <p>Loop at the <a href="../download">download page</a> for more information.</p>
+<h2 id="extending-with-plugins">Extending with plugins<a class="headerlink" href="#extending-with-plugins" title="Permanent link">&para;</a></h2>
+<p><code>esgpull</code> can be extended with custom plugins that respond to download events:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>$<span class="w"> </span>esgpull<span class="w"> </span>plugins<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>notification<span class="w"> </span>file_complete
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>$<span class="w"> </span>esgpull<span class="w"> </span>plugins<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>notification
+</code></pre></div>
+<p>See the <a href="../plugins">Plugins page</a> for more details on creating and managing plugins.</p>
 
 
 
@@ -683,7 +730,7 @@ it will be used as a tag on the converted query.</p>
       <script id="__config" type="application/json">{"base": "..", "features": ["toc.follow", "header.autohide", "navigation.top", "navigation.instant", "content.tabs.link", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      <script src="../assets/javascripts/bundle.56ea9cef.min.js"></script>
       
     
   </body>
