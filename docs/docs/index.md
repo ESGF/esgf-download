@@ -76,6 +76,10 @@ Have a look at the [Installation page](installation) for more ways to install.
 
 Jump directly to the [Quickstart guide](quickstart) to get to know how to use `esgpull`.
 
+## How to Cite
+
+If you use esgpull in your research, please cite it using the information provided in our [CITATION.cff](https://github.com/ESGF/esgf-download/blob/main/CITATION.cff) file.
+
 
 <!-- [ESGF portal]: https://esgf-node.ipsl.upmc.fr/search/cmip6-ipsl -->
 [ESGF Search API]: https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html
