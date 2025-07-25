@@ -138,7 +138,7 @@ class Paths:
             root = InstallConfig.default
         return root / "plugins"
 
-    def __iter__(self) -> Iterator[Path]:
+    def values(self) -> Iterator[Path]:
         yield self.auth
         yield self.data
         yield self.db
