@@ -2,6 +2,12 @@ from pathlib import Path
 from typing import Iterator
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
 
 from esgpull.install_config import InstallConfig
 from esgpull.models.options import Option, Options
@@ -107,7 +113,9 @@ class Plugins(BaseModel, validate_assignment=True):
     enabled: bool = False
 
 
-class Config(BaseModel):
+class Config(BaseSettings):
+    model_config = SettingsConfigDict(toml_file=_get_root() / "config.toml")
+
     paths: Paths = Field(default_factory=Paths)
     credentials: Credentials = Field(default_factory=Credentials)
     cli: Cli = Field(default_factory=Cli)
@@ -117,3 +125,14 @@ class Config(BaseModel):
     plugins: Plugins = Field(default_factory=Plugins)
     # _raw: TOMLDocument | None = Field(init=False, default=None)
     # _config_file: Path | None = Field(init=False, default=None)
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (TomlConfigSettingsSource(settings_cls),)
