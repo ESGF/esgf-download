@@ -35,6 +35,7 @@ dependencies = [
     "platformdirs>=2.6.2",
     "pyparsing>=3.0.9",
     "packaging>=25.0",
+    "pydantic>=2.11.7",
 ]
 license.text = "BSD-3-Clause"
 
