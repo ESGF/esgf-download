@@ -173,10 +173,13 @@ class ConfigKey:
                 return False
         return True
 
-    def value_of(self, source: Mapping) -> Any:
+    def value_of(self, source: Any) -> Any:
         doc = source
         for key in self:
-            doc = doc[key]
+            try:
+                doc = doc[key]
+            except TypeError:
+                doc = getattr(doc, key)
         return doc
 
 
