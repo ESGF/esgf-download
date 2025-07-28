@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Iterator, Mapping, cast
+from typing import Any, Iterator, Mapping
 
 import tomlkit
 from pydantic import BaseModel, Field, field_validator
@@ -187,7 +187,7 @@ class ConfigKey:
         return doc
 
 
-def fix_rename_search_api(doc: tomlkit.TOMLDocument) -> tomlkit.TOMLDocument:
+def fix_rename_search_api(doc: dict) -> dict:
     if "api" in doc and "search" in doc:
         raise KeyError(
             "Both 'api' and 'search' (deprecated) are used in your "
@@ -229,9 +229,7 @@ class TomlKitConfigSettingsSource(TomlConfigSettingsSource):
                     doc = fixer(doc)
                 except Exception:
                     raise BadConfigError(file_path)
-            raw = doc
-            doc: dict[str, Any] = dict(doc)
-            doc["raw"] = raw
+            doc["raw"] = doc
             doc["config_file"] = file_path
             return doc
 
@@ -248,7 +246,7 @@ class Config(BaseSettings):
     download: Download = Field(default_factory=Download)
     api: API = Field(default_factory=API)
     plugins: Plugins = Field(default_factory=Plugins)
-    raw: tomlkit.TOMLDocument | None = Field(
+    raw: dict[str, Any] | None = Field(
         default=None,
         repr=False,
         exclude=True,
@@ -317,13 +315,13 @@ class Config(BaseSettings):
         empty_ok: bool = False,
     ) -> Any:
         if self.raw is None and empty_ok:
-            self.raw = tomlkit.TOMLDocument()
-        if self.raw is None:
+            self.raw = {}
+        elif self.raw is None:
             raise VirtualConfigError
-        else:
-            doc: dict[str, Any] = dict(self.raw)
+        doc = self.raw
         obj = self
-        *parts, last = ConfigKey(key)
+        ckey = ConfigKey(key)
+        *parts, last = ckey
         for part in parts:
             doc.setdefault(part, {})
             doc = doc[part]
@@ -339,28 +337,29 @@ class Config(BaseSettings):
             raise VirtualConfigError()
         elif not ckey.exists_in(self.raw):
             return None
-        default_config = self.__class__()
+        default_config = Config()
         default_value: Any = ckey.value_of(default_config.model_dump())
         old_value: Any = ckey.value_of(self.model_dump())
-        first_pass = True
-        obj = self
-        for idx in range(len(ckey), 0, -1):
-            *parts, last = ckey.path[:idx]
-            doc: tomlkit.container.Container = self.raw
-            for part in parts:
-                if first_pass:
-                    obj = getattr(obj, part)
-                doc = cast(tomlkit.container.Container, doc[part])
-            if first_pass:
-                doc.remove(last)
-                setattr(obj, last, default_value)
-                first_pass = False
-            elif (
-                (value := doc[last])
-                and isinstance(value, tomlkit.container.Container)
-                and len(value) == 0
-            ):
-                doc.remove(last)
+
+        *parent_path, last_key = ckey.path
+        parent_ckey = ConfigKey(parent_path)
+
+        obj = parent_ckey.value_of(self)
+        setattr(obj, last_key, default_value)
+
+        doc = parent_ckey.value_of(self.raw)
+        doc.remove(last_key)
+
+        for i in range(len(parent_path), 0, -1):
+            parent_ckey = ConfigKey(parent_path[: i - 1])
+            container_ckey = ConfigKey(parent_path[:i])
+            parent = parent_ckey.value_of(self.raw)
+            container = container_ckey.value_of(self.raw)
+            if isinstance(container, dict) and len(container) == 0:
+                parent.remove(container_ckey.path[-1])
+            else:
+                break  # Stop if we hit a non-empty container
+
         return old_value
 
     def generate(self, overwrite: bool = False) -> None:
