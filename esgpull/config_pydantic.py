@@ -132,9 +132,13 @@ class ConfigKind(Enum):
 class ConfigKey:
     path: tuple[str, ...]
 
-    def __init__(self, first: str | tuple[str, ...], *rest: str) -> None:
-        if isinstance(first, tuple):
-            self.path = first + rest
+    def __init__(
+        self,
+        first: str | tuple[str, ...] | list[str],
+        *rest: str,
+    ) -> None:
+        if isinstance(first, (tuple, list)):
+            self.path = tuple(first) + rest
         elif "." in first:
             self.path = tuple(first.split(".")) + rest
         else:
