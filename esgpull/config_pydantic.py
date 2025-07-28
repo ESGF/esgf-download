@@ -217,6 +217,22 @@ def iter_keys(
             yield local_path
 
 
+def pop_and_clear_empty_parents(source: Mapping, ckey: ConfigKey):
+    *parent_path, last_key = ckey.path
+    parent_ckey = ConfigKey(parent_path)
+    parent_ckey.value_of(source).pop(last_key)
+
+    for i in range(len(parent_path), 0, -1):
+        parent_ckey = ConfigKey(parent_path[: i - 1])
+        container_ckey = ConfigKey(parent_path[:i])
+        parent = parent_ckey.value_of(source)
+        container = container_ckey.value_of(source)
+        if isinstance(container, dict) and len(container) == 0:
+            parent.pop(container_ckey.path[-1])
+        else:
+            break  # Stop if we hit a non-empty container
+
+
 config_fixers = [fix_rename_search_api]
 
 
@@ -229,6 +245,7 @@ class TomlKitConfigSettingsSource(TomlConfigSettingsSource):
                     doc = fixer(doc)
                 except Exception:
                     raise BadConfigError(file_path)
+            doc = dict(doc)
             doc["raw"] = doc
             doc["config_file"] = file_path
             return doc
@@ -295,6 +312,15 @@ class Config(BaseSettings):
         else:
             return ConfigKind.Complete
 
+    def dump(self, with_defaults: bool = True) -> dict:
+        result = self.model_dump()
+        if not with_defaults:
+            unset = set(self.unset_options())
+            for ckey in iter_keys(self.model_dump()):
+                if ckey in unset:
+                    pop_and_clear_empty_parents(result, ckey)
+        return result
+
     def unset_options(self) -> list[ConfigKey]:
         result: list[ConfigKey] = []
         raw: dict
@@ -338,28 +364,14 @@ class Config(BaseSettings):
         elif not ckey.exists_in(self.raw):
             return None
         default_config = Config()
-        default_value: Any = ckey.value_of(default_config.model_dump())
-        old_value: Any = ckey.value_of(self.model_dump())
+        default_value: Any = ckey.value_of(default_config)
+        old_value: Any = ckey.value_of(self)
 
         *parent_path, last_key = ckey.path
         parent_ckey = ConfigKey(parent_path)
-
         obj = parent_ckey.value_of(self)
         setattr(obj, last_key, default_value)
-
-        doc = parent_ckey.value_of(self.raw)
-        doc.remove(last_key)
-
-        for i in range(len(parent_path), 0, -1):
-            parent_ckey = ConfigKey(parent_path[: i - 1])
-            container_ckey = ConfigKey(parent_path[:i])
-            parent = parent_ckey.value_of(self.raw)
-            container = container_ckey.value_of(self.raw)
-            if isinstance(container, dict) and len(container) == 0:
-                parent.remove(container_ckey.path[-1])
-            else:
-                break  # Stop if we hit a non-empty container
-
+        pop_and_clear_empty_parents(self.raw, ckey)
         return old_value
 
     def generate(self, overwrite: bool = False) -> None:
