@@ -337,7 +337,7 @@ from datetime import datetime
 from pathlib import Path
 from logging import Logger
 
-from esgpull.models import File, Query
+from esgpull.models import Dataset, File, Query
 from esgpull.plugin import Event, on
 
 # Specify version compatibility (optional)
