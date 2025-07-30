@@ -7,50 +7,31 @@ This document covers a few ways to install `esgpull`, a necessary first step int
 !!! note "Supporting lower python versions could be done with future releases, do not hesitate to ask for it."
 
 
-## Installing with conda / mamba
+## Installation
 
-To install `esgpull` in a new `conda` environment, run:
-
-```sh
-conda create --name my_env_name esgpull --channel ipsl --channel conda-forge
-```
-
-For `mamba` users:
-
-```sh
-mamba create --name my_env_name esgpull --channel ipsl --channel conda-forge
-```
-
-You can start using `esgpull` after activating the environment:
-
-```sh
-conda activate my_env_name
-esgpull --version
-```
-
-
-## Install with pip
-
-Make sure your python version meets the requirements (>=3.10), then you can run:
-
-```shell title="Install esgpull from pip"
-pip install git+https://github.com/ESGF/esgf-download
-```
-
-
-## Install from source
-
-Esgpull is developed and maintained on GitHub, you can clone the public repository with:
+`esgpull` is distributed via PyPI:
 
 ```shell
-git clone https://github.com/ESGF/esgf-download
+pip install esgpull
+esgpull --help
 ```
 
-And then install with `pip`:
+For isolated installation, [`uv`](https://github.com/astral-sh/uv) or
+[`pipx`](https://github.com/pypa/pipx) are recommended:
 
+```shell
+# with uv
+uv tool install esgpull
+esgpull --help
+
+# alternatively, uvx enables running without explicit installation (comes with uv)
+uvx esgpull --help
 ```
-cd esg-pull
-python -m pip install .
+
+```shell
+# with pipx
+pipx install esgpull
+esgpull --help
 ```
 
 

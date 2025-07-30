@@ -27,14 +27,29 @@ for dataset in datasets:
 
 ## Installation
 
-Install `esgpull` using pip or conda:
+`esgpull` is distributed via PyPI:
 
 ```shell
 pip install esgpull
+esgpull --help
+```
+
+For isolated installation, [`uv`](https://github.com/astral-sh/uv) or
+[`pipx`](https://github.com/pypa/pipx) are recommended:
+
+```shell
+# with uv
+uv tool install esgpull
+esgpull --help
+
+# alternatively, uvx enables running without explicit installation (comes with uv)
+uvx esgpull --help
 ```
 
 ```shell
-conda install -c conda-forge ipsl::esgpull
+# with pipx
+pipx install esgpull
+esgpull --help
 ```
 
 ## Usage
