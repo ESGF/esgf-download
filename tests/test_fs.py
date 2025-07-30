@@ -19,36 +19,36 @@ def fs(root):
 
 
 def test_install(root, fs):
-    assert str(fs.auth) == str(root / "auth")
-    assert str(fs.data) == str(root / "data")
-    assert str(fs.db) == str(root / "db")
-    assert str(fs.log) == str(root / "log")
-    assert str(fs.tmp) == str(root / "tmp")
-    assert fs.auth.is_dir()
-    assert fs.data.is_dir()
-    assert fs.db.is_dir()
-    assert fs.log.is_dir()
-    assert fs.tmp.is_dir()
+    assert str(fs.paths.auth) == str(root / "auth")
+    assert str(fs.paths.data) == str(root / "data")
+    assert str(fs.paths.db) == str(root / "db")
+    assert str(fs.paths.log) == str(root / "log")
+    assert str(fs.paths.tmp) == str(root / "tmp")
+    assert fs.paths.auth.is_dir()
+    assert fs.paths.data.is_dir()
+    assert fs.paths.db.is_dir()
+    assert fs.paths.log.is_dir()
+    assert fs.paths.tmp.is_dir()
 
 
 def test_no_install(root, fs_no_install):
-    assert str(fs_no_install.auth) == str(root / "auth")
-    assert str(fs_no_install.data) == str(root / "data")
-    assert str(fs_no_install.db) == str(root / "db")
-    assert str(fs_no_install.log) == str(root / "log")
-    assert str(fs_no_install.tmp) == str(root / "tmp")
-    assert not fs_no_install.auth.is_dir()
-    assert not fs_no_install.data.is_dir()
-    assert not fs_no_install.db.is_dir()
-    assert not fs_no_install.log.is_dir()
-    assert not fs_no_install.tmp.is_dir()
+    assert str(fs_no_install.paths.auth) == str(root / "auth")
+    assert str(fs_no_install.paths.data) == str(root / "data")
+    assert str(fs_no_install.paths.db) == str(root / "db")
+    assert str(fs_no_install.paths.log) == str(root / "log")
+    assert str(fs_no_install.paths.tmp) == str(root / "tmp")
+    assert not fs_no_install.paths.auth.is_dir()
+    assert not fs_no_install.paths.data.is_dir()
+    assert not fs_no_install.paths.db.is_dir()
+    assert not fs_no_install.paths.log.is_dir()
+    assert not fs_no_install.paths.tmp.is_dir()
 
 
 def test_file_paths(fs, file):
     file.sha = "1234"
     path = fs[file]
-    assert path.drs == fs.data / "project/folder/file.nc"
-    assert path.tmp == fs.tmp / "1234.part"
+    assert path.drs == fs.paths.data / "project/folder/file.nc"
+    assert path.tmp == fs.paths.tmp / "1234.part"
 
 
 async def write_steps(fs, file):
