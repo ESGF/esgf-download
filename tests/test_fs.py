@@ -1,62 +1,64 @@
 import asyncio
+from pathlib import Path
 
 import pytest
 
 from esgpull.config import Config
 from esgpull.fs import FileCheck, Filesystem
+from esgpull.models import File
 
 
 @pytest.fixture
-def fs_no_install(root):
+def fs_no_install():
     config = Config()
     return Filesystem.from_config(config, install=False)
 
 
 @pytest.fixture
-def fs(root):
+def fs() -> Filesystem:
     config = Config()
     return Filesystem.from_config(config, install=True)
 
 
-def test_install(root, fs):
-    assert str(fs.auth) == str(root / "auth")
-    assert str(fs.data) == str(root / "data")
-    assert str(fs.db) == str(root / "db")
-    assert str(fs.log) == str(root / "log")
-    assert str(fs.tmp) == str(root / "tmp")
-    assert fs.auth.is_dir()
-    assert fs.data.is_dir()
-    assert fs.db.is_dir()
-    assert fs.log.is_dir()
-    assert fs.tmp.is_dir()
+def test_install(root: Path, fs: Filesystem):
+    assert str(fs.paths.auth) == str(root / "auth")
+    assert str(fs.paths.data) == str(root / "data")
+    assert str(fs.paths.db) == str(root / "db")
+    assert str(fs.paths.log) == str(root / "log")
+    assert str(fs.paths.tmp) == str(root / "tmp")
+    assert fs.paths.auth.is_dir()
+    assert fs.paths.data.is_dir()
+    assert fs.paths.db.is_dir()
+    assert fs.paths.log.is_dir()
+    assert fs.paths.tmp.is_dir()
 
 
-def test_no_install(root, fs_no_install):
-    assert str(fs_no_install.auth) == str(root / "auth")
-    assert str(fs_no_install.data) == str(root / "data")
-    assert str(fs_no_install.db) == str(root / "db")
-    assert str(fs_no_install.log) == str(root / "log")
-    assert str(fs_no_install.tmp) == str(root / "tmp")
-    assert not fs_no_install.auth.is_dir()
-    assert not fs_no_install.data.is_dir()
-    assert not fs_no_install.db.is_dir()
-    assert not fs_no_install.log.is_dir()
-    assert not fs_no_install.tmp.is_dir()
+def test_no_install(root: Path, fs_no_install: Filesystem):
+    assert str(fs_no_install.paths.auth) == str(root / "auth")
+    assert str(fs_no_install.paths.data) == str(root / "data")
+    assert str(fs_no_install.paths.db) == str(root / "db")
+    assert str(fs_no_install.paths.log) == str(root / "log")
+    assert str(fs_no_install.paths.tmp) == str(root / "tmp")
+    assert not fs_no_install.paths.auth.is_dir()
+    assert not fs_no_install.paths.data.is_dir()
+    assert not fs_no_install.paths.db.is_dir()
+    assert not fs_no_install.paths.log.is_dir()
+    assert not fs_no_install.paths.tmp.is_dir()
 
 
-def test_file_paths(fs, file):
+def test_file_paths(fs: Filesystem, file: File):
     file.sha = "1234"
     path = fs[file]
-    assert path.drs == fs.data / "project/folder/file.nc"
-    assert path.tmp == fs.tmp / "1234.part"
+    assert path.drs == fs.paths.data / "project/folder/file.nc"
+    assert path.tmp == fs.paths.tmp / "1234.part"
 
 
-async def write_steps(fs, file):
+async def write_steps(fs: Filesystem, file: File):
     async with fs.open(file) as f:
         await f.write(b"")
 
 
-def test_write(fs, file):
+def test_write(fs: Filesystem, file: File):
     asyncio.run(write_steps(fs, file))
     for path in fs.glob_netcdf():
         assert str(path) == "project/folder/file.nc"
@@ -150,14 +152,14 @@ def test_write(fs, file):
     ],
 )
 def test_check(
-    root,
-    fs,
-    file,
-    expected_check,
-    content,
-    kind,
-    size,
-    checksum,
+    root: Path,
+    fs: Filesystem,
+    file: File,
+    expected_check: FileCheck,
+    content: str | None,
+    kind: str,
+    size: int,
+    checksum: str,
 ):
     if content is not None:
         file.size = size

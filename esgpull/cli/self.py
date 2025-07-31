@@ -199,7 +199,7 @@ def delete():
                 TempUI.print(f"Deleting {path} from config...")
                 TempUI.print("To remove all files from this install, run:\n")
                 config = Config.load(path=path)
-                for p in config.paths:
+                for p in config.paths.values():
                     if not p.is_relative_to(path):
                         TempUI.print(f"$ rm -rf {p}")
                 TempUI.print(f"$ rm -rf {path}")

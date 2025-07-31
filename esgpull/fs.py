@@ -10,7 +10,7 @@ from shutil import copyfile
 import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedIOBase
 
-from esgpull.config import Config
+from esgpull.config import Config, Paths
 from esgpull.models import File
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import logger
@@ -63,45 +63,34 @@ class Digest:
 
 @dataclass
 class Filesystem:
-    auth: Path
-    data: Path
-    db: Path
-    log: Path
-    tmp: Path
+    paths: Paths
     disable_checksum: bool = False
     install: InitVar[bool] = True
 
     @staticmethod
     def from_config(config: Config, install: bool = False) -> Filesystem:
         return Filesystem(
-            auth=config.paths.auth,
-            data=config.paths.data,
-            db=config.paths.db,
-            log=config.paths.log,
-            tmp=config.paths.tmp,
+            paths=config.paths,
             disable_checksum=config.download.disable_checksum,
             install=install,
         )
 
     def __post_init__(self, install: bool = True) -> None:
         if install:
-            self.auth.mkdir(parents=True, exist_ok=True)
-            self.data.mkdir(parents=True, exist_ok=True)
-            self.db.mkdir(parents=True, exist_ok=True)
-            self.log.mkdir(parents=True, exist_ok=True)
-            self.tmp.mkdir(parents=True, exist_ok=True)
+            for path in self.paths.values():
+                path.mkdir(parents=True, exist_ok=True)
 
     def __getitem__(self, file: File) -> FilePath:
         if not isinstance(file, File):
             raise TypeError(file)
         return FilePath(
-            drs=self.data / file.local_path / file.filename,
-            tmp=self.tmp / f"{file.sha}.part",
+            drs=self.paths.data / file.local_path / file.filename,
+            tmp=self.paths.tmp / f"{file.sha}.part",
         )
 
     def glob_netcdf(self) -> Iterator[Path]:
-        for path in self.data.glob("**/*.nc"):
-            yield path.relative_to(self.data)
+        for path in self.paths.data.glob("**/*.nc"):
+            yield path.relative_to(self.paths.data)
 
     def open(self, file: File) -> FileObject:
         return FileObject(self[file])
