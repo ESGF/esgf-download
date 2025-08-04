@@ -7,6 +7,7 @@ from click.exceptions import Abort, Exit
 
 from esgpull.cli.decorators import args, groups, opts
 from esgpull.cli.utils import filter_keys, init_esgpull, parse_query, totable
+from esgpull.context import IndexNode
 from esgpull.exceptions import PageIndexError
 from esgpull.graph import Graph
 from esgpull.models import Query
@@ -135,14 +136,26 @@ def search(
             esg.ui.raise_maybe_record(Exit(0))
         if facets_hints:
             not_distrib_query = query << Query(options=dict(distrib=False))
-            facet_counts = esg.context.hints(
-                not_distrib_query,
-                file=file,
-                facets=["*"],
-                date_from=date_from,
-                date_to=date_to,
-            )
-            esg.ui.print(list(facet_counts[0]), json=True)
+            index = IndexNode(esg.config.api.index_node)
+            if index.is_bridge():
+                first_file_result = esg.context.search_as_queries(
+                    not_distrib_query,
+                    file=True,
+                    max_hits=1,
+                    date_from=date_from,
+                    date_to=date_to,
+                )
+                first_file = first_file_result[0].selection.asdict()
+                esg.ui.print(list(first_file), json=True)
+            else:
+                facet_counts = esg.context.hints(
+                    not_distrib_query,
+                    file=file,
+                    facets=["*"],
+                    date_from=date_from,
+                    date_to=date_to,
+                )
+                esg.ui.print(list(facet_counts[0]), json=True)
             esg.ui.raise_maybe_record(Exit(0))
         if hints is not None:
             facet_counts = esg.context.hints(
