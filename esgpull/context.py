@@ -101,7 +101,10 @@ class Result:
             else:
                 if len(values) > 1:
                     value_term = f"({value_term})"
-                solr_terms.append(f"{name}:{value_term}")
+                if name.startswith("!"):
+                    solr_terms.append(f"(NOT {name[1:]}:{value_term})")
+                else:
+                    solr_terms.append(f"{name}:{value_term}")
         if solr_terms:
             params["query"] = " AND ".join(solr_terms)
         for name, option in self.query.options.items(use_default=True):
