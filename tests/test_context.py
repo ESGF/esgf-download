@@ -104,6 +104,10 @@ class Timer:
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(
+    raises=ValueError,
+    reason="ESGF bridge API gives index_node values that are not valid URLs",
+)
 def test_search_distributed(ctx):
     query = Query()
     # ctx.config.api.http_timeout = 60
@@ -138,7 +142,12 @@ def test_search_distributed(ctx):
 
 
 def test_ipsl_hits_between_1_and_2_million(ctx, cmip6_ipsl):
-    assert 1_000_000 < ctx.hits(cmip6_ipsl, file=False)[0] < 2_000_000
+    hits = ctx.hits(
+        cmip6_ipsl,
+        file=False,
+        index_node="esgf-node.ipsl.upmc.fr",
+    )
+    assert 1_000_000 < hits[0] < 2_000_000
 
 
 def test_more_files_than_datasets(ctx, query):
