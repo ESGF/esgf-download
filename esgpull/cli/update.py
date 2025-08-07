@@ -230,10 +230,10 @@ def update(
                     ):
                         if file.status != FileStatus.Done:
                             file.status = FileStatus.Queued
-                            esg.db.add(file)
                         if has_legacy and legacy in file.queries:
                             esg.db.unlink(query=legacy, file=file)
                         esg.db.link(query=qf.query, file=file)
+                    qf.query.files = files
                     qf.query.updated_at = datetime.now(timezone.utc)
                     esg.db.session.add(qf.query)
         esg.ui.raise_maybe_record(Exit(0))
