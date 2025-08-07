@@ -181,23 +181,25 @@ def update(
                 esg.db.add(qf.query)
                 continue
             with esg.db.commit_context():
-                unknown_datasets = [f for f in qf.datasets if f not in esg.db]
-                if len(unknown_datasets) > 0:
+                unregistered_datasets = [
+                    f for f in qf.datasets if f not in esg.db
+                ]
+                if len(unregistered_datasets) > 0:
                     esg.ui.print(
-                        f"Adding {len(unknown_datasets)} new datasets to database."
+                        f"Adding {len(unregistered_datasets)} new datasets to database."
                     )
-                    esg.db.session.add_all(unknown_datasets)
+                    esg.db.session.add_all(unregistered_datasets)
                 files_from_db = [
                     esg.db.get(File, f.sha) for f in qf.files if f in esg.db
                 ]
-                known_files = [f for f in files_from_db if f is not None]
-                unknown_files = [f for f in qf.files if f not in esg.db]
-                if len(unknown_files) > 0:
+                registered_files = [f for f in files_from_db if f is not None]
+                unregistered_files = [f for f in qf.files if f not in esg.db]
+                if len(unregistered_files) > 0:
                     esg.ui.print(
-                        f"Adding {len(unknown_files)} new files to database."
+                        f"Adding {len(unregistered_files)} new files to database."
                     )
-                    esg.db.session.add_all(unknown_files)
-                files = known_files + unknown_files
+                    esg.db.session.add_all(unregistered_files)
+                files = registered_files + unregistered_files
             not_done_files = [
                 file for file in files if file.status != FileStatus.Done
             ]
