@@ -301,3 +301,11 @@ class query_file:
             .where(query_file_proxy.c.query_sha == query.sha)
             .where(query_file_proxy.c.file_sha == file.sha)
         )
+
+    @staticmethod
+    def is_linked(query: Query, file: File) -> sa.Select[tuple[bool]]:
+        return sa.select(
+            sa.exists()
+            .where(query_file_proxy.c.query_sha == query.sha)
+            .where(query_file_proxy.c.file_sha == file.sha)
+        )

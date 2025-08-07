@@ -147,11 +147,19 @@ class Database:
         for item in items:
             make_transient(item)
 
-    def link(self, query: Query, file: File):
-        self.session.execute(sql.query_file.link(query, file))
+    def link(self, query: Query, file: File) -> bool:
+        if not self.session.scalar(sql.query_file.is_linked(query, file)):
+            self.session.execute(sql.query_file.link(query, file))
+            return True
+        else:
+            return False
 
-    def unlink(self, query: Query, file: File):
-        self.session.execute(sql.query_file.unlink(query, file))
+    def unlink(self, query: Query, file: File) -> bool:
+        if self.session.scalar(sql.query_file.is_linked(query, file)):
+            self.session.execute(sql.query_file.unlink(query, file))
+            return True
+        else:
+            return False
 
     def __contains__(self, item: Base | BaseNoSHA) -> bool:
         mapper = inspect(item.__class__)

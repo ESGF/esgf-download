@@ -223,6 +223,7 @@ def update(
             if choice == "y":
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
+                applied_changes = False
                 with esg.db.commit_context():
                     for file in esg.ui.track(
                         files,
@@ -231,9 +232,10 @@ def update(
                         if file.status != FileStatus.Done:
                             file.status = FileStatus.Queued
                         if has_legacy and legacy in file.queries:
-                            esg.db.unlink(query=legacy, file=file)
-                        esg.db.link(query=qf.query, file=file)
-                    qf.query.files = files
-                    qf.query.updated_at = datetime.now(timezone.utc)
+                            _ = esg.db.unlink(query=legacy, file=file)
+                        changed = esg.db.link(query=qf.query, file=file)
+                        applied_changes = applied_changes or changed
+                    if applied_changes:
+                        qf.query.updated_at = datetime.now(timezone.utc)
                     esg.db.session.add(qf.query)
         esg.ui.raise_maybe_record(Exit(0))
