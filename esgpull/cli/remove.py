@@ -15,11 +15,13 @@ from esgpull.utils import format_size
 @args.query_id
 @opts.tag
 @opts.children
+@opts.yes
 @opts.verbosity
 def remove(
     query_id: str | None,
     tag: str | None,
     children: bool,
+    yes: bool,
     verbosity: Verbosity,
 ) -> None:
     """
@@ -49,7 +51,7 @@ def remove(
         graph.add(*queries)
         esg.ui.print(graph)
         msg = f"Remove {nb} quer{ies}?"
-        if not esg.ui.ask(msg, default=True):
+        if not yes and not esg.ui.ask(msg, default=True):
             raise Abort
         for query in queries:
             if query.has_files:
@@ -59,14 +61,18 @@ def remove(
                         f":stop_sign: {query.rich_name} is linked"
                         f" to {nb} downloaded files ({format_size(size)})."
                     )
-                    if not esg.ui.ask("Delete anyway?", default=False):
+                    if not yes and not esg.ui.ask(
+                        "Delete anyway?", default=False
+                    ):
                         raise Abort
             if not children and esg.graph.get_children(query.sha):
                 esg.ui.print(
                     ":stop_sign: Some queries block"
                     f" removal of {query.rich_name}."
                 )
-                if esg.ui.ask("Show blocking queries?", default=False):
+                if not yes and esg.ui.ask(
+                    "Show blocking queries?", default=False
+                ):
                     esg.ui.print(esg.graph.subgraph(query, children=True))
                 raise Exit(1)
         esg.db.delete(*queries)

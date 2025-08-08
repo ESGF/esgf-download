@@ -11,7 +11,7 @@ from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
 from esgpull.models import Dataset, File, FileStatus, Query
-from esgpull.tui import Verbosity, logger
+from esgpull.tui import Verbosity
 from esgpull.utils import format_size
 
 
@@ -177,26 +177,37 @@ def update(
             for qf, qf_files in zip(qfs, files):
                 qf.files = qf_files
         for qf in qfs:
-            new_files = [f for f in qf.files if f not in esg.db]
-            new_datasets = [d for d in qf.datasets if d not in esg.db]
-            nb_datasets = len(new_datasets)
-            nb_files = len(new_files)
             if not qf.query.tracked:
                 esg.db.add(qf.query)
                 continue
-            elif nb_datasets == nb_files == 0:
-                esg.ui.print(f"{qf.query.rich_name} is already up-to-date.")
-                continue
-            size = sum([file.size for file in new_files])
-            if size > 0:
-                queue_msg = " and send new files to download queue"
-            else:
-                queue_msg = ""
+            with esg.db.commit_context():
+                unregistered_datasets = [
+                    f for f in qf.datasets if f not in esg.db
+                ]
+                if len(unregistered_datasets) > 0:
+                    esg.ui.print(
+                        f"Adding {len(unregistered_datasets)} new datasets to database."
+                    )
+                    esg.db.session.add_all(unregistered_datasets)
+                files_from_db = [
+                    esg.db.get(File, f.sha) for f in qf.files if f in esg.db
+                ]
+                registered_files = [f for f in files_from_db if f is not None]
+                unregistered_files = [f for f in qf.files if f not in esg.db]
+                if len(unregistered_files) > 0:
+                    esg.ui.print(
+                        f"Adding {len(unregistered_files)} new files to database."
+                    )
+                    esg.db.session.add_all(unregistered_files)
+                files = registered_files + unregistered_files
+            not_done_files = [
+                file for file in files if file.status != FileStatus.Done
+            ]
+            download_size = sum(file.size for file in not_done_files)
             msg = (
-                f"\n{qf.query.rich_name}: {nb_files} new"
-                f" files, {nb_datasets} new datasets"
-                f" ({format_size(size)})."
-                f"\nUpdate the database{queue_msg}?"
+                f"\n{qf.query.rich_name}: {len(not_done_files)} "
+                f" files ({format_size(download_size)}) to download."
+                f"\nLink to query and send to download queue?"
             )
             if yes:
                 choice = "y"
@@ -212,30 +223,19 @@ def update(
             if choice == "y":
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
+                applied_changes = False
                 with esg.db.commit_context():
-                    for dataset in esg.ui.track(
-                        new_datasets,
-                        description=f"{qf.query.rich_name} (datasets)",
-                    ):
-                        esg.db.session.add(dataset)
                     for file in esg.ui.track(
-                        new_files,
-                        description=f"{qf.query.rich_name} (files)",
+                        files,
+                        description=f"{qf.query.rich_name}",
                     ):
-                        file_db = esg.db.get(File, file.sha)
-                        if file_db is None:
-                            if esg.db.has_file_id(file):
-                                logger.error(
-                                    "File id already exists in database, "
-                                    "there might be an error with its checksum"
-                                    f"\n{file}"
-                                )
-                                continue
+                        if file.status != FileStatus.Done:
                             file.status = FileStatus.Queued
-                            esg.db.session.add(file)
-                        elif has_legacy and legacy in file_db.queries:
-                            esg.db.unlink(query=legacy, file=file_db)
-                        esg.db.link(query=qf.query, file=file)
-                    qf.query.updated_at = datetime.now(timezone.utc)
+                        if has_legacy and legacy in file.queries:
+                            _ = esg.db.unlink(query=legacy, file=file)
+                        changed = esg.db.link(query=qf.query, file=file)
+                        applied_changes = applied_changes or changed
+                    if applied_changes:
+                        qf.query.updated_at = datetime.now(timezone.utc)
                     esg.db.session.add(qf.query)
         esg.ui.raise_maybe_record(Exit(0))
