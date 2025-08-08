@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 from typing import Callable, Coroutine, TypeVar
-from urllib.parse import urlparse
 
 from rich.filesize import _to_str
 
@@ -52,19 +51,3 @@ def format_date_iso(
     date: str | datetime.datetime, fmt: str = "%Y-%m-%d"
 ) -> str:
     return parse_date(date, fmt).replace(microsecond=0).isoformat() + "Z"
-
-
-def url2index(url: str) -> str:
-    parsed = urlparse(url)
-    if parsed.netloc == "":
-        return parsed.path
-    else:
-        return parsed.netloc
-
-
-def index2url(index: str) -> str:
-    url = "https://" + url2index(index)
-    if "esgf-1-5-bridge" in index:
-        return url
-    else:
-        return url + "/esg-search/search"

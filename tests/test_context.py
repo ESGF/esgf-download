@@ -3,7 +3,7 @@ from time import perf_counter
 
 import pytest
 
-from esgpull.context import Context
+from esgpull.context import Context, IndexNode
 from esgpull.models import Query
 
 
@@ -104,6 +104,10 @@ class Timer:
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(
+    raises=ValueError,
+    reason="ESGF bridge API gives index_node values that are not valid URLs",
+)
 def test_search_distributed(ctx):
     query = Query()
     # ctx.config.api.http_timeout = 60
@@ -138,7 +142,12 @@ def test_search_distributed(ctx):
 
 
 def test_ipsl_hits_between_1_and_2_million(ctx, cmip6_ipsl):
-    assert 1_000_000 < ctx.hits(cmip6_ipsl, file=False)[0] < 2_000_000
+    hits = ctx.hits(
+        cmip6_ipsl,
+        file=False,
+        index_node="esgf-node.ipsl.upmc.fr",
+    )
+    assert 1_000_000 < hits[0] < 2_000_000
 
 
 def test_more_files_than_datasets(ctx, query):
@@ -168,3 +177,35 @@ def test_ignore_facet_hits(ctx):
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
     assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
     assert hits_all == hits_ipsl + hits_not_ipsl
+
+
+@pytest.mark.parametrize(
+    "index,url,is_bridge",
+    [
+        (
+            "esgf-node.ipsl.upmc.fr",
+            "https://esgf-node.ipsl.upmc.fr/esg-search/search",
+            False,
+        ),
+        (
+            "https://esgf-node.ipsl.upmc.fr/esg-search/search",
+            "https://esgf-node.ipsl.upmc.fr/esg-search/search",
+            False,
+        ),
+        (
+            "esgf-node.ornl.gov/esgf-1-5-bridge",
+            "https://esgf-node.ornl.gov/esgf-1-5-bridge",
+            True,
+        ),
+        (
+            "https://esgf-node.ornl.gov/esgf-1-5-bridge",
+            "https://esgf-node.ornl.gov/esgf-1-5-bridge",
+            True,
+        ),
+    ],
+)
+def test_index2url(index: str, url: str, is_bridge: bool):
+    for value in (index, url):
+        index_node = IndexNode(value=value)
+        assert index_node.url == url
+        assert index_node.is_bridge() == is_bridge
