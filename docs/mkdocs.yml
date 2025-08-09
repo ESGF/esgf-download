@@ -9,6 +9,7 @@ nav:
   - Download: download.md
   - Plugins: plugins.md
   - Glossary: glossary.md
+  - Acknowledgements: acknowledgements.md
   # - Usage guide: usage.md
   # - API Reference: reference.md
 theme:
