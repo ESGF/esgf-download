@@ -109,6 +109,7 @@ class DefaultOptions(BaseModel, validate_assignment=True):
 
 class API(BaseModel, validate_assignment=True):
     index_node: str = "esgf-node.ipsl.upmc.fr"
+    stac_url: str = "api.stac.esgf.ceda.ac.uk"
     http_timeout: int = 20
     max_concurrent: int = 5
     page_limit: int = 50
