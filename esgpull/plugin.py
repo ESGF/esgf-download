@@ -151,7 +151,11 @@ class PluginConfig:
     enabled: set[str] = field(default_factory=set)
     disabled: set[str] = field(default_factory=set)
     plugins: dict[str, dict[str, Any]] = field(default_factory=dict)
-    _raw: dict[str, dict[str, Any]] = field(default_factory=dict)
+    _raw: tomlkit.TOMLDocument = field(default_factory=tomlkit.TOMLDocument)
+
+    def __post_init__(self):
+        if "plugins" not in self._raw:
+            self._raw["plugins"] = {}
 
 
 class PluginManager:
@@ -199,12 +203,13 @@ class PluginManager:
 
         try:
             with open(self.config_path, "r") as f:
-                raw = tomlkit.parse(f.read())
-                self.config.enabled = set(raw.get("enabled", []))
-                self.config.disabled = set(raw.get("disabled", []))
-                self.config.plugins = raw.get("plugins", {})
-                # Store the raw plugin configuration to preserve what's on disk
-                self.config._raw = dict(raw.get("plugins", {}))
+                raw = tomlkit.load(f)
+                unwrap = raw.unwrap()
+            self.config.enabled = set(unwrap.get("enabled", []))
+            self.config.disabled = set(unwrap.get("disabled", []))
+            self.config.plugins = unwrap.get("plugins", {})
+            # Store the raw plugin configuration to preserve what's on disk
+            self.config._raw = raw
         except Exception as e:
             logger.error(f"Failed to load plugin config: {e}")
 
@@ -219,18 +224,16 @@ class PluginManager:
             return
 
         try:
-            doc = tomlkit.document()
+            doc = self.config._raw
             doc["enabled"] = list(self.config.enabled)
             doc["disabled"] = list(self.config.disabled)
 
             # For plugins section, handle differently based on generate_full_config flag
             if generate_full_config:
                 doc["plugins"] = self.config.plugins
-            else:
-                doc["plugins"] = self.config._raw
 
             with open(self.config_path, "w") as f:
-                f.write(tomlkit.dumps(doc))
+                tomlkit.dump(doc, f)
         except Exception as e:
             logger.error(f"Failed to save plugin config: {e}")
 
@@ -464,8 +467,8 @@ class PluginManager:
         # Make sure plugin exists in both plugins and _raw dicts
         if plugin_name not in self.config.plugins:
             self.config.plugins[plugin_name] = {}
-        if plugin_name not in self.config._raw:
-            self.config._raw[plugin_name] = {}
+        if plugin_name not in self.config._raw["plugins"]:
+            self.config._raw["plugins"][plugin_name] = {}
 
         # Update the value in both places
         if key in self.config.plugins[plugin_name]:
@@ -473,7 +476,7 @@ class PluginManager:
             new_value = cast_value(old_value, value, key)
             self.config.plugins[plugin_name][key] = new_value
             # Also update in _raw to keep in sync
-            self.config._raw[plugin_name][key] = new_value
+            self.config._raw["plugins"][plugin_name][key] = new_value
         else:
             raise KeyError(key, self.config.plugins[plugin_name])
 
@@ -497,8 +500,8 @@ class PluginManager:
         # Make sure the plugin exists in both configs
         if plugin_name not in self.config.plugins:
             self.config.plugins[plugin_name] = {}
-        if plugin_name not in self.config._raw:
-            self.config._raw[plugin_name] = {}
+        if plugin_name not in self.config._raw["plugins"]:
+            self.config._raw["plugins"][plugin_name] = {}
 
         # Remove the key from both configs
         if key in self.config.plugins[plugin_name]:
@@ -508,10 +511,10 @@ class PluginManager:
 
         # Also remove from _raw if it exists
         if (
-            plugin_name in self.config._raw
-            and key in self.config._raw[plugin_name]
+            plugin_name in self.config._raw["plugins"]
+            and key in self.config._raw["plugins"][plugin_name]
         ):
-            self.config._raw[plugin_name].pop(key)
+            self.config._raw["plugins"][plugin_name].pop(key)
 
         self.write_config()
 
