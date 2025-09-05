@@ -38,6 +38,7 @@ dependencies = [
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
     "pystac-client>=0.9.0",
+    "esgvoc>=1.0.1",
 ]
 license.text = "BSD-3-Clause"
 
