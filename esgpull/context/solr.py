@@ -6,7 +6,7 @@ import sys
 from collections.abc import AsyncIterator, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, TypeAlias, TypeVar, overload
+from typing import Any, Literal, TypeVar, overload
 
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -17,7 +17,7 @@ from httpx import AsyncClient, HTTPError, Request
 from rich.pretty import pretty_repr
 
 from esgpull.config import Config
-from esgpull.context.types import IndexNode
+from esgpull.context.types import HintsDict, IndexNode
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
@@ -36,7 +36,6 @@ else:
 
 T = TypeVar("T")
 RT = TypeVar("RT", bound="Result")
-HintsDict: TypeAlias = dict[str, dict[str, int]]
 DangerousFacets = {
     "instance_id",
     "dataset_id",
