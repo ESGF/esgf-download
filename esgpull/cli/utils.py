@@ -281,7 +281,7 @@ def extract_subdict(doc: dict, key: str | None) -> dict:
 
 def probe_and_abort(esg: Esgpull) -> None:
     try:
-        esg.context.probe()
+        esg.context._solr.probe()
     except Exception as err:
         index_node = esg.config.api.index_node
         esg.ui.print(err.args)

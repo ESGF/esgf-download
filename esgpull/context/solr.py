@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
+from collections.abc import AsyncIterator, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias, TypeVar
+from typing import Any, Literal, TypeAlias, TypeVar, overload
 from urllib.parse import urlparse
+
+from pydantic import BaseModel, Field, PrivateAttr
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
@@ -333,20 +335,18 @@ DatasetFieldParams = [
 ]
 
 
-@dataclass
-class Context:
+class SolrContext(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+
     config: Config = field(default_factory=Config.default)
-    client: AsyncClient | None = field(
-        init=False,
-        repr=False,
-        default=None,
-    )
-    semaphores: dict[str, asyncio.Semaphore] = field(
-        init=False,
-        repr=False,
-        default_factory=dict,
-    )
     noraise: bool = False
+    _client: AsyncClient | None = PrivateAttr(default=None)
+    _semaphores: dict[str, asyncio.Semaphore] = PrivateAttr(
+        default_factory=dict
+    )
+
+    def model_post_init(self, context: Any) -> None:
+        self._client = None
 
     # def __init__(
     #     self,
@@ -360,16 +360,16 @@ class Context:
     #     #     self.since = format_date_iso(since)
 
     def get_or_create_client(self) -> AsyncClient:
-        if self.client is None:
+        if self._client is None:
             timeout = self.config.api.http_timeout
-            self.client = AsyncClient(timeout=timeout)
-        return self.client
+            self._client = AsyncClient(timeout=timeout)
+        return self._client
 
     def get_or_create_semaphore(self, host: str) -> asyncio.Semaphore:
-        if host not in self.semaphores:
+        if host not in self._semaphores:
             max_concurrent = self.config.api.max_concurrent
-            self.semaphores[host] = asyncio.Semaphore(max_concurrent)
-        return self.semaphores[host]
+            self._semaphores[host] = asyncio.Semaphore(max_concurrent)
+        return self._semaphores[host]
 
     def prepare_hits(
         self,
@@ -514,7 +514,7 @@ class Context:
         # The bridge API tends to produce non-standard errors when too many
         # new connections open in a short time span. With no sleep, the 4th
         # connection is always where it breaks. 50ms sleep seems to fix that.
-        if self.client is None:
+        if self._client is None:
             await asyncio.sleep(0.005)
 
         client = self.get_or_create_client()
@@ -547,8 +547,10 @@ class Context:
         if excs:
             group = BaseExceptionGroup("fetch", excs)
             if self.noraise:
+                logger.error(group)
                 logger.exception(group)
                 for exc in excs:
+                    logger.error(exc)
                     logger.exception(exc)
             else:
                 raise group
@@ -629,10 +631,10 @@ class Context:
         return queries
 
     def free_client(self) -> None:
-        self.client = None
+        self._client = None
 
     def free_semaphores(self) -> None:
-        self.semaphores = {}
+        self._semaphores = {}
 
     def _sync(self, coro: Coroutine[None, None, T]) -> T:
         """
@@ -709,7 +711,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[DatasetRecord]:
+    ) -> Sequence[DatasetRecord]:
         if hits is None:
             hits = self.hits(*queries, file=False)
         results = self.prepare_search(
@@ -735,7 +737,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[File]:
+    ) -> Sequence[File]:
         if hits is None:
             hits = self.hits(*queries, file=True)
         results = self.prepare_search(
@@ -782,6 +784,34 @@ class Context:
         )
         return self._sync(coro)
 
+    @overload
+    def search(
+        self,
+        *queries: Query,
+        file: Literal[False],
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[DatasetRecord]: ...
+
+    @overload
+    def search(
+        self,
+        *queries: Query,
+        file: Literal[True],
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[File]: ...
+
     def search(
         self,
         *queries: Query,
@@ -794,21 +824,28 @@ class Context:
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> Sequence[File | DatasetRecord]:
-        fun: Callable[..., Sequence[File | DatasetRecord]]
         if file:
-            fun = self.files
+            return self.files(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                date_from=date_from,
+                date_to=date_to,
+                keep_duplicates=keep_duplicates,
+            )
         else:
-            fun = self.datasets
-        return fun(
-            *queries,
-            hits=hits,
-            offset=offset,
-            max_hits=max_hits,
-            page_limit=page_limit,
-            date_from=date_from,
-            date_to=date_to,
-            keep_duplicates=keep_duplicates,
-        )
+            return self.datasets(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                date_from=date_from,
+                date_to=date_to,
+                keep_duplicates=keep_duplicates,
+            )
 
     def probe(self, index_node: str | None = None) -> None:
         noraise = self.noraise

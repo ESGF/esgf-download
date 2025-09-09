@@ -1,9 +1,11 @@
 from esgpull.context.solr import (
-    Context,
     HintsDict,
     IndexNode,
     ResultSearch,
     _distribute_hits_impl,
+)
+from esgpull.context.solr import (
+    SolrContext as Context,
 )
 
 __all__ = [
