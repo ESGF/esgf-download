@@ -10,6 +10,8 @@ from typing import Any, Literal, TypeVar, overload
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+from esgpull.models import ApiBackend
+
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
 
@@ -86,7 +88,10 @@ class Result:
             "format": "application/solr+json",
             # "from": self.since,
         }
-        index = IndexNode(value=index_url or index_node)
+        index = IndexNode(
+            backend=ApiBackend.solr,
+            value=index_url or index_node,
+        )
         if not index.is_bridge():
             if fields_param is not None:
                 params["fields"] = ",".join(fields_param)
