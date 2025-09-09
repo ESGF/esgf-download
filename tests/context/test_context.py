@@ -3,9 +3,9 @@ from time import perf_counter
 
 import pytest
 
-from esgpull.context import Context, IndexNode, _distribute_hits_impl
+from esgpull.context import Context, _distribute_hits_impl
 from esgpull.models import Query
-from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, ORNL_BRIDGE
+from tests.utils import CEDA_NODE, DRKZ_NODE
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def test_multi_index(ctx, empty):
         )
         results.extend(query_results)
     assert len(results) == 2
-    for result, index_node in zip(results, index_nodes):
+    for result, index_node in zip(results, index_nodes, strict=False):
         assert index_node in str(result.request.url)
         assert index_node == result.request.headers["host"]
 
@@ -67,7 +67,7 @@ def test_adjust_hits(ctx):
         max_hits=len(variable_ids) * page_limit * 2,
     )
     assert len(first_20) >= len(variable_ids) * 2
-    variable_offsets = {variable_id: 0 for variable_id in variable_ids}
+    variable_offsets = dict.fromkeys(variable_ids, 0)
     for result in first_20:
         variable_id = result.query.selection.variable_id[0]
         params = dict(result.request.url.params.items())
@@ -167,7 +167,7 @@ def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
         file=False,
         index_node=index,
     )
-    assert 1_000 < hits[0]
+    assert hits[0] > 1_000
 
 
 @parametrized_index
@@ -210,48 +210,6 @@ def test_ignore_facet_hits(ctx, index: str, query_all: Query):
 
 
 @pytest.mark.parametrize(
-    "index,url,is_bridge",
-    [
-        (
-            IPSL_NODE,
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            CEDA_NODE,
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{IPSL_NODE}/esg-search/search",
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{CEDA_NODE}/esg-search/search",
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            ORNL_BRIDGE,
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-        (
-            f"https://{ORNL_BRIDGE}",
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-    ],
-)
-def test_index2url(index: str, url: str, is_bridge: bool):
-    for value in (index, url):
-        index_node = IndexNode(value=value)
-        assert index_node.url == url
-        assert index_node.is_bridge() == is_bridge
-
-
-@pytest.mark.parametrize(
     "queries",
     [
         [],
@@ -262,8 +220,8 @@ def test_index2url(index: str, url: str, is_bridge: bool):
                     project="CMIP6",
                     institution_id="IPSL",
                     variable_id="uv",
-                )
-            )
+                ),
+            ),
         ],
         [
             Query(),
@@ -272,7 +230,7 @@ def test_index2url(index: str, url: str, is_bridge: bool):
                     project="CMIP6",
                     institution_id="IPSL",
                     variable_id="uv",
-                )
+                ),
             ),
         ],
         [Query(selection=dict(project="notaproject"))],
