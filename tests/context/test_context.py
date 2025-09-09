@@ -2,9 +2,9 @@ from time import perf_counter
 
 import pytest
 
-from esgpull.context import Context, IndexNode, _distribute_hits_impl
+from esgpull.context import Context, _distribute_hits_impl
 from esgpull.models import Query
-from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, ORNL_BRIDGE
+from tests.utils import CEDA_NODE, DRKZ_NODE
 
 
 @pytest.fixture
@@ -199,45 +199,3 @@ def test_ignore_facet_hits(ctx, query_all: Query):
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
     assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
     assert hits_all == hits_ipsl + hits_not_ipsl
-
-
-@pytest.mark.parametrize(
-    "index,url,is_bridge",
-    [
-        (
-            IPSL_NODE,
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            CEDA_NODE,
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{IPSL_NODE}/esg-search/search",
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{CEDA_NODE}/esg-search/search",
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            ORNL_BRIDGE,
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-        (
-            f"https://{ORNL_BRIDGE}",
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-    ],
-)
-def test_index2url(index: str, url: str, is_bridge: bool):
-    for value in (index, url):
-        index_node = IndexNode(value=value)
-        assert index_node.url == url
-        assert index_node.is_bridge() == is_bridge

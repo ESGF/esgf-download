@@ -4,6 +4,7 @@ IPSL_NODE = "esgf-node.ipsl.upmc.fr"
 DRKZ_NODE = "esgf-data.dkrz.de"
 CEDA_NODE = "esgf.ceda.ac.uk"
 ORNL_BRIDGE = "esgf-node.ornl.gov/esgf-1-5-bridge"
+CEDA_STAC = "api.stac.esgf.ceda.ac.uk"
 
 
 def dict_equals_ignore(
