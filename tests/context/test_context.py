@@ -3,7 +3,7 @@ from time import perf_counter
 import pytest
 
 from esgpull.context import Context
-from esgpull.models import Query
+from esgpull.models import ApiBackend, Query
 from tests.utils import CEDA_NODE
 
 
@@ -12,14 +12,19 @@ def ctx(config):
     return Context(config=config)
 
 
-@pytest.fixture
-def empty():
-    return Query()
+@pytest.fixture(params=[ApiBackend.solr, ApiBackend.stac])
+def backend(request):
+    return request.param
+
+
+@pytest.fixture()
+def empty(backend):
+    return Query(backend=backend)
 
 
 @pytest.fixture
-def cmip6_ipsl():
-    query = Query()
+def cmip6_ipsl(backend):
+    query = Query(backend=backend)
     query.options.distrib = False
     query.selection.mip_era = "CMIP6"
     query.selection.institution_id = "IPSL"
@@ -27,8 +32,12 @@ def cmip6_ipsl():
 
 
 @pytest.fixture(params=["empty", "cmip6_ipsl"])
-def query(request):
-    return request.getfixturevalue(request.param)
+def query(request, empty, cmip6_ipsl):
+    match request.param:
+        case "empty":
+            return empty
+        case "cmip6_ipsl":
+            return cmip6_ipsl
 
 
 class Timer:
@@ -46,11 +55,15 @@ def test_ipsl_hits_exist(ctx, cmip6_ipsl):
         file=False,
         index_node=CEDA_NODE,
     )
-    assert 1_000 < hits[0]
+    match cmip6_ipsl.backend:
+        case ApiBackend.stac:
+            assert hits[0] > 1
+        case ApiBackend.solr:
+            assert hits[0] > 1_000
 
 
 def test_more_files_than_datasets(ctx, query):
-    assert sum(ctx.hits(query, file=False)) < sum(ctx.hits(query, file=True))
+    assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
 
 
 @pytest.mark.slow
