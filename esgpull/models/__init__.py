@@ -5,7 +5,13 @@ from esgpull.models.dataset import Dataset, DatasetRecord
 from esgpull.models.facet import Facet
 from esgpull.models.file import FastFile, FileStatus
 from esgpull.models.options import Option, Options
-from esgpull.models.query import File, LegacyQuery, Query, QueryDict
+from esgpull.models.query import (
+    ApiBackend,
+    File,
+    LegacyQuery,
+    Query,
+    QueryDict,
+)
 from esgpull.models.selection import Selection
 from esgpull.models.synda_file import SyndaFile
 from esgpull.models.tag import Tag
@@ -13,6 +19,7 @@ from esgpull.models.tag import Tag
 Table = TypeVar("Table", bound=Base)
 
 __all__ = [
+    "ApiBackend",
     "Base",
     "Dataset",
     "DatasetRecord",
