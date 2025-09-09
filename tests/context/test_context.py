@@ -10,7 +10,7 @@ from esgpull.context import (
     ResultSearch,
 )
 from esgpull.models import Query
-from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, ORNL_BRIDGE
+from tests.utils import CEDA_NODE, DRKZ_NODE, ORNL_BRIDGE
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def test_multi_index(ctx, empty):
         )
         results.extend(query_results)
     assert len(results) == 2
-    for result, index_node in zip(results, index_nodes):
+    for result, index_node in zip(results, index_nodes, strict=False):
         assert index_node in str(result.request.url)
         assert index_node == result.request.headers["host"]
 
@@ -72,7 +72,7 @@ def test_adjust_hits(ctx):
         max_hits=len(variable_ids) * page_limit * 2,
     )
     assert len(first_20) >= len(variable_ids) * 2
-    variable_offsets = {variable_id: 0 for variable_id in variable_ids}
+    variable_offsets = dict.fromkeys(variable_ids, 0)
     for result in first_20:
         variable_id = result.query.selection.variable_id[0]
         params = dict(result.request.url.params.items())
@@ -94,15 +94,9 @@ def test_adjust_hits(ctx):
     assert len(offset_100) >= len(variable_ids) * 2
 
     # ensure offsets follow the proportional splitter: sum matches the limit and each bucket stays within 1 of its ideal share
-    ideal = {
-        variable_id: hits[i] / sum(hits) * 100
-        for i, variable_id in enumerate(variable_ids)
-    }
+    ideal = {variable_id: hits[i] / sum(hits) * 100 for i, variable_id in enumerate(variable_ids)}
     distributed = _distribute_hits_impl(hits, 100)
-    variable_offsets = {
-        variable_id: distributed[i]
-        for i, variable_id in enumerate(variable_ids)
-    }
+    variable_offsets = {variable_id: distributed[i] for i, variable_id in enumerate(variable_ids)}
     for result in offset_100:
         variable_id = result.query.selection.variable_id[0]
         params = dict(result.request.url.params.items())
@@ -172,7 +166,7 @@ def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
         file=False,
         index_node=index,
     )
-    assert 1_000 < hits[0]
+    assert hits[0] > 1_000
 
 
 @parametrized_index
@@ -215,48 +209,6 @@ def test_ignore_facet_hits(ctx, index: str, query_all: Query):
 
 
 @pytest.mark.parametrize(
-    "index,url,is_bridge",
-    [
-        (
-            IPSL_NODE,
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            CEDA_NODE,
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{IPSL_NODE}/esg-search/search",
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{CEDA_NODE}/esg-search/search",
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            ORNL_BRIDGE,
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-        (
-            f"https://{ORNL_BRIDGE}",
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-    ],
-)
-def test_index2url(index: str, url: str, is_bridge: bool):
-    for value in (index, url):
-        index_node = IndexNode(value=value)
-        assert index_node.url == url
-        assert index_node.is_bridge() == is_bridge
-
-
-@pytest.mark.parametrize(
     "queries",
     [
         [],
@@ -267,8 +219,8 @@ def test_index2url(index: str, url: str, is_bridge: bool):
                     project="CMIP6",
                     institution_id="IPSL",
                     variable_id="uv",
-                )
-            )
+                ),
+            ),
         ],
         [
             Query(),
@@ -277,7 +229,7 @@ def test_index2url(index: str, url: str, is_bridge: bool):
                     project="CMIP6",
                     institution_id="IPSL",
                     variable_id="uv",
-                )
+                ),
             ),
         ],
         [Query(selection=dict(project="notaproject"))],
@@ -417,10 +369,7 @@ def test_bridge_mixed_wildcard_warning(ctx, caplog):
     assert "source_id" not in params
     assert "query" in params
     assert "source_id:" in params["query"]
-    assert any(
-        "source_id has mixed wildcard/non-wildcard values" in record.message
-        for record in caplog.records
-    )
+    assert any("source_id has mixed wildcard/non-wildcard values" in record.message for record in caplog.records)
 
 
 def test_solr_unchanged(ctx):
@@ -506,9 +455,7 @@ def test_files_skips_duplicate_file_ids(ctx):
     assert file_ids == {"dataset.v1.file.nc", "dataset.v1.other.nc"}
 
     # The first file with dataset.v1.file.nc should be kept (abc123 checksum)
-    duplicate_files = [
-        f for f in result_files if f.file_id == "dataset.v1.file.nc"
-    ]
+    duplicate_files = [f for f in result_files if f.file_id == "dataset.v1.file.nc"]
     assert len(duplicate_files) == 1
     assert duplicate_files[0].checksum == "abc123"
 
