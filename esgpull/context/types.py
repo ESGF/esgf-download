@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from typing import TypeAlias
 from urllib.parse import urlparse
+
+HintsDict: TypeAlias = dict[str, dict[str, int]]
 
 
 @dataclass
