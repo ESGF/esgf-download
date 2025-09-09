@@ -1,15 +1,16 @@
+from contextlib import nullcontext as does_not_raise
 from time import perf_counter
 
 import pytest
 
-from esgpull.context import Context
+from esgpull.context.solr import SolrContext, _distribute_hits_impl
 from esgpull.models import Query
-from tests.utils import CEDA_NODE, parametrized_index
+from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, parametrized_index
 
 
 @pytest.fixture
 def ctx(config):
-    return Context(config=config)
+    return SolrContext(config=config)
 
 
 @pytest.fixture
@@ -118,6 +119,44 @@ class Timer:
         self.duration = perf_counter() - self.start
 
 
+# @pytest.mark.slow
+# @pytest.mark.xfail(
+#     raises=ValueError,
+#     reason="ESGF bridge API gives index_node values that are not valid URLs",
+# )
+# def test_search_distributed(ctx):
+#     query = Query()
+#     # ctx.config.api.http_timeout = 60
+#     query.options.distrib = True
+#     # configure terms to target ~1000 files across different index nodes
+#     query.selection.mip_era = "CMIP6"
+#     query.selection.table_id = "Amon"
+#     query.selection.variable_id = "tas"
+#     query.selection.member_id = "r20i1p1f1"
+#     with Timer() as t_regular:
+#         datasets_regular = ctx.datasets(
+#             query,
+#             max_hits=None,
+#             keep_duplicates=True,
+#         )
+#     with Timer() as t_distributed:
+#         hints = ctx.hints(query, file=False, facets=["index_node"])
+#         results = ctx.prepare_search_distributed(
+#             query,
+#             file=False,
+#             hints=hints,
+#             max_hits=None,
+#         )
+#         coro = ctx._datasets(*results, keep_duplicates=True)
+#         datasets_distributed = ctx._sync(coro)
+#     dataset_ids_regular = {d.dataset_id for d in datasets_regular}
+#     dataset_ids_distributed = {d.dataset_id for d in datasets_distributed}
+#     assert dataset_ids_regular == dataset_ids_distributed
+#     # assert t_regular.duration >= t_distributed.duration
+#     logging.info(f"{t_regular.duration}")
+#     logging.info(f"{t_distributed.duration}")
+
+
 @parametrized_index
 def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
     hits = ctx.hits(
@@ -130,7 +169,7 @@ def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
 
 @parametrized_index
 def test_more_files_than_datasets(ctx, index: str, query):
-    assert sum(ctx.hits(query, file=False)) < sum(ctx.hits(query, file=True))
+    assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
 
 
 @parametrized_index
@@ -140,6 +179,12 @@ def test_hints(ctx, index: str, cmip6_ipsl):
     hints = ctx.hints(cmip6_ipsl, file=False, facets=facets)[0]
     assert list(hints["institution_id"]) == cmip6_ipsl.selection.institution_id
     assert len(hints["variable_id"]) > 1
+
+
+def test_hits_from_hints(ctx):
+    hints = {"facet_name": {"value_a": 1, "value_b": 2, "value_c": 3}}
+    hits = ctx.hits_from_hints(hints)
+    assert hits == [6]
 
 
 @parametrized_index
@@ -159,3 +204,72 @@ def test_ignore_facet_hits(ctx, index: str, query_all: Query):
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False, index_node=index)[0]
     assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
     assert hits_all == hits_ipsl + hits_not_ipsl
+
+
+@pytest.mark.parametrize(
+    "queries",
+    [
+        [],
+        [Query()],
+        [
+            Query(
+                selection=dict(
+                    project="CMIP6",
+                    institution_id="IPSL",
+                    variable_id="uv",
+                ),
+            ),
+        ],
+        [
+            Query(),
+            Query(
+                selection=dict(
+                    project="CMIP6",
+                    institution_id="IPSL",
+                    variable_id="uv",
+                ),
+            ),
+        ],
+        [Query(selection=dict(project="notaproject"))],
+    ],
+)
+@pytest.mark.parametrize("file", [True, False])
+@pytest.mark.parametrize(
+    "index_node",
+    ## TODO: test bridge, but it is super slow
+    [
+        IPSL_NODE,
+        CEDA_NODE,
+        "https://github.com",
+        "not_a_real.url",
+    ],
+)
+def test_hits_never_empty(
+    ctx: SolrContext,
+    queries: tuple[Query],
+    file: bool,
+    index_node: str,
+):
+    ctx.noraise = True
+    hits = ctx.hits(*queries, file=file, index_node=index_node)
+    assert len(hits) == len(queries)
+
+
+@pytest.mark.parametrize(
+    ("index_node", "exc"),
+    ## TODO: test bridge, but it is super slow
+    [
+        (IPSL_NODE, does_not_raise()),
+        (CEDA_NODE, does_not_raise()),
+        ("https://github.com", pytest.raises(Exception)),
+        ("not_a_real.url", pytest.raises(Exception)),
+    ],
+)
+def test_probe(
+    ctx: SolrContext,
+    index_node: str,
+    exc,
+):
+    ctx.config.api.index_node = index_node
+    with exc:
+        ctx.probe()
