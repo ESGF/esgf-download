@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
+from collections.abc import AsyncIterator, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias, TypeVar
+from typing import Any, Literal, TypeAlias, TypeVar, overload
 from urllib.parse import urlparse
+
+from pydantic import BaseModel, Field, PrivateAttr
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
@@ -333,19 +335,18 @@ DatasetFieldParams = [
 ]
 
 
-@dataclass
-class Context:
-    config: Config = field(default_factory=Config.default)
-    client: AsyncClient = field(
-        init=False,
-        repr=False,
-    )
-    semaphores: dict[str, asyncio.Semaphore] = field(
-        init=False,
-        repr=False,
+class SolrContext(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+
+    config: Config = Field(default_factory=Config.default)
+    noraise: bool = False
+    _client: AsyncClient | None = PrivateAttr(default=None)
+    _semaphores: dict[str, asyncio.Semaphore] = PrivateAttr(
         default_factory=dict,
     )
-    noraise: bool = False
+
+    def model_post_init(self, context: Any) -> None:
+        self._client = None
 
     # def __init__(
     #     self,
@@ -357,18 +358,6 @@ class Context:
     #     #     self.since = since
     #     # else:
     #     #     self.since = format_date_iso(since)
-
-    async def __aenter__(self) -> Context:
-        if hasattr(self, "client"):
-            raise Exception("Context is already initialized.")
-        self.client = AsyncClient(timeout=self.config.api.http_timeout)
-        return self
-
-    async def __aexit__(self, *exc) -> None:
-        if not hasattr(self, "client"):
-            raise Exception("Context is not initialized.")
-        await self.client.aclose()
-        del self.client
 
     def prepare_hits(
         self,
@@ -508,13 +497,18 @@ class Context:
 
     async def _fetch_one(self, result: RT) -> RT:
         host = result.request.url.host
-        if host not in self.semaphores:
+        if host not in self._semaphores:
             max_concurrent = self.config.api.max_concurrent
-            self.semaphores[host] = asyncio.Semaphore(max_concurrent)
-        async with self.semaphores[host]:
+            self._semaphores[host] = asyncio.Semaphore(max_concurrent)
+        async with self._semaphores[host]:
             logger.debug(f"GET {host} params={result.request.url.params}")
+            client = self._client
+            if client is None:
+                raise RuntimeError(
+                    "HTTP client unavailable outside SolrContext._sync()"
+                )
             try:
-                resp = await self.client.send(result.request)
+                resp = await client.send(result.request)
                 resp.raise_for_status()
                 result.json = json.loads(
                     resp.content.decode(encoding="latin-1")
@@ -540,8 +534,10 @@ class Context:
         if excs:
             group = BaseExceptionGroup("fetch", excs)
             if self.noraise:
+                logger.error(group)
                 logger.exception(group)
                 for exc in excs:
+                    logger.error(exc)
                     logger.exception(exc)
             else:
                 raise group
@@ -616,22 +612,21 @@ class Context:
                     queries.append(query)
         return queries
 
-    async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
-        """
-        Async wrapper to create client before await future.
-        This is required since asyncio does not provide a way
-        to enter an async context in a sync function.
-        """
-        async with self:
-            return await coro
-
     def free_semaphores(self) -> None:
-        self.semaphores = {}
+        self._semaphores = {}
+
+    async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
+        async with AsyncClient(timeout=self.config.api.http_timeout) as client:
+            previous = self._client
+            self._client = client
+            try:
+                return await coro
+            finally:
+                self._client = previous
 
     def _sync(self, coro: Coroutine[None, None, T]) -> T:
         """
         Reset semaphore to ensure none is bound to an expired event loop.
-        Run through `_with_client` wrapper to use `async with` synchronously.
         """
         self.free_semaphores()
         return sync(self._with_client(coro))
@@ -703,7 +698,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[DatasetRecord]:
+    ) -> Sequence[DatasetRecord]:
         if hits is None:
             hits = self.hits(*queries, file=False)
         results = self.prepare_search(
@@ -729,7 +724,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[File]:
+    ) -> Sequence[File]:
         if hits is None:
             hits = self.hits(*queries, file=True)
         results = self.prepare_search(
@@ -776,6 +771,34 @@ class Context:
         )
         return self._sync(coro)
 
+    @overload
+    def search(
+        self,
+        *queries: Query,
+        file: Literal[False],
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[DatasetRecord]: ...
+
+    @overload
+    def search(
+        self,
+        *queries: Query,
+        file: Literal[True],
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[File]: ...
+
     def search(
         self,
         *queries: Query,
@@ -787,22 +810,29 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> Sequence[File | Dataset]:
-        fun: Callable[..., Sequence[File | Dataset]]
+    ) -> Sequence[File | DatasetRecord]:
         if file:
-            fun = self.files
+            return self.files(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                date_from=date_from,
+                date_to=date_to,
+                keep_duplicates=keep_duplicates,
+            )
         else:
-            fun = self.datasets
-        return fun(
-            *queries,
-            hits=hits,
-            offset=offset,
-            max_hits=max_hits,
-            page_limit=page_limit,
-            date_from=date_from,
-            date_to=date_to,
-            keep_duplicates=keep_duplicates,
-        )
+            return self.datasets(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                date_from=date_from,
+                date_to=date_to,
+                keep_duplicates=keep_duplicates,
+            )
 
     def probe(self, index_node: str | None = None) -> None:
         noraise = self.noraise
