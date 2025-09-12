@@ -67,22 +67,24 @@ def test_hints(ctx: Context, query: Query, backend: ApiBackend):
     ],
 )
 @pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+@pytest.mark.parametrize("institution_id", ["IPSL", "IP*L"])
 def test_ignore_facet_hits(
     ctx: Context,
     query_all: Query,
     backend: ApiBackend,
+    institution_id: str,
 ):
     query_all.backend = backend
-    query_ipsl = (
-        Query(backend=backend, selection={"institution_id": "IPSL"})
+    query_with = (
+        Query(backend=backend, selection={"institution_id": institution_id})
         << query_all
     )
-    query_not_ipsl = (
-        Query(backend=backend, selection={"!institution_id": "IPSL"})
+    query_without = (
+        Query(backend=backend, selection={"!institution_id": institution_id})
         << query_all
     )
     hits_all = ctx.hits(query_all, file=False)[0]
-    hits_ipsl = ctx.hits(query_ipsl, file=False)[0]
-    hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
-    assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
-    assert hits_all == hits_ipsl + hits_not_ipsl
+    hits_with = ctx.hits(query_with, file=False)[0]
+    hits_without = ctx.hits(query_without, file=False)[0]
+    assert all(hits > 0 for hits in [hits_all, hits_with, hits_without])
+    assert hits_all == hits_with + hits_without
