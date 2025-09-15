@@ -10,7 +10,7 @@ from esgpull.cli.utils import filter_keys, init_esgpull, parse_query, totable
 from esgpull.context import IndexNode
 from esgpull.exceptions import PageIndexError
 from esgpull.graph import Graph
-from esgpull.models import Query
+from esgpull.models import ApiBackend, Query
 from esgpull.tui import Verbosity
 
 
@@ -39,6 +39,7 @@ def search(
     latest: str | None,
     replica: str | None,
     retracted: str | None,
+    backend: ApiBackend | None,
     ## query_date
     date_from: datetime | None,
     date_to: datetime | None,
@@ -81,6 +82,7 @@ def search(
             latest=latest,
             replica=replica,
             retracted=retracted,
+            backend=backend,
         )
         query.compute_sha()
         esg.graph.resolve_require(query)
