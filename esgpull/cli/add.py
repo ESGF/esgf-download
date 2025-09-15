@@ -12,7 +12,7 @@ from esgpull.cli.utils import (
     serialize_queries_from_file,
 )
 from esgpull.graph import Graph
-from esgpull.models import Query
+from esgpull.models import ApiBackend, Query
 from esgpull.tui import Verbosity
 
 
@@ -33,6 +33,7 @@ def add(
     latest: str | None,
     replica: str | None,
     retracted: str | None,
+    backend: ApiBackend | None,
     ## ungrouped
     query_file: Path | None,
     track: bool,
@@ -74,6 +75,7 @@ def add(
                 latest=latest,
                 replica=replica,
                 retracted=retracted,
+                backend=backend,
             )
             esg.graph.resolve_require(query)
             if track:
