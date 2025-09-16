@@ -21,12 +21,10 @@ def fs() -> Filesystem:
 
 
 def test_install(root: Path, fs: Filesystem):
-    assert str(fs.paths.auth) == str(root / "auth")
     assert str(fs.paths.data) == str(root / "data")
     assert str(fs.paths.db) == str(root / "db")
     assert str(fs.paths.log) == str(root / "log")
     assert str(fs.paths.tmp) == str(root / "tmp")
-    assert fs.paths.auth.is_dir()
     assert fs.paths.data.is_dir()
     assert fs.paths.db.is_dir()
     assert fs.paths.log.is_dir()
@@ -34,12 +32,10 @@ def test_install(root: Path, fs: Filesystem):
 
 
 def test_no_install(root: Path, fs_no_install: Filesystem):
-    assert str(fs_no_install.paths.auth) == str(root / "auth")
     assert str(fs_no_install.paths.data) == str(root / "data")
     assert str(fs_no_install.paths.db) == str(root / "db")
     assert str(fs_no_install.paths.log) == str(root / "log")
     assert str(fs_no_install.paths.tmp) == str(root / "tmp")
-    assert not fs_no_install.paths.auth.is_dir()
     assert not fs_no_install.paths.data.is_dir()
     assert not fs_no_install.paths.db.is_dir()
     assert not fs_no_install.paths.log.is_dir()

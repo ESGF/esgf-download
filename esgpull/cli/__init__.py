@@ -8,7 +8,6 @@ from esgpull.cli.add import add
 from esgpull.cli.config import config
 from esgpull.cli.convert import convert
 from esgpull.cli.download import download
-from esgpull.cli.login import login
 from esgpull.cli.plugins import plugins
 from esgpull.cli.remove import remove
 from esgpull.cli.retry import retry
@@ -40,7 +39,6 @@ SUBCOMMANDS: list[click.Command] = [
     # get,
     self,
     # install,
-    login,
     plugins,
     remove,
     retry,

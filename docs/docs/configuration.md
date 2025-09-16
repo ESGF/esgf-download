@@ -9,7 +9,6 @@ $ esgpull config
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────── /home/me/.esgpull/config.toml ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [paths]
-auth = "/home/me/.esgpull/auth"
 data = "/home/me/.esgpull/data"
 db = "/home/me/.esgpull/db"
 log = "/home/me/.esgpull/log"
@@ -98,35 +97,10 @@ $ esgpull config --generate
     ```
 
 
-## Login
+## Login (deprecated)
 
-Although most data on ESGF can be downloaded without authentication, some datasets require a valid OpenID login and password.
-
-The ESGF OpenID authentication system is described on the [ESGF user documentation](http://www.esgf.io/esgf-user-support/user_guide.html).
-
-
-This can be provided from the command line by running the following:
-
-```shell
-$ esgpull login
-```
-```shell
-No credentials found.
-  [0] esg-dn1.nsc.liu.se
-  [1] esgf-data.dkrz.de
-  [2] ceda.ac.uk
-  [3] esgf-node.ipsl.upmc.fr
-  [4] esgf-node.llnl.gov
-  [5] esgf.nci.org.au
-Select a provider: 0
-User: MyESGFusername
-Password: <hidden>
-Certificates are missing.
-👍 Renewed successfully
-```
-
-The credentials will then be saved under the ``~/.esgpull/auth`` directory, within
-``credentials.toml``, which can then be used for future sessions.
+Login is not longer required and has been removed from `esgpull`.
+Existing `auth` folder in esgpull installation folder can be removed safely.
 
 ## Plugins
 
