@@ -180,7 +180,7 @@ class UI:
             yield
         except (click.exceptions.Exit, click.exceptions.Abort):
             if temp_path is not None:
-                atexit.register(temp_path.unlink)
+                atexit.register(lambda: temp_path.unlink(missing_ok=True))
             raise
         except click.exceptions.ClickException:
             raise
@@ -218,7 +218,7 @@ class UI:
                 raise
         else:
             if temp_path is not None:
-                atexit.register(temp_path.unlink)
+                atexit.register(lambda: temp_path.unlink(missing_ok=True))
         finally:
             logging.root.removeHandler(handler)
 
