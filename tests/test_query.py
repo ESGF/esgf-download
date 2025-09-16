@@ -2,8 +2,7 @@ import pytest
 
 from esgpull.exceptions import AlreadySetFacet
 from esgpull.models import Query, Tag
-
-from .utils import dict_equals_ignore
+from tests.utils import dict_equals_ignore
 
 
 def test_empty_asdict():
