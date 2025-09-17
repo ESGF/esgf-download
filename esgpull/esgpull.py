@@ -22,7 +22,6 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 
-from esgpull.auth import Auth, Credentials
 from esgpull.config import Config
 from esgpull.context import Context
 from esgpull.database import Database
@@ -64,7 +63,6 @@ class Esgpull:
     path: Path
     config: Config
     ui: UI
-    auth: Auth
     db: Database
     context: Context
     fs: Filesystem
@@ -120,8 +118,6 @@ class Esgpull:
             verbosity=verbosity,
             record=record,
         )
-        credentials = Credentials.from_config(self.config)
-        self.auth = Auth.from_config(self.config, credentials)
         self.context = Context(self.config, noraise=True)
         if load_db:
             self.db = Database.from_config(self.config)
@@ -431,7 +427,6 @@ class Esgpull:
             start_callbacks[file.sha] = [callback]
         processor = Processor(
             config=self.config,
-            auth=self.auth,
             fs=self.fs,
             files=queue,
             start_callbacks=start_callbacks,

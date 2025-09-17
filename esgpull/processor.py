@@ -7,7 +7,6 @@ from typing import TypeAlias
 from aiostream.stream import merge
 from httpx import AsyncClient, HTTPError
 
-from esgpull.auth import Auth
 from esgpull.config import Config
 from esgpull.download import DownloadCtx, Simple
 from esgpull.exceptions import DownloadSizeError
@@ -122,13 +121,11 @@ class Processor:
     def __init__(
         self,
         config: Config,
-        auth: Auth,
         fs: Filesystem,
         files: list[File],
         start_callbacks: dict[str, list[Callback]],
     ) -> None:
         self.config = config
-        self.auth = auth
         self.fs = fs
         self.files = list(filter(self.should_download, files))
         self.tasks: list[Task] = []
@@ -161,7 +158,6 @@ class Processor:
         semaphore = asyncio.Semaphore(self.config.download.max_concurrent)
         async with AsyncClient(
             follow_redirects=True,
-            cert=self.auth.cert,
             verify=self.ssl_context,
             timeout=self.config.download.http_timeout,
         ) as client:

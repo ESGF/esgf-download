@@ -83,20 +83,11 @@ def cast_value(
 
 @define
 class Paths:
-    auth: Path = field(converter=Path)
     data: Path = field(converter=Path)
     db: Path = field(converter=Path)
     log: Path = field(converter=Path)
     tmp: Path = field(converter=Path)
     plugins: Path = field(converter=Path)
-
-    @auth.default
-    def _auth_factory(self) -> Path:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return root / "auth"
 
     @data.default
     def _data_factory(self) -> Path:
@@ -139,7 +130,6 @@ class Paths:
         return root / "plugins"
 
     def values(self) -> Iterator[Path]:
-        yield self.auth
         yield self.data
         yield self.db
         yield self.log
@@ -214,7 +204,17 @@ def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
     return doc
 
 
-config_fixers = [fix_rename_search_api]
+def fix_remove_auth(doc: TOMLDocument) -> TOMLDocument:
+    if "paths" in doc and "auth" in doc["paths"]:
+        logger.warn(
+            "Deprecated 'paths.auth' is present in your config, "
+            "you can remove it safely."
+        )
+        doc["paths"].pop("auth")
+    return doc
+
+
+config_fixers = [fix_rename_search_api, fix_remove_auth]
 
 
 class ConfigKind(Enum):
