@@ -394,7 +394,7 @@ class Config(BaseSettings):
             case (ConfigKind.Partial | ConfigKind.Complete, _):
                 raise FileExistsError(self.config_file)
             case (ConfigKind.NoFile, _):
-                self.raw = self.model_dump()
+                self.raw = self.model_dump(mode="json")
             case _:
                 raise ValueError(self.kind)
         self.write()
