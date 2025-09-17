@@ -70,9 +70,11 @@ def test_generate_creates_serializable_config(root, config_path):
     with config_path.open("rb") as f:
         doc = tomlkit.load(f)
 
-    assert all(isinstance(value, str) for value in config.raw["paths"].values())
+    assert all(
+        isinstance(value, str) for value in config._raw["paths"].values()
+    )
     for key, value in doc["paths"].items():
-        assert str(value) == config.raw["paths"][key]
+        assert str(value) == config._raw["paths"][key]
 
 
 def test_dump_and_set_default_from_partial_config(root, config_path):
@@ -99,5 +101,5 @@ def test_dump_and_set_default_from_partial_config(root, config_path):
 
     assert old_value is True
     assert config.download.disable_ssl is False
-    assert "download" not in config.raw
+    assert "download" not in config._raw
     assert config.dump(with_defaults=False)["api"]["max_concurrent"] == 2

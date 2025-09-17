@@ -64,7 +64,7 @@ def config(
             if kind == ConfigKind.NoFile:
                 esg.ui.print(
                     ":+1: New config file created at "
-                    f"{esg.config.config_file}."
+                    f"{esg.config._config_file}."
                 )
             else:
                 esg.ui.print(f"Previous value: {old_value}")
@@ -82,7 +82,7 @@ def config(
             overwrite = False
             if esg.config.kind == ConfigKind.Complete:
                 esg.ui.print(
-                    f"{esg.config.config_file}\n"
+                    f"{esg.config._config_file}\n"
                     ":+1: Your config file is already complete."
                 )
                 esg.ui.raise_maybe_record(Exit(0))
@@ -92,9 +92,9 @@ def config(
             ):
                 overwrite = True
             esg.config.generate(overwrite=overwrite)
-            msg = f":+1: Config generated at {esg.config.config_file}"
+            msg = f":+1: Config generated at {esg.config._config_file}"
             esg.ui.print(msg)
         else:
-            esg.ui.rule(str(esg.config.config_file))
+            esg.ui.rule(str(esg.config._config_file))
             esg.ui.print(esg.config.dump(), toml=True)
         esg.ui.raise_maybe_record(Exit(0))
