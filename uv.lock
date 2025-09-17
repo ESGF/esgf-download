@@ -452,7 +452,7 @@ wheels = [
 
 [[package]]
 name = "esgpull"
-version = "0.9.4"
+version = "0.9.4+dev"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
