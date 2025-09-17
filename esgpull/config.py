@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator, Mapping
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Iterator, Mapping
+from typing import Any, TypeVar
 
 import tomlkit
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -20,6 +21,7 @@ from esgpull.install_config import InstallConfig
 from esgpull.models.options import Option, Options
 
 logger = logging.getLogger("esgpull")
+T = TypeVar("T")
 
 
 def _get_root() -> Path:
@@ -252,9 +254,7 @@ class TomlKitConfigSettingsSource(TomlConfigSettingsSource):
                     doc = fixer(doc)
                 except Exception:
                     raise BadConfigError(file_path)
-            doc = dict(doc)
-            doc["raw"] = doc
-            return doc
+            return dict(doc)
 
 
 class Config(BaseSettings):
@@ -269,16 +269,8 @@ class Config(BaseSettings):
     download: Download = Field(default_factory=Download)
     api: API = Field(default_factory=API)
     plugins: Plugins = Field(default_factory=Plugins)
-    raw: dict[str, Any] | None = Field(
-        default=None,
-        repr=False,
-        exclude=True,
-    )
-    config_file: Path | None = Field(
-        default=None,
-        repr=False,
-        exclude=True,
-    )
+    _raw: dict[str, Any] | None = PrivateAttr(default=None)
+    _config_file: Path | None = PrivateAttr(default=None)
 
     @classmethod
     def settings_customise_sources(
@@ -299,9 +291,16 @@ class Config(BaseSettings):
         try:
             file_path = path / CONFIG_FILENAME
             cls.model_config["toml_file"] = file_path
-            return cls(config_file=file_path)
+            instance = cls()
         finally:
             cls.model_config["toml_file"] = None
+        instance._config_file = file_path
+        if file_path.is_file():
+            with file_path.open("rb") as toml_file:
+                instance._raw = tomlkit.load(toml_file)
+        else:
+            instance._raw = None
+        return instance
 
     @classmethod
     def default(cls) -> Config:
@@ -312,9 +311,9 @@ class Config(BaseSettings):
 
     @property
     def kind(self) -> ConfigKind:
-        if self.config_file is None:
+        if self._config_file is None:
             return ConfigKind.Virtual
-        elif not self.config_file.is_file():
+        elif not self._config_file.is_file():
             return ConfigKind.NoFile
         elif self.unset_options():
             return ConfigKind.Partial
@@ -332,28 +331,23 @@ class Config(BaseSettings):
 
     def unset_options(self) -> list[ConfigKey]:
         result: list[ConfigKey] = []
-        raw: dict
         dump = self.model_dump()
-        if self.raw is None:
-            raw = {}
-        else:
-            raw = self.raw
         for ckey in iter_keys(dump):
-            if not ckey.exists_in(raw):
+            if not ckey.exists_in(self._raw):
                 result.append(ckey)
         return result
 
     def update_item(
         self,
         key: str,
-        value: Any,
+        value: T,
         empty_ok: bool = False,
-    ) -> Any:
-        if self.raw is None and empty_ok:
-            self.raw = {}
-        elif self.raw is None:
+    ) -> T:
+        if self._raw is None and empty_ok:
+            self._raw = {}
+        elif self._raw is None:
             raise VirtualConfigError
-        doc = self.raw
+        doc = self._raw
         obj = self
         ckey = ConfigKey(key)
         *parts, last = ckey
@@ -368,9 +362,9 @@ class Config(BaseSettings):
 
     def set_default(self, key: str) -> Any:
         ckey = ConfigKey(key)
-        if self.raw is None:
+        if self._raw is None:
             raise VirtualConfigError()
-        elif not ckey.exists_in(self.raw):
+        elif not ckey.exists_in(self._raw):
             return None
         default_config = Config()
         default_value: Any = ckey.value_of(default_config)
@@ -380,7 +374,7 @@ class Config(BaseSettings):
         parent_ckey = ConfigKey(parent_path)
         obj = parent_ckey.value_of(self)
         setattr(obj, last_key, default_value)
-        pop_and_clear_empty_parents(self.raw, ckey)
+        pop_and_clear_empty_parents(self._raw, ckey)
         return old_value
 
     def generate(self, overwrite: bool = False) -> None:
@@ -392,15 +386,16 @@ class Config(BaseSettings):
                 for ckey in self.unset_options():
                     self.update_item(str(ckey), ckey.value_of(defaults))
             case (ConfigKind.Partial | ConfigKind.Complete, _):
-                raise FileExistsError(self.config_file)
+                raise FileExistsError(self._config_file)
             case (ConfigKind.NoFile, _):
-                self.raw = self.model_dump(mode="json")
+                self._raw = self.model_dump(mode="json")
             case _:
                 raise ValueError(self.kind)
         self.write()
 
     def write(self) -> None:
-        if self.config_file is None or self.raw is None:
+        if self._config_file is None or self._raw is None:
             raise VirtualConfigError
-        with self.config_file.open("w") as f:
-            tomlkit.dump(self.raw, f)
+        self._config_file.parent.mkdir(parents=True, exist_ok=True)
+        with self._config_file.open("w") as f:
+            tomlkit.dump(self._raw, f)
