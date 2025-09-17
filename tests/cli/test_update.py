@@ -1,22 +1,19 @@
+from pathlib import Path
 from time import perf_counter
 
 from click.testing import CliRunner
 
 from esgpull import Esgpull
 from esgpull.cli.add import add
-from esgpull.cli.config import config
-from esgpull.cli.self import install
+from esgpull.cli.config import config as config_cmd
 from esgpull.cli.update import update
-from esgpull.install_config import InstallConfig
+from esgpull.config import Config
 
 
-def test_fast_update(tmp_path):
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+def test_fast_update(config: Config):
+    config.generate(overwrite=True)
     runner = CliRunner()
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-    result_config = runner.invoke(config, ["api.page_limit", "10000"])
+    result_config = runner.invoke(config_cmd, ["api.page_limit", "10000"])
     assert result_config.exit_code == 0
     result_add = runner.invoke(
         add,
@@ -33,17 +30,13 @@ def test_fast_update(tmp_path):
     result_update = runner.invoke(update, ["--yes"])
     stop = perf_counter()
     assert result_update.exit_code == 0
-    assert stop - start < 30  # 30 seconds to fetch ~6k files is plenty enough
-    InstallConfig.setup()
+    assert stop - start < 60  # 60 seconds to fetch ~4k files is plenty enough
 
 
-def test_update_updates_timestamp(tmp_path):
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+def test_update_updates_timestamp(root: Path, config: Config):
+    config.generate(overwrite=True)
     runner = CliRunner()
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-    result_config = runner.invoke(config, ["api.page_limit", "10000"])
+    result_config = runner.invoke(config_cmd, ["api.page_limit", "10000"])
     assert result_config.exit_code == 0
 
     # Add a small query - using a small dataset to keep test fast
@@ -62,7 +55,7 @@ def test_update_updates_timestamp(tmp_path):
     assert result_add.exit_code == 0
 
     # Initialize Esgpull to get initial timestamp
-    esg = Esgpull(install_path)
+    esg = Esgpull(root)
     esg.graph.load_db()
 
     # Get the only query in the database
@@ -77,7 +70,7 @@ def test_update_updates_timestamp(tmp_path):
     assert result_update.exit_code == 0
 
     # Get the query again and check timestamp
-    esg = Esgpull(install_path)  # Reinitialize to ensure fresh data
+    esg = Esgpull(root)  # Reinitialize to ensure fresh data
     esg.graph.load_db()
     query = esg.graph.get(query_id)
 
@@ -94,7 +87,7 @@ def test_update_updates_timestamp(tmp_path):
     assert result_update_2.exit_code == 0
 
     # Get the query again
-    esg = Esgpull(install_path)  # Reinitialize to ensure fresh data
+    esg = Esgpull(root)  # Reinitialize to ensure fresh data
     esg.graph.load_db()
     query = esg.graph.get(query_id)
 

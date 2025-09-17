@@ -1,29 +1,25 @@
 """End-to-end tests for dataset completion calculation."""
 
+from pathlib import Path
+
 import pytest
 from click.testing import CliRunner
 
 from esgpull import Esgpull
 from esgpull.cli.add import add
-from esgpull.cli.self import install
 from esgpull.cli.update import update
-from esgpull.install_config import InstallConfig
+from esgpull.config import Config
 from esgpull.models import File, FileStatus, Query
 
 
 @pytest.mark.slow
-def test_update_displays_dataset_completion(tmp_path):
+def test_update_displays_dataset_completion(root: Path, config: Config):
     """Test that show command displays dataset completion after update.
 
     Simple test: add query → update → check show displays "X / Y datasets"
     """
-    # Setup
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+    config.generate(overwrite=True)
     runner = CliRunner()
-
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
 
     # Add a small, stable query
     result_add = runner.invoke(
@@ -49,7 +45,7 @@ def test_update_displays_dataset_completion(tmp_path):
         pytest.skip(f"ESGF API unavailable: {e}")
 
     # Test: show should display dataset completion
-    esg = Esgpull(install_path)
+    esg = Esgpull(root)
     esg.graph.load_db()
 
     query_id = list(esg.graph._shas)[0]
@@ -71,25 +67,15 @@ def test_update_displays_dataset_completion(tmp_path):
         f"Should show dataset completion format in: {tree_str}"
     )
 
-    # Cleanup
-    InstallConfig.setup()
 
-
-def test_dataset_completion_with_orphaned_files(tmp_path):
+def test_dataset_completion_with_orphaned_files(root: Path, config: Config):
     """Test dataset completion calculation when files exist without corresponding datasets.
 
     This tests the edge case where files have dataset_ids but no Dataset records exist,
     which can happen with legacy data or incomplete updates.
     """
-    # Setup: Initialize esgpull installation
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
-    runner = CliRunner()
-
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-
-    esg = Esgpull(install_path)
+    config.generate(overwrite=True)
+    esg = Esgpull(root)
 
     # Create a query without updating (no datasets will be created)
     query = Query(
@@ -152,6 +138,3 @@ def test_dataset_completion_with_orphaned_files(tmp_path):
     assert "update for accurate datasets" in tree_str, (
         "Should show update hint"
     )
-
-    # Cleanup
-    InstallConfig.setup()
