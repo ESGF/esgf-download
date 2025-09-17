@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.20">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.e53b48f4.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -325,9 +325,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#login" class="md-nav__link">
+  <a href="#login-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
-      Login
+      Login (deprecated)
     </span>
   </a>
   
@@ -494,9 +494,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#login" class="md-nav__link">
+  <a href="#login-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
-      Login
+      Login (deprecated)
     </span>
   </a>
   
@@ -536,41 +536,40 @@
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>────────────────────────────────────────────────────────────────────────────────────────────────────────────────────<span class="w"> </span>/home/me/.esgpull/config.toml<span class="w"> </span>─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="o">[</span>paths<span class="o">]</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">auth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/auth&quot;</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/data&quot;</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nv">db</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/db&quot;</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nv">log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/log&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nv">tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/tmp&quot;</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="o">[</span>credentials<span class="o">]</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;credentials.toml&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="o">[</span>cli<span class="o">]</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nv">page_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="o">[</span>db<span class="o">]</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgpull.db&quot;</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="o">[</span>download<span class="o">]</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nv">chunk_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">67108864</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nv">disable_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="o">[</span>api<span class="o">]</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-node.ipsl.upmc.fr&quot;</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="o">[</span>api.default_options<span class="o">]</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="o">[</span>plugins<span class="o">]</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/data&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">db</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/db&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nv">log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/log&quot;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nv">tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/home/me/.esgpull/tmp&quot;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="o">[</span>credentials<span class="o">]</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;credentials.toml&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="o">[</span>cli<span class="o">]</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nv">page_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="o">[</span>db<span class="o">]</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="nv">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgpull.db&quot;</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="o">[</span>download<span class="o">]</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nv">chunk_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">67108864</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nv">disable_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="o">[</span>api<span class="o">]</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-node.ipsl.upmc.fr&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="o">[</span>api.default_options<span class="o">]</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="o">[</span>plugins<span class="o">]</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
 </code></pre></div>
 <p>To modify a config item from the command line, the dot-separated path to that item must
 be provided as the first argument along with the new value that item should get as the second argument:</p>
@@ -607,30 +606,12 @@ with default values for all missing options:</p>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>👍<span class="w"> </span>Config<span class="w"> </span>generated<span class="w"> </span>at<span class="w"> </span>/home/me/.esgpull/config.toml
 </code></pre></div></p>
 </div>
-<h2 id="login">Login<a class="headerlink" href="#login" title="Permanent link">&para;</a></h2>
-<p>Although most data on ESGF can be downloaded without authentication, some datasets require a valid OpenID login and password.</p>
-<p>The ESGF OpenID authentication system is described on the <a href="http://www.esgf.io/esgf-user-support/user_guide.html">ESGF user documentation</a>.</p>
-<p>This can be provided from the command line by running the following:</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>login
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>No<span class="w"> </span>credentials<span class="w"> </span>found.
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="w"> </span>esg-dn1.nsc.liu.se
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="o">[</span><span class="m">1</span><span class="o">]</span><span class="w"> </span>esgf-data.dkrz.de
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="o">[</span><span class="m">2</span><span class="o">]</span><span class="w"> </span>ceda.ac.uk
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="w"> </span>esgf-node.ipsl.upmc.fr
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="o">[</span><span class="m">4</span><span class="o">]</span><span class="w"> </span>esgf-node.llnl.gov
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="o">[</span><span class="m">5</span><span class="o">]</span><span class="w"> </span>esgf.nci.org.au
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>Select<span class="w"> </span>a<span class="w"> </span>provider:<span class="w"> </span><span class="m">0</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>User:<span class="w"> </span>MyESGFusername
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>Password:<span class="w"> </span>&lt;hidden&gt;
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>Certificates<span class="w"> </span>are<span class="w"> </span>missing.
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>👍<span class="w"> </span>Renewed<span class="w"> </span>successfully
-</code></pre></div></p>
-<p>The credentials will then be saved under the <code>~/.esgpull/auth</code> directory, within
-<code>credentials.toml</code>, which can then be used for future sessions.</p>
+<h2 id="login-deprecated">Login (deprecated)<a class="headerlink" href="#login-deprecated" title="Permanent link">&para;</a></h2>
+<p>Login is not longer required and has been removed from <code>esgpull</code>.
+Existing <code>auth</code> folder in esgpull installation folder can be removed safely.</p>
 <h2 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">&para;</a></h2>
 <p>Plugin functionality is disabled by default and can be enabled with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
 </code></pre></div>
 <p>Plugin-specific configurations are managed separately through the <code>esgpull plugins config</code> command and stored in a dedicated <code>plugins.toml</code> file. See the <a href="plugins">Plugins page</a> for more information.</p>
 
@@ -689,10 +670,10 @@ with default values for all missing options:</p>
     
     
       
-      <script id="__config" type="application/json">{"base": "..", "features": ["toc.follow", "header.autohide", "navigation.top", "navigation.instant", "content.tabs.link", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "..", "features": ["toc.follow", "header.autohide", "navigation.top", "navigation.instant", "content.tabs.link", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.50899def.min.js"></script>
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
       
     
   </body>
