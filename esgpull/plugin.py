@@ -12,9 +12,9 @@ from typing import Any, Callable, Literal
 
 import tomlkit
 from packaging import version
+from pydantic import TypeAdapter
 
 import esgpull.models
-from esgpull.config import cast_value
 from esgpull.tui import logger
 from esgpull.version import __version__
 
@@ -473,7 +473,8 @@ class PluginManager:
         # Update the value in both places
         if key in self.config.plugins[plugin_name]:
             old_value = self.config.plugins[plugin_name][key]
-            new_value = cast_value(old_value, value, key)
+            ta = TypeAdapter(type(old_value))
+            new_value = ta.validate_python(value)
             self.config.plugins[plugin_name][key] = new_value
             # Also update in _raw to keep in sync
             self.config._raw["plugins"][plugin_name][key] = new_value
