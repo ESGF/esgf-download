@@ -1,27 +1,34 @@
+from pathlib import Path
+
 import pytest
 
 from esgpull.config import Config
 from esgpull.constants import CONFIG_FILENAME
 from esgpull.install_config import InstallConfig
 from esgpull.models import File, FileStatus
+from tests.utils import CEDA_NODE
 
 
 @pytest.fixture
-def root(tmp_path):
+def root(tmp_path: Path):
+    InstallConfig.setup(install_path=tmp_path)
     idx = InstallConfig.add(tmp_path / "esgpull")
     InstallConfig.choose(idx=idx)
+    InstallConfig.write()
     return InstallConfig.installs[idx].path
 
 
 @pytest.fixture
-def config_path(root):
+def config_path(root: Path):
     return root / CONFIG_FILENAME
 
 
 @pytest.fixture
-def config(root):
+def config(root: Path):
     cfg = Config.load(root)
-    cfg.paths.db.mkdir(parents=True)
+    for p in cfg.paths.values():
+        p.mkdir(parents=True, exist_ok=True)
+    cfg.api.index_node = CEDA_NODE
     return cfg
 
 

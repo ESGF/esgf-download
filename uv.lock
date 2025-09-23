@@ -381,7 +381,6 @@ dependencies = [
     { name = "click" },
     { name = "click-params" },
     { name = "httpx" },
-    { name = "myproxyclient" },
     { name = "nest-asyncio" },
     { name = "packaging" },
     { name = "platformdirs" },
@@ -413,7 +412,6 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.3" },
     { name = "click-params", specifier = ">=0.4.0" },
     { name = "httpx", specifier = ">=0.23.0" },
-    { name = "myproxyclient", specifier = ">=2.1.0" },
     { name = "nest-asyncio", specifier = ">=1.5.6" },
     { name = "packaging", specifier = ">=25.0" },
     { name = "platformdirs", specifier = ">=2.6.2" },
@@ -831,19 +829,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
-]
-
-[[package]]
-name = "myproxyclient"
-version = "2.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyopenssl" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7e/07/532396a66141ea6293ddf4d9dc8fd6ba8bb839f9f5ff3b27fcc0a2a8c765/MyProxyClient-2.1.1.tar.gz", hash = "sha256:7e998f1cf2246abdd1fbeba067f87d00d7a18d3bc138334dd93ae9a5f5ae3e5e", size = 473970, upload-time = "2023-11-22T14:59:51.507Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/eb/c1da7480060e49273cb3cb57284f071fc9d2ebb485c2ccf076e9bacd360c/MyProxyClient-2.1.1-py3-none-any.whl", hash = "sha256:7e95927fec0e0981f1911aa8a766f77b81ecfd3a696a2bb7e20381c04649d9ae", size = 45401, upload-time = "2023-11-22T14:59:49.93Z" },
 ]
 
 [[package]]

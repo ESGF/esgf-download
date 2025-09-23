@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+from esgpull.cli.config import config as config_cmd
 from esgpull.cli.plugins import (
     config_plugin,
     create_plugin,
@@ -12,6 +13,7 @@ from esgpull.cli.plugins import (
     enable_plugin_cmd,
     list_plugins,
 )
+from esgpull.config import Config
 
 
 @pytest.fixture
@@ -35,28 +37,17 @@ def assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
-def test_plugins_list_command(tmp_path, assets_path):
+def test_plugins_list_command(root: Path, config: Config, assets_path: Path):
     """Test the 'esgpull plugins ls' command"""
-    import shutil
-
-    from esgpull.cli.config import config
-    from esgpull.cli.self import install
-    from esgpull.install_config import InstallConfig
-
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+    config.generate(overwrite=True)
     runner = CliRunner()
 
-    # Install esgpull
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-
     # Enable plugin system
-    result_config = runner.invoke(config, ["plugins.enabled", "true"])
+    result_config = runner.invoke(config_cmd, ["plugins.enabled", "true"])
     assert result_config.exit_code == 0
 
     # Copy sample plugin to plugins directory
-    plugins_dir = install_path / "plugins"
+    plugins_dir = root / "plugins"
     plugins_dir.mkdir(exist_ok=True)
     shutil.copy(assets_path / "sample_plugin.py", plugins_dir)
 
@@ -71,26 +62,14 @@ def test_plugins_list_command(tmp_path, assets_path):
     # Should contain JSON output with plugin info
     assert "sample_plugin" in result.output
 
-    # Clean up
-    InstallConfig.setup()
 
-
-def test_plugins_create_command(tmp_path):
+def test_plugins_create_command(root: Path, config: Config):
     """Test the 'esgpull plugins create' command"""
-    from esgpull.cli.config import config
-    from esgpull.cli.self import install
-    from esgpull.install_config import InstallConfig
-
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+    config.generate(overwrite=True)
     runner = CliRunner()
 
-    # Install esgpull
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-
     # Enable plugin system
-    result_config = runner.invoke(config, ["plugins.enabled", "true"])
+    result_config = runner.invoke(config_cmd, ["plugins.enabled", "true"])
     assert result_config.exit_code == 0
 
     # Test creating a plugin with specific events
@@ -101,7 +80,7 @@ def test_plugins_create_command(tmp_path):
     assert result.exit_code == 0
 
     # Verify plugin file was created
-    plugin_file = install_path / "plugins" / "test_plugin.py"
+    plugin_file = root / "plugins" / "test_plugin.py"
     assert plugin_file.exists()
 
     # Verify content contains expected handlers
@@ -118,7 +97,7 @@ def test_plugins_create_command(tmp_path):
     result = runner.invoke(create_plugin, ["--name", "all_events_plugin"])
     assert result.exit_code == 0
 
-    plugin_file_all = install_path / "plugins" / "all_events_plugin.py"
+    plugin_file_all = root / "plugins" / "all_events_plugin.py"
     assert plugin_file_all.exists()
 
     content_all = plugin_file_all.read_text()
@@ -131,32 +110,22 @@ def test_plugins_create_command(tmp_path):
     assert result.exit_code == 0
     assert "already exists" in result.output
 
-    # Clean up
-    InstallConfig.setup()
 
-
-def test_plugins_enable_disable_command(tmp_path, assets_path):
+def test_plugins_enable_disable_command(
+    root: Path,
+    config: Config,
+    assets_path: Path,
+):
     """Test the enable and disable plugin commands"""
-    import shutil
-
-    from esgpull.cli.config import config
-    from esgpull.cli.self import install
-    from esgpull.install_config import InstallConfig
-
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+    config.generate(overwrite=True)
     runner = CliRunner()
 
-    # Install esgpull
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-
     # Enable plugin system
-    result_config = runner.invoke(config, ["plugins.enabled", "true"])
+    result_config = runner.invoke(config_cmd, ["plugins.enabled", "true"])
     assert result_config.exit_code == 0
 
     # Copy sample plugin to plugins directory
-    plugins_dir = install_path / "plugins"
+    plugins_dir = root / "plugins"
     plugins_dir.mkdir(exist_ok=True)
     shutil.copy(assets_path / "sample_plugin.py", plugins_dir)
 
@@ -180,32 +149,18 @@ def test_plugins_enable_disable_command(tmp_path, assets_path):
     assert result.exit_code == 0
     assert "not found" in result.output
 
-    # Clean up
-    InstallConfig.setup()
 
-
-def test_plugins_config_command(tmp_path, assets_path):
+def test_plugins_config_command(root: Path, config: Config, assets_path: Path):
     """Test the plugin configuration command"""
-    import shutil
-
-    from esgpull.cli.config import config
-    from esgpull.cli.self import install
-    from esgpull.install_config import InstallConfig
-
-    InstallConfig.setup(tmp_path)
-    install_path = tmp_path / "esgpull"
+    config.generate(overwrite=True)
     runner = CliRunner()
 
-    # Install esgpull
-    result_install = runner.invoke(install, [f"{install_path}"])
-    assert result_install.exit_code == 0
-
     # Enable plugin system
-    result_config = runner.invoke(config, ["plugins.enabled", "true"])
+    result_config = runner.invoke(config_cmd, ["plugins.enabled", "true"])
     assert result_config.exit_code == 0
 
     # Copy sample plugin to plugins directory
-    plugins_dir = install_path / "plugins"
+    plugins_dir = root / "plugins"
     plugins_dir.mkdir(exist_ok=True)
     shutil.copy(assets_path / "sample_plugin.py", plugins_dir)
 
@@ -241,6 +196,3 @@ def test_plugins_config_command(tmp_path, assets_path):
     result = runner.invoke(config_plugin, ["nonexistent_plugin.option"])
     assert result.exit_code != 0
     assert "not found" in result.output
-
-    # Clean up
-    InstallConfig.setup()

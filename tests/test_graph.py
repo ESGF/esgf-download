@@ -3,8 +3,7 @@ import pytest
 from esgpull.database import Database
 from esgpull.graph import Graph
 from esgpull.models import Query
-
-from .utils import dict_equals_ignore
+from tests.utils import dict_equals_ignore
 
 
 @pytest.fixture
