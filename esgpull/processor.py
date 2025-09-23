@@ -10,7 +10,7 @@ from httpx import AsyncClient, HTTPError
 from esgpull.config import Config
 from esgpull.download import DownloadCtx, Simple
 from esgpull.exceptions import DownloadSizeError
-from esgpull.fs import Digest, Filesystem
+from esgpull.fs import Digest, FileCheck, Filesystem
 from esgpull.models import File
 from esgpull.result import Err, Ok, Result
 from esgpull.tui import logger
@@ -149,10 +149,7 @@ class Processor:
             self.tasks.append(task)
 
     def should_download(self, file: File) -> bool:
-        if self.fs[file].drs.is_file():
-            return False
-        else:
-            return True
+        return self.fs.check(file) not in {FileCheck.Ok, FileCheck.Done}
 
     async def process(self) -> AsyncIterator[Result[DownloadCtx]]:
         semaphore = asyncio.Semaphore(self.config.download.max_concurrent)
