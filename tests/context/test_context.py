@@ -320,7 +320,7 @@ def test_probe(
         ctx.probe()
 
 
-def test_bridge_exact_match_params(ctx):
+def test_bridge_exact_match_params(ctx: Context):
     query = Query(selection=dict(source_id="CESM2", variable_id="tas"))
     result = ctx.prepare_hits(
         query,
@@ -336,8 +336,8 @@ def test_bridge_exact_match_params(ctx):
     assert "query" not in params or params["query"] == ""
 
 
-def test_bridge_wildcard_query_param(ctx):
-    query = Query(selection=dict(source_id='CESM*', variable_id='tas*'))
+def test_bridge_wildcard_query_param(ctx: Context):
+    query = Query(selection=dict(source_id="CESM*", variable_id="tas*"))
     result = ctx.prepare_hits(
         query,
         file=False,
@@ -348,12 +348,12 @@ def test_bridge_wildcard_query_param(ctx):
     assert "query" in params
     assert "source_id" not in params
     assert "variable_id" not in params
-    assert 'source_id:CESM*' in params["query"]
-    assert 'variable_id:tas*' in params["query"]
+    assert "source_id:CESM*" in params["query"]
+    assert "variable_id:tas*" in params["query"]
 
 
-def test_bridge_mixed_exact_wildcard(ctx):
-    query = Query(selection=dict(source_id="CESM2", variable_id='tas*'))
+def test_bridge_mixed_exact_wildcard(ctx: Context):
+    query = Query(selection=dict(source_id="CESM2", variable_id="tas*"))
     result = ctx.prepare_hits(
         query,
         file=False,
@@ -364,11 +364,11 @@ def test_bridge_mixed_exact_wildcard(ctx):
     assert "source_id" in params
     assert params["source_id"] == "CESM2"
     assert "query" in params
-    assert 'variable_id:tas*' in params["query"]
+    assert "variable_id:tas*" in params["query"]
     assert "variable_id" not in params
 
 
-def test_bridge_multi_value_exact(ctx):
+def test_bridge_multi_value_exact(ctx: Context):
     query = Query(selection=dict(source_id=["CESM2", "CESM2-LENS2"]))
     result = ctx.prepare_hits(
         query,
@@ -382,7 +382,7 @@ def test_bridge_multi_value_exact(ctx):
     assert "query" not in params or params["query"] == ""
 
 
-def test_bridge_negated_query(ctx):
+def test_bridge_negated_query(ctx: Context):
     query = Query(selection=dict(**{"!institution_id": "IPSL"}))
     result = ctx.prepare_hits(
         query,
@@ -396,7 +396,7 @@ def test_bridge_negated_query(ctx):
     assert 'NOT (institution_id:"IPSL")' in params["query"]
 
 
-def test_bridge_mixed_wildcard_warning(ctx, caplog):
+def test_bridge_mixed_wildcard_warning(ctx: Context, caplog):
     query = Query(selection=dict(source_id=["CESM2", "CESM*"]))
     result = ctx.prepare_hits(
         query,
@@ -414,7 +414,7 @@ def test_bridge_mixed_wildcard_warning(ctx, caplog):
     )
 
 
-def test_solr_unchanged(ctx):
+def test_solr_unchanged(ctx: Context):
     query = Query(selection=dict(source_id="CESM2", variable_id="tas"))
     result = ctx.prepare_hits(
         query,
@@ -424,6 +424,6 @@ def test_solr_unchanged(ctx):
     params = dict(result.request.url.params.items())
 
     assert "query" in params
-    assert params['query'] == 'source_id:CESM2 AND variable_id:tas'
+    assert params["query"] == "source_id:CESM2 AND variable_id:tas"
     assert "source_id" not in params
     assert "variable_id" not in params
