@@ -190,6 +190,11 @@ class ApiBackend(Enum):
     solr = "solr"
     stac = "stac"
 
+    @staticmethod
+    def default() -> ApiBackend:
+        ## TODO: change to stac once it should be the default search engine
+        return ApiBackend.solr
+
 
 class Query(Base):
     __tablename__ = "query"
@@ -438,9 +443,11 @@ class Query(Base):
         result = self.clone(compute_sha=False)
         # if self.name != child.require:
         #     raise ValueError(f"{self.name} is not required by {child.name}")
-        if self.backend != child.backend:
+        backend = self.backend or ApiBackend.default()
+        child_backend = child.backend or ApiBackend.default()
+        if backend != child_backend:
             raise ValueError(
-                f"Incompatible backends for queries {self.name} and {child.name}"
+                f"Incompatible backends for queries {self.name} ({backend.name}) and {child.name} ({child_backend.name})"
             )
         for tag in child.tags:
             if tag not in result.tags:
@@ -482,8 +489,8 @@ class Query(Base):
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
-        if self.backend is not None:
-            title.append(f"\n| backend  {self.backend.value}")
+        backend = self.backend or ApiBackend.default()
+        title.append(f"\n│ backend  {backend.value}")
         title.append(
             f"\n│ added    {format_date_iso(self.added_at)}"
             f"\n│ updated  {format_date_iso(self.updated_at)}"

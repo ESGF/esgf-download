@@ -138,8 +138,15 @@ def search(
                 esg.ui.print(result.request.url)
             esg.ui.raise_maybe_record(Exit(0))
         if facets_hints:
+            if backend == ApiBackend.stac:
+                raise NotImplementedError(
+                    "`--facets` is not available with stac backend"
+                )
+            index = IndexNode(
+                value=esg.config.api.index_node,
+                backend=ApiBackend.solr,
+            )
             not_distrib_query = query << Query(options=dict(distrib=False))
-            index = IndexNode(esg.config.api.index_node)
             if index.is_bridge():
                 first_file_result = esg.context.search_as_queries(
                     not_distrib_query,
