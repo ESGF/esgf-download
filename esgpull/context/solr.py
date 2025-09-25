@@ -7,7 +7,6 @@ from collections.abc import AsyncIterator, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypeVar, overload
-from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -18,6 +17,7 @@ from httpx import AsyncClient, HTTPError, Request
 from rich.pretty import pretty_repr
 
 from esgpull.config import Config
+from esgpull.context.types import IndexNode
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
@@ -44,29 +44,6 @@ DangerousFacets = {
     "tracking_id",
     "url",
 }
-
-
-@dataclass
-class IndexNode:
-    value: str
-
-    def is_bridge(self) -> bool:
-        return "esgf-1-5-bridge" in self.value
-
-    @property
-    def url(self) -> str:
-        parsed = urlparse(self.value)
-        result: str
-        match (parsed.scheme, parsed.netloc, parsed.path, self.is_bridge()):
-            case ("", "", path, True):
-                result = "https://" + parsed.path
-            case ("", "", path, False):
-                result = "https://" + parsed.path + "/esg-search/search"
-            case _:
-                result = self.value
-        if "." not in result:
-            raise ValueError(self.value)
-        return result
 
 
 def quote_str(s: str) -> str:
