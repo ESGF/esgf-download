@@ -507,6 +507,8 @@ class Context:
             result.process()
             if result.processed:
                 hits.append(result.data)
+            else:
+                hits.append(0)
         return hits
 
     async def _hints(self, *results: ResultHints) -> list[HintsDict]:
