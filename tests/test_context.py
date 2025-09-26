@@ -1,3 +1,4 @@
+from contextlib import nullcontext as does_not_raise
 from time import perf_counter
 
 import pytest
@@ -290,3 +291,23 @@ def test_hits_never_empty(
     ctx.noraise = True
     hits = ctx.hits(*queries, file=file, index_node=index_node)
     assert len(hits) == len(queries)
+
+
+@pytest.mark.parametrize(
+    ("index_node", "exc"),
+    ## TODO: test bridge, but it is super slow
+    [
+        (IPSL_NODE, does_not_raise()),
+        (CEDA_NODE, does_not_raise()),
+        ("https://github.com", pytest.raises(Exception)),
+        ("not_a_real.url", pytest.raises(Exception)),
+    ],
+)
+def test_probe(
+    ctx: Context,
+    index_node: str,
+    exc,
+):
+    ctx.config.api.index_node = index_node
+    with exc:
+        ctx.probe()
