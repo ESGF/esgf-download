@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Coroutine, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 import esgvoc.api
 import httpx
@@ -22,19 +22,21 @@ from esgpull.utils import sync
 T = TypeVar("T")
 
 
-def to_property(name: str) -> dict[str, str]:
-    return {"property": "properties.cmip6:" + name}
+def to_property(name: str, prefix: str) -> dict[str, str]:
+    return {"property": f"properties.{prefix}:{name}"}
 
 
-def to_frequency(name: str) -> str:
-    return f"cmip6_{name}_frequency"
+def to_frequency(name: str, prefix: str) -> str:
+    return f"{prefix}_{name}_frequency"
 
 
-def from_frequency(freq: str) -> str:
-    return freq.removeprefix("cmip6_").removesuffix("_frequency")
+def from_frequency(freq: str, prefix: str) -> str:
+    return freq.removeprefix(f"{prefix}_").removesuffix("_frequency")
 
 
-def name_value_to_eq_or_like(name: str, value: str) -> dict[str, Any]:
+def name_value_to_eq_or_like(
+    name: str, value: str, prefix: str
+) -> dict[str, Any]:
     if name.startswith("!"):
         name = name.removeprefix("!")
         negate_filter = True
@@ -44,43 +46,69 @@ def name_value_to_eq_or_like(name: str, value: str) -> dict[str, Any]:
         filt = {
             "op": "like",
             "args": [
-                to_property(name),
+                to_property(name, prefix),
                 value.replace("*", "%"),
             ],
         }
     else:
         filt = {
             "op": "=",
-            "args": [to_property(name), value],
+            "args": [to_property(name, prefix), value],
         }
     if negate_filter:
         filt = {"op": "not", "args": [filt]}
     return filt
 
 
-# State machine approach: separate types for each step
+def get_projects(query: Query) -> list[str]:
+    sel = query.selection.asdict()
+    if "project" in sel:
+        projects = list(query.selection.project)
+    else:
+        projects = []
+    if len(projects) == 0:
+        raise ValueError(
+            f"{query}: `project` facet is required with stac backend"
+        )
+    return projects
 
 
-def format_query_to_stac_filter(query: Query) -> FilterLike:
-    all_name_values: list[dict[str, Any]] = []
-    for name, values in query.selection.items():
-        if len(values) > 1:
-            name_values = {
-                "op": "or",
-                "args": [
-                    name_value_to_eq_or_like(name, value) for value in values
-                ],
-            }
-        else:
-            name_values = name_value_to_eq_or_like(name, values[0])
-        all_name_values.append(name_values)
-    match all_name_values:
+def deduce_query_prefixes(query: Query) -> list[str]:
+    return [p.lower() for p in get_projects(query)]
+
+
+def merge_with_op(
+    filters: list[dict[str, Any]], op: Literal["or", "and"]
+) -> dict[str, Any]:
+    match filters:
         case []:
             return {}
         case [single_filter]:
             return single_filter
         case [*multiple_filters]:
-            return {"op": "and", "args": multiple_filters}
+            return {"op": op, "args": multiple_filters}
+
+
+def format_query_to_stac_filter(query: Query) -> FilterLike:
+    prefixes = deduce_query_prefixes(query)
+    filters: list[dict[str, Any]] = []
+    for prefix in prefixes:
+        project_filter: list[dict[str, Any]] = []
+        for name, values in query.selection.items():
+            if name == "project":
+                continue
+            values_filter = [
+                name_value_to_eq_or_like(name, value, prefix)
+                for value in values
+            ]
+            values_merged = merge_with_op(values_filter, op="or")
+            if values_merged:
+                project_filter.append(values_merged)
+        project_merged = merge_with_op(project_filter, op="and")
+        if project_merged:
+            filters.append(project_merged)
+    merged = merge_with_op(filters, op="or")
+    return merged
 
 
 class PreparedRequest(BaseModel):
@@ -159,9 +187,15 @@ def prepare_request(
     date_to: datetime | None = None,
     max_items: int | None = None,
 ) -> PreparedRequest:
+    projects = get_projects(query)
     stac_filter = format_query_to_stac_filter(query)
+    logger.info(f"{projects=}")
+    logger.info(f"{stac_filter=}")
     item_search = client.search(
-        filter=stac_filter, limit=page_limit, max_items=max_items
+        filter=stac_filter,
+        limit=page_limit,
+        max_items=max_items,
+        collections=projects,
     )
 
     return PreparedRequest(
@@ -218,12 +252,13 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
         # Map facets to aggregation field names
         facets_to_aggregate: list[str] = []
         for facet in request.facets:
-            frequency_field = to_frequency(facet)
-            if frequency_field not in aggregation_names:
-                raise ValueError(
-                    f"Missing aggregation field: {frequency_field}"
-                )
-            facets_to_aggregate.append(frequency_field)
+            for prefix in deduce_query_prefixes(request.query):
+                frequency_field = to_frequency(facet, prefix)
+                if frequency_field not in aggregation_names:
+                    raise ValueError(
+                        f"Missing aggregation field: {frequency_field}"
+                    )
+                facets_to_aggregate.append(frequency_field)
 
         # Make aggregation request
         payload = {
@@ -235,10 +270,11 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
 
         # Process the aggregation response
         data = {
-            from_frequency(x["name"]): {
+            from_frequency(x["name"], prefix): {
                 y["key"]: y["frequency"] for y in x["buckets"]
             }
             for x in resp.json()["aggregations"]
+            for prefix in deduce_query_prefixes(request.query)
         }
 
         return ProcessedHints(
