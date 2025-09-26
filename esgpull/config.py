@@ -4,130 +4,54 @@ import logging
 from collections.abc import Iterator, Mapping
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, TypeVar, Union, cast, overload
+from typing import Any, TypeVar
 
 import tomlkit
-from attrs import Factory, define, field
-from attrs import has as attrs_has
-from cattrs import Converter
-from cattrs.gen import make_dict_unstructure_fn, override
-from tomlkit import TOMLDocument
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
 
 from esgpull.constants import CONFIG_FILENAME
 from esgpull.exceptions import BadConfigError, VirtualConfigError
 from esgpull.install_config import InstallConfig
-from esgpull.models.options import Options
+from esgpull.models.options import Option, Options
 
 logger = logging.getLogger("esgpull")
-
 T = TypeVar("T")
 
 
-@overload
-def cast_value(
-    target: str, value: Union[str, int, bool, float], key: str
-) -> str: ...
-
-
-@overload
-def cast_value(
-    target: bool, value: Union[str, int, bool, float], key: str
-) -> bool: ...
-
-
-@overload
-def cast_value(
-    target: int, value: Union[str, int, bool, float], key: str
-) -> int: ...
-
-
-@overload
-def cast_value(
-    target: float, value: Union[str, int, bool, float], key: str
-) -> float: ...
-
-
-def cast_value(
-    target: Any, value: Union[str, int, bool, float], key: str
-) -> Any:
-    if isinstance(value, type(target)):
-        return value
-    elif attrs_has(type(target)):
-        raise KeyError(key)
-    elif isinstance(target, str):
-        return str(value)
-    elif isinstance(target, float):
-        try:
-            return float(value)
-        except Exception:
-            raise ValueError(value)
-    elif isinstance(target, bool):
-        if isinstance(value, str):
-            if value.lower() in ["on", "true"]:
-                return True
-            elif value.lower() in ["off", "false"]:
-                return False
-            else:
-                raise ValueError(value)
-        else:
-            raise TypeError(value)
-    elif isinstance(target, int):
-        # int must be after bool, because isinstance(True, int) == True
-        try:
-            return int(value)
-        except Exception:
-            raise ValueError(value)
+def _get_root() -> Path:
+    if InstallConfig.current is not None:
+        return InstallConfig.current.path
     else:
-        raise TypeError(value)
+        return InstallConfig.default
 
 
-@define
-class Paths:
-    data: Path = field(converter=Path)
-    db: Path = field(converter=Path)
-    log: Path = field(converter=Path)
-    tmp: Path = field(converter=Path)
-    plugins: Path = field(converter=Path)
+class Paths(BaseModel, validate_assignment=True, validate_default=True):
+    data: Path = Path("data")
+    db: Path = Path("db")
+    log: Path = Path("log")
+    tmp: Path = Path("tmp")
+    plugins: Path = Path("plugins")
 
-    @data.default
-    def _data_factory(self) -> Path:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return root / "data"
-
-    @db.default
-    def _db_factory(self) -> Path:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return root / "db"
-
-    @log.default
-    def _log_factory(self) -> Path:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return root / "log"
-
-    @tmp.default
-    def _tmp_factory(self) -> Path:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return root / "tmp"
-
-    @plugins.default
-    def _plugins_factory(self) -> Path:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return root / "plugins"
+    @field_validator(
+        "data",
+        "db",
+        "log",
+        "tmp",
+        "plugins",
+        mode="after",
+    )
+    @classmethod
+    def _set_path_from_root(cls, value: Path) -> Path:
+        root = _get_root()
+        if not value.is_absolute():
+            value = root / value
+        return value
 
     def values(self) -> Iterator[Path]:
         yield self.data
@@ -137,24 +61,20 @@ class Paths:
         yield self.plugins
 
 
-@define
-class Credentials:
+class Credentials(BaseModel, validate_assignment=True):
     filename: str = "credentials.toml"
 
 
-@define
-class Cli:
+class Cli(BaseModel, validate_assignment=True):
     page_size: int = 20
 
 
-@define
-class Db:
+class Db(BaseModel, validate_assignment=True):
     filename: str = "esgpull.db"
 
 
-@define
-class Download:
-    chunk_size: int = 1 << 26  # 64 MiB
+class Download(BaseModel, validate_assignment=True):
+    chunk_size: int = 1 << 26
     http_timeout: int = 20
     max_concurrent: int = 5
     disable_ssl: bool = False
@@ -162,12 +82,21 @@ class Download:
     show_filename: bool = False
 
 
-@define
-class DefaultOptions:
+class DefaultOptions(BaseModel, validate_assignment=True):
     distrib: str = Options._distrib_.name
     latest: str = Options._latest_.name
     replica: str = Options._replica_.name
     retracted: str = Options._retracted_.name
+
+    @field_validator(
+        "distrib", "latest", "replica", "retracted", mode="before"
+    )
+    @classmethod
+    def _is_valid_option(cls, value: str | Option) -> str:
+        if isinstance(value, str):
+            return Option(value.lower()).name
+        else:
+            return value.name
 
     def asdict(self) -> dict[str, str]:
         return dict(
@@ -178,43 +107,18 @@ class DefaultOptions:
         )
 
 
-@define
-class API:
+class API(BaseModel, validate_assignment=True):
     index_node: str = "esgf-node.ipsl.upmc.fr"
     http_timeout: int = 20
     max_concurrent: int = 5
     page_limit: int = 50
-    default_options: DefaultOptions = Factory(DefaultOptions)
+    default_options: DefaultOptions = Field(default_factory=DefaultOptions)
     default_query_id: str = ""
     use_custom_distribution_algorithm: bool = False
 
 
-def fix_rename_search_api(doc: TOMLDocument) -> TOMLDocument:
-    if "api" in doc and "search" in doc:
-        raise KeyError(
-            "Both 'api' and 'search' (deprecated) are used in your "
-            "config, please use 'api' only."
-        )
-    elif "search" in doc:
-        logger.warn(
-            "Deprecated key 'search' is used in your config, "
-            "please use 'api' instead."
-        )
-        doc["api"] = doc.pop("search")
-    return doc
-
-
-def fix_remove_auth(doc: TOMLDocument) -> TOMLDocument:
-    if "paths" in doc and "auth" in doc["paths"]:
-        logger.warn(
-            "Deprecated 'paths.auth' is present in your config, "
-            "you can remove it safely."
-        )
-        doc["paths"].pop("auth")
-    return doc
-
-
-config_fixers = [fix_rename_search_api, fix_remove_auth]
+class Plugins(BaseModel, validate_assignment=True):
+    enabled: bool = False
 
 
 class ConfigKind(Enum):
@@ -227,9 +131,13 @@ class ConfigKind(Enum):
 class ConfigKey:
     path: tuple[str, ...]
 
-    def __init__(self, first: str | tuple[str, ...], *rest: str) -> None:
-        if isinstance(first, tuple):
-            self.path = first + rest
+    def __init__(
+        self,
+        first: str | tuple[str, ...] | list[str],
+        *rest: str,
+    ) -> None:
+        if isinstance(first, (tuple, list)):
+            self.path = tuple(first) + rest
         elif "." in first:
             self.path = tuple(first.split(".")) + rest
         else:
@@ -239,7 +147,14 @@ class ConfigKey:
         yield from self.path
 
     def __hash__(self) -> int:
-        return hash(self.path)
+        return hash(str(self.path))
+
+    def __eq__(self, other: object) -> bool:
+        match other:
+            case ConfigKey():
+                return self.path == other.path
+            case _:
+                raise TypeError(type(other))
 
     def __repr__(self) -> str:
         return ".".join(self)
@@ -261,11 +176,39 @@ class ConfigKey:
                 return False
         return True
 
-    def value_of(self, source: Mapping) -> Any:
+    def value_of(self, source: Any) -> Any:
         doc = source
         for key in self:
-            doc = doc[key]
+            try:
+                doc = doc[key]
+            except TypeError:
+                doc = getattr(doc, key)
         return doc
+
+
+def fix_rename_search_api(doc: dict) -> dict:
+    if "api" in doc and "search" in doc:
+        raise KeyError(
+            "Both 'api' and 'search' (deprecated) are used in your "
+            "config, please use 'api' only."
+        )
+    elif "search" in doc:
+        logger.warn(
+            "Deprecated key 'search' is used in your config, "
+            "please use 'api' instead."
+        )
+        doc["api"] = doc.pop("search")
+    return doc
+
+
+def fix_remove_auth(doc: dict) -> dict:
+    if "paths" in doc and "auth" in doc["paths"]:
+        logger.warn(
+            "Deprecated 'paths.auth' is present in your config, "
+            "you can remove it safely."
+        )
+        doc["paths"].pop("auth")
+    return doc
 
 
 def iter_keys(
@@ -283,52 +226,88 @@ def iter_keys(
             yield local_path
 
 
-@define
-class Plugins:
-    """Configuration for the plugin system"""
+def pop_and_clear_empty_parents(source: Mapping, ckey: ConfigKey):
+    *parent_path, last_key = ckey.path
+    parent_ckey = ConfigKey(parent_path)
+    parent_ckey.value_of(source).pop(last_key)
 
-    enabled: bool = False
+    for i in range(len(parent_path), 0, -1):
+        parent_ckey = ConfigKey(parent_path[: i - 1])
+        container_ckey = ConfigKey(parent_path[:i])
+        parent = parent_ckey.value_of(source)
+        container = container_ckey.value_of(source)
+        if isinstance(container, dict) and len(container) == 0:
+            parent.pop(container_ckey.path[-1])
+        else:
+            break  # Stop if we hit a non-empty container
 
 
-@define
-class Config:
-    paths: Paths = Factory(Paths)
-    credentials: Credentials = Factory(Credentials)
-    cli: Cli = Factory(Cli)
-    db: Db = Factory(Db)
-    download: Download = Factory(Download)
-    api: API = Factory(API)
-    plugins: Plugins = Factory(Plugins)
-    _raw: TOMLDocument | None = field(init=False, default=None)
-    _config_file: Path | None = field(init=False, default=None)
+config_fixers = [fix_rename_search_api, fix_remove_auth]
+
+
+class TomlKitConfigSettingsSource(TomlConfigSettingsSource):
+    def _read_file(self, file_path: Path) -> dict[str, Any]:
+        with open(file_path, mode="rb") as toml_file:
+            doc = tomlkit.load(toml_file)
+            for fixer in config_fixers:
+                try:
+                    doc = fixer(doc)
+                except Exception:
+                    raise BadConfigError(file_path)
+            return dict(doc)
+
+
+class Config(BaseSettings):
+    # TODO: set in a load method instead
+    # model_config = SettingsConfigDict(toml_file=_get_root() / "config.toml")
+    model_config = SettingsConfigDict(toml_file=None)
+
+    paths: Paths = Field(default_factory=Paths)
+    credentials: Credentials = Field(default_factory=Credentials)
+    cli: Cli = Field(default_factory=Cli)
+    db: Db = Field(default_factory=Db)
+    download: Download = Field(default_factory=Download)
+    api: API = Field(default_factory=API)
+    plugins: Plugins = Field(default_factory=Plugins)
+    _raw: dict[str, Any] | None = PrivateAttr(default=None)
+    _config_file: Path | None = PrivateAttr(default=None)
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            TomlKitConfigSettingsSource(settings_cls),
+        )
 
     @classmethod
     def load(cls, path: Path) -> Config:
-        config_file = path / CONFIG_FILENAME
-        if config_file.is_file():
-            with config_file.open() as fh:
-                doc = tomlkit.load(fh)
-                for fixer in config_fixers:
-                    try:
-                        doc = fixer(doc)
-                    except Exception:
-                        raise BadConfigError(config_file)
-                raw = doc
+        try:
+            file_path = path / CONFIG_FILENAME
+            cls.model_config["toml_file"] = file_path
+            instance = cls()
+        finally:
+            cls.model_config["toml_file"] = None
+        instance._config_file = file_path
+        if file_path.is_file():
+            with file_path.open("rb") as toml_file:
+                instance._raw = tomlkit.load(toml_file)
         else:
-            doc = TOMLDocument()
-            raw = None
-        config = _converter_defaults.structure(doc, cls)
-        config._raw = raw
-        config._config_file = config_file
-        return config
+            instance._raw = None
+        return instance
 
     @classmethod
     def default(cls) -> Config:
-        if InstallConfig.current is not None:
-            root = InstallConfig.current.path
-        else:
-            root = InstallConfig.default
-        return cls.load(root)
+        ## TODO: rename+deprecate
+        ## very bad name since this is loading from the **default** config
+        ## file path, as set in InstallConfig
+        return cls.load(path=_get_root())
 
     @property
     def kind(self) -> ConfigKind:
@@ -341,145 +320,82 @@ class Config:
         else:
             return ConfigKind.Complete
 
-    def dumps(self, defaults: bool = True, comments: bool = False) -> str:
-        return self.dump(defaults, comments).as_string()
+    def dump(self, with_defaults: bool = True) -> dict:
+        result = self.model_dump(mode="json")
+        if not with_defaults:
+            unset = set(self.unset_options())
+            for ckey in iter_keys(self.model_dump()):
+                if ckey in unset:
+                    pop_and_clear_empty_parents(result, ckey)
+        return result
 
-    def dump(
-        self,
-        defaults: bool = True,
-        comments: bool = False,
-    ) -> TOMLDocument:
-        if defaults:
-            converter = _converter_defaults
-        else:
-            converter = _converter_no_defaults
-        dump = converter.unstructure(self)
-        if not defaults:
-            pop_empty(dump)
-        doc = TOMLDocument()
-        doc.update(dump)
-        # if comments and self._raw is not None:
-        #     original = tomlkit.loads(self._raw)
-        return doc
+    def unset_options(self) -> list[ConfigKey]:
+        result: list[ConfigKey] = []
+        dump = self.model_dump()
+        for ckey in iter_keys(dump):
+            if not ckey.exists_in(self._raw):
+                result.append(ckey)
+        return result
 
     def update_item(
         self,
         key: str,
-        value: str | int | bool,
+        value: T,
         empty_ok: bool = False,
-    ) -> int | str | None:
+    ) -> T:
         if self._raw is None and empty_ok:
-            self._raw = TOMLDocument()
-        if self._raw is None:
+            self._raw = {}
+        elif self._raw is None:
             raise VirtualConfigError
-        else:
-            doc: dict = self._raw
+        doc = self._raw
         obj = self
-        *parts, last = ConfigKey(key)
+        ckey = ConfigKey(key)
+        *parts, last = ckey
         for part in parts:
             doc.setdefault(part, {})
             doc = doc[part]
             obj = getattr(obj, part)
         old_value = getattr(obj, last)
-        value = cast_value(old_value, value, key)
         setattr(obj, last, value)
         doc[last] = value
         return old_value
 
-    def set_default(self, key: str) -> int | str | None:
+    def set_default(self, key: str) -> Any:
         ckey = ConfigKey(key)
         if self._raw is None:
             raise VirtualConfigError()
         elif not ckey.exists_in(self._raw):
             return None
-        default_config = self.__class__()
-        default_value = ckey.value_of(default_config.dump())
-        old_value: Any = ckey.value_of(self.dump())
-        first_pass = True
-        obj = self
-        for idx in range(len(ckey), 0, -1):
-            *parts, last = ckey.path[:idx]
-            doc: tomlkit.container.Container = self._raw
-            for part in parts:
-                if first_pass:
-                    obj = getattr(obj, part)
-                doc = cast(tomlkit.container.Container, doc[part])
-            if first_pass:
-                doc.remove(last)
-                setattr(obj, last, default_value)
-                first_pass = False
-            elif (
-                (value := doc[last])
-                and isinstance(value, tomlkit.container.Container)
-                and len(value) == 0
-            ):
-                doc.remove(last)
+        default_config = Config()
+        default_value: Any = ckey.value_of(default_config)
+        old_value: Any = ckey.value_of(self)
+
+        *parent_path, last_key = ckey.path
+        parent_ckey = ConfigKey(parent_path)
+        obj = parent_ckey.value_of(self)
+        setattr(obj, last_key, default_value)
+        pop_and_clear_empty_parents(self._raw, ckey)
         return old_value
 
-    def unset_options(self) -> list[ConfigKey]:
-        result: list[ConfigKey] = []
-        raw: dict
-        dump = self.dump()
-        if self._raw is None:
-            raw = {}
-        else:
-            raw = self._raw
-        for ckey in iter_keys(dump):
-            if not ckey.exists_in(raw):
-                result.append(ckey)
-        return result
-
-    def generate(
-        self,
-        overwrite: bool = False,
-    ) -> None:
+    def generate(self, overwrite: bool = False) -> None:
         match (self.kind, overwrite):
             case (ConfigKind.Virtual, _):
                 raise VirtualConfigError
             case (ConfigKind.Partial, overwrite):
-                defaults = self.dump()
+                defaults = self.model_dump()
                 for ckey in self.unset_options():
                     self.update_item(str(ckey), ckey.value_of(defaults))
             case (ConfigKind.Partial | ConfigKind.Complete, _):
                 raise FileExistsError(self._config_file)
             case (ConfigKind.NoFile, _):
-                self._raw = self.dump()
+                self._raw = self.model_dump(mode="json")
             case _:
                 raise ValueError(self.kind)
         self.write()
 
     def write(self) -> None:
-        if self.kind == ConfigKind.Virtual or self._raw is None:
+        if self._config_file is None or self._raw is None:
             raise VirtualConfigError
-        config_file = cast(Path, self._config_file)
-        with config_file.open("w") as f:
+        self._config_file.parent.mkdir(parents=True, exist_ok=True)
+        with self._config_file.open("w") as f:
             tomlkit.dump(self._raw, f)
-
-
-def _make_converter(omit_default: bool) -> Converter:
-    conv = Converter(omit_if_default=omit_default, forbid_extra_keys=True)
-    conv.register_unstructure_hook(Path, str)
-    conv.register_unstructure_hook(
-        Config,
-        make_dict_unstructure_fn(
-            Config,
-            conv,
-            _raw=override(omit=True),
-            _config_file=override(omit=True),
-        ),
-    )
-    return conv
-
-
-_converter_defaults = _make_converter(omit_default=False)
-_converter_no_defaults = _make_converter(omit_default=True)
-
-
-def pop_empty(d: dict[str, Any]) -> None:
-    keys = list(d.keys())
-    for key in keys:
-        value = d[key]
-        if isinstance(value, dict):
-            pop_empty(value)
-            if not value:
-                d.pop(key)
