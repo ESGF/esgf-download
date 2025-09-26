@@ -241,3 +241,52 @@ def test_index2url(index: str, url: str, is_bridge: bool):
         index_node = IndexNode(value=value)
         assert index_node.url == url
         assert index_node.is_bridge() == is_bridge
+
+
+@pytest.mark.parametrize(
+    "queries",
+    [
+        [],
+        [Query()],
+        [
+            Query(
+                selection=dict(
+                    project="CMIP6",
+                    institution_id="IPSL",
+                    variable_id="uv",
+                )
+            )
+        ],
+        [
+            Query(),
+            Query(
+                selection=dict(
+                    project="CMIP6",
+                    institution_id="IPSL",
+                    variable_id="uv",
+                )
+            ),
+        ],
+        [Query(selection=dict(project="notaproject"))],
+    ],
+)
+@pytest.mark.parametrize("file", [True, False])
+@pytest.mark.parametrize(
+    "index_node",
+    ## TODO: test bridge, but it is super slow
+    [
+        IPSL_NODE,
+        CEDA_NODE,
+        "https://github.com",
+        "not_a_real.url",
+    ],
+)
+def test_hits_never_empty(
+    ctx: Context,
+    queries: tuple[Query],
+    file: bool,
+    index_node: str,
+):
+    ctx.noraise = True
+    hits = ctx.hits(*queries, file=file, index_node=index_node)
+    assert len(hits) == len(queries)
