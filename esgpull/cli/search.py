@@ -99,6 +99,7 @@ def search(
             esg.ui.raise_maybe_record(Exit(0))
         esg.graph.add(query, force=True)
         query = esg.graph.expand(query.sha)
+        esg.context.probe()
         hits = esg.context.hits(
             query,
             file=file,

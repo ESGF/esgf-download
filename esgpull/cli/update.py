@@ -78,6 +78,7 @@ def update(
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             esg.ui.raise_maybe_record(Exit(0))
+        esg.context.probe()
         hints = esg.context.hints(
             *[qf.expanded for qf in qfs],
             file=True,
