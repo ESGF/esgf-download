@@ -84,6 +84,13 @@ Commands:
 * [ESGF Webinar: An Introduction to esgpull, A Replacement for Synda](https://www.youtube.com/watch?v=xv2RVMd1iCA)
 
 
+## Acknowledgements
+
+The development of esgpull has been funded by:
+
+- **IS-ENES3** (Infrastructure for the European Network for the Earth System Modelling - Phase 3) - 2022-2023
+- **Copernicus Climate Change Service (C3S)** - Contracts C3S2_380 and C3S2_382
+
 ## Contributions
 
 You can use the common github workflow (through pull requests and issues) to contribute.
