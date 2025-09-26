@@ -1,9 +1,14 @@
+from contextlib import nullcontext as does_not_raise
 from time import perf_counter
 
 import pytest
 
 from esgpull.config import Config
-from esgpull.context.stac import StacContext
+from esgpull.context.stac import (
+    StacContext,
+    format_query_to_stac_filter,
+    get_projects,
+)
 from esgpull.models import Query
 
 empty = Query()
@@ -69,3 +74,93 @@ def test_ignore_facet_hits(ctx: StacContext, query_all: Query):
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
     assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
     assert hits_all == hits_ipsl + hits_not_ipsl
+
+
+@pytest.mark.parametrize(
+    ("selection", "expected", "exc"),
+    [
+        ({}, [], pytest.raises(ValueError)),
+        ({"variable_id": "tas"}, [], pytest.raises(ValueError)),
+        ({"project": "CMIP6"}, ["CMIP6"], does_not_raise()),
+        (
+            {"project": "CMIP6", "variable_id": "tas"},
+            ["CMIP6"],
+            does_not_raise(),
+        ),
+        (
+            {"project": ["CMIP6", "CMIP7"]},
+            ["CMIP6", "CMIP7"],
+            does_not_raise(),
+        ),
+        (
+            {"project": ["CMIP6", "CMIP7"], "variable_id": "tas"},
+            ["CMIP6", "CMIP7"],
+            does_not_raise(),
+        ),
+    ],
+)
+def test_get_projects(selection: dict, expected: list[str], exc):
+    query = Query(selection=selection)
+    with exc:
+        projects = get_projects(query)
+        assert projects == expected
+
+
+@pytest.mark.parametrize(
+    ("selection", "expected", "exc"),
+    [
+        ({}, {}, pytest.raises(ValueError)),
+        ({"variable_id": "tas"}, {}, pytest.raises(ValueError)),
+        ({"project": "CMIP6"}, {}, does_not_raise()),
+        (
+            {"project": "CMIP6", "variable_id": "tas"},
+            {
+                "args": [
+                    {
+                        "property": "properties.cmip6:variable_id",
+                    },
+                    "tas",
+                ],
+                "op": "=",
+            },
+            does_not_raise(),
+        ),
+        (
+            {"project": ["CMIP6", "CMIP7"]},
+            {},
+            does_not_raise(),
+        ),
+        (
+            {"project": ["CMIP6", "CMIP7"], "variable_id": "tas"},
+            {
+                "args": [
+                    {
+                        "args": [
+                            {
+                                "property": "properties.cmip6:variable_id",
+                            },
+                            "tas",
+                        ],
+                        "op": "=",
+                    },
+                    {
+                        "args": [
+                            {
+                                "property": "properties.cmip7:variable_id",
+                            },
+                            "tas",
+                        ],
+                        "op": "=",
+                    },
+                ],
+                "op": "or",
+            },
+            does_not_raise(),
+        ),
+    ],
+)
+def test_format_query_to_stac_filter(selection: dict, expected: dict, exc):
+    query = Query(selection=selection)
+    with exc:
+        stac_filter = format_query_to_stac_filter(query)
+        assert stac_filter == expected
