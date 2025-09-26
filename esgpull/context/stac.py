@@ -211,10 +211,13 @@ def prepare_request(
 
 def process_hits(request: PreparedRequest) -> ProcessedHits:
     try:
-        count = request.item_search.matched()
+        count: int | None = request.item_search.matched()
         if count is None:
-            page = next(request.item_search.pages_as_dicts())
-            count = page.get("numMatched", 0)
+            try:
+                page = next(request.item_search.pages_as_dicts())
+                count = page.get("numMatched", 0)
+            except StopIteration:
+                count = 0
         if count is None:
             raise NotImplementedError("API did not give back a count")
         return ProcessedHits(
