@@ -68,7 +68,10 @@ class IndexNode:
 
 
 def quote_str(s: str) -> str:
-    if not s.startswith('"') and not s.endswith('"'):
+    if "*" in s:
+        # don't quote when `*` is present, quotes enforce exact match
+        return s
+    elif not s.startswith('"') and not s.endswith('"'):
         return f'"{s}"'
     else:
         return s
