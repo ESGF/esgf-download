@@ -125,17 +125,36 @@ def search(
             max_hits = nb
         ids = range(offset, offset + max_hits)
         if dry_run:
-            search_results = esg.context.prepare_search(
-                query,
-                file=file,
-                hits=hits,
-                offset=offset,
-                max_hits=max_hits,
-                date_from=date_from,
-                date_to=date_to,
-            )
-            for result in search_results:
-                esg.ui.print(result.request.url)
+            match query.backend:
+                case ApiBackend.solr:
+                    search_results = esg.context._solr.prepare_search(
+                        query,
+                        file=file,
+                        hits=hits,
+                        offset=offset,
+                        max_hits=max_hits,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    for result in search_results:
+                        esg.ui.print(result.request.url)
+                case ApiBackend.stac:
+                    search_results = esg.context._stac.prepare_search(
+                        query,
+                        file=file,
+                        hits=hits,
+                        offset=offset,
+                        max_hits=max_hits,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    for result in search_results:
+                        esg.ui.print(result.item_search.url_with_parameters())
+                        print()
+                        esg.ui.print(result.item_search.url)
+                        esg.ui.print(
+                            result.item_search.get_parameters(), json=True
+                        )
             esg.ui.raise_maybe_record(Exit(0))
         if facets_hints:
             if backend == ApiBackend.stac:
