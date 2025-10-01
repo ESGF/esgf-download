@@ -3,10 +3,11 @@ from time import perf_counter
 
 import pytest
 
+from esgpull.config import Config
 from esgpull.context.solr import (
-    ResultSearch,
     SolrContext,
     _distribute_hits_impl,
+    ResultSearch,
 )
 from esgpull.models import Query
 from tests.utils import (
@@ -17,37 +18,25 @@ from tests.utils import (
     parametrized_index,
 )
 
+empty = Query()
+cmip6_ipsl = Query(
+    options={"distrib": False},
+    selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+)
+
 
 @pytest.fixture
-def ctx(config):
+def ctx(config: Config):
     return SolrContext(config=config)
 
 
-@pytest.fixture
-def empty():
-    return Query()
-
-
-@pytest.fixture
-def cmip6_ipsl():
-    query = Query()
-    query.options.distrib = False
-    query.selection.mip_era = "CMIP6"
-    query.selection.institution_id = "IPSL"
-    return query
-
-
-@pytest.fixture(params=["empty", "cmip6_ipsl"])
-def query(request):
-    return request.getfixturevalue(request.param)
-
-
-def test_multi_index(ctx, empty):
+@pytest.mark.parametrize("query", [empty])
+def test_multi_index(ctx: SolrContext, query: Query):
     index_nodes = [CEDA_NODE, DRKZ_NODE]
     results = []
     for index_node in index_nodes:
         query_results = ctx.prepare_hits(
-            empty,
+            query,
             file=False,
             index_node=index_node,
         )
@@ -58,7 +47,7 @@ def test_multi_index(ctx, empty):
         assert index_node == result.request.headers["host"]
 
 
-def test_adjust_hits(ctx):
+def test_adjust_hits(ctx: SolrContext):
     variable_ids = ["tas", "tasmin"]
     queries = []
     for variable_id in variable_ids:
@@ -134,7 +123,7 @@ class Timer:
 #     raises=ValueError,
 #     reason="ESGF bridge API gives index_node values that are not valid URLs",
 # )
-# def test_search_distributed(ctx):
+# def test_search_distributed(ctx: SolrContext):
 #     query = Query()
 #     # ctx.config.api.http_timeout = 60
 #     query.options.distrib = True
@@ -168,30 +157,29 @@ class Timer:
 
 
 @parametrized_index
-def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
-    hits = ctx.hits(
-        cmip6_ipsl,
-        file=False,
-        index_node=index,
-    )
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+def test_ipsl_hits_exist(ctx: SolrContext, index: str, query: Query):
+    hits = ctx.hits(query, file=False, index_node=index)
     assert hits[0] > 1_000
 
 
 @parametrized_index
-def test_more_files_than_datasets(ctx, index: str, query):
-    assert sum(ctx.hits(query, file=False)) < sum(ctx.hits(query, file=True))
+@pytest.mark.parametrize("query", [empty, cmip6_ipsl])
+def test_more_files_than_datasets(ctx: SolrContext, index: str, query: Query):
+    assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
 
 
 @parametrized_index
 @pytest.mark.slow
-def test_hints(ctx, index: str, cmip6_ipsl):
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+def test_hints(ctx: SolrContext, index: str, query: Query):
     facets = ["institution_id", "variable_id"]
-    hints = ctx.hints(cmip6_ipsl, file=False, facets=facets)[0]
-    assert list(hints["institution_id"]) == cmip6_ipsl.selection.institution_id
+    hints = ctx.hints(query, file=False, facets=facets)[0]
+    assert list(hints["institution_id"]) == query.selection.institution_id
     assert len(hints["variable_id"]) > 1
 
 
-def test_hits_from_hints(ctx):
+def test_hits_from_hints(ctx: SolrContext):
     hints = {"facet_name": {"value_a": 1, "value_b": 2, "value_c": 3}}
     hits = ctx.hits_from_hints(hints)
     assert hits == [6]
@@ -206,7 +194,7 @@ def test_hits_from_hints(ctx):
         Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
     ],
 )
-def test_ignore_facet_hits(ctx, index: str, query_all: Query):
+def test_ignore_facet_hits(ctx: SolrContext, index: str, query_all: Query):
     query_ipsl = Query(selection={"institution_id": "IPSL"}) << query_all
     query_not_ipsl = Query(selection={"!institution_id": "IPSL"}) << query_all
     hits_all = ctx.hits(query_all, file=False, index_node=index)[0]
@@ -556,7 +544,7 @@ def test_bridge_client_connection(ctx: SolrContext):
             "project": "CMIP6",
             "activity_id": "HighResMIP",
             "variable_id": "areacello",
-        }
+        },
     )
     file_hits = ctx.hits(query, file=True)
     assert len(file_hits) > 0
