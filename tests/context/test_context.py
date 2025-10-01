@@ -7,10 +7,14 @@ from esgpull.context import Context
 from esgpull.models import ApiBackend, Query
 from tests.utils import CEDA_NODE, parametrized_index
 
-empty = Query()
-cmip6_ipsl = Query(
-    options={"distrib": False},
-    selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+base_project = Query(selection={"project": "CMIP6"})
+empty = Query() << base_project
+cmip6_ipsl = (
+    Query(
+        options={"distrib": False},
+        selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+    )
+    << base_project
 )
 
 
@@ -146,9 +150,10 @@ def test_hints(ctx: Context, index: str, query: Query, backend: ApiBackend):
 @pytest.mark.parametrize(
     "query_all",
     [
-        Query(),
-        Query(selection={"variable_id": "tas"}),
-        Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
+        Query() << base_project,
+        Query(selection={"variable_id": "tas"}) << base_project,
+        Query(selection={"experiment_id": "ssp*", "variable_id": "tas"})
+        << base_project,
     ],
 )
 @pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
