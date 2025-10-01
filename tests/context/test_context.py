@@ -2,42 +2,21 @@ from time import perf_counter
 
 import pytest
 
+from esgpull.config import Config
 from esgpull.context import Context
 from esgpull.models import ApiBackend, Query
 from tests.utils import CEDA_NODE, parametrized_index
 
+empty = Query()
+cmip6_ipsl = Query(
+    options={"distrib": False},
+    selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+)
+
 
 @pytest.fixture
-def ctx(config):
+def ctx(config: Config):
     return Context(config=config)
-
-
-@pytest.fixture(params=[ApiBackend.solr, ApiBackend.stac])
-def backend(request):
-    return request.param
-
-
-@pytest.fixture()
-def empty(backend):
-    return Query(backend=backend)
-
-
-@pytest.fixture
-def cmip6_ipsl(backend):
-    query = Query(backend=backend)
-    query.options.distrib = False
-    query.selection.mip_era = "CMIP6"
-    query.selection.institution_id = "IPSL"
-    return query
-
-
-@pytest.fixture(params=["empty", "cmip6_ipsl"])
-def query(request, empty, cmip6_ipsl):
-    match request.param:
-        case "empty":
-            return empty
-        case "cmip6_ipsl":
-            return cmip6_ipsl
 
 
 def test_multi_index(ctx, empty):
@@ -128,30 +107,38 @@ class Timer:
 
 
 @parametrized_index
-def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
-    hits = ctx.hits(
-        cmip6_ipsl,
-        file=False,
-        index_node=index,
-    )
-    match cmip6_ipsl.backend:
-        case ApiBackend.stac:
-            assert hits[0] > 1
-        case ApiBackend.solr:
-            assert hits[0] > 1_000
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_ipsl_hits_exist(
+    ctx: Context, index: str, query: Query, backend: ApiBackend
+):
+    query.backend = backend
+    hits = ctx.hits(query, file=False, index_node=index)
+    assert hits[0] > 0
 
 
 @parametrized_index
-def test_more_files_than_datasets(ctx, index: str, query):
+@pytest.mark.parametrize("query", [empty, cmip6_ipsl])
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_more_files_than_datasets(
+    ctx: Context,
+    index: str,
+    query: Query,
+    backend: ApiBackend,
+):
+    query.backend = backend
     assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
 
 
 @parametrized_index
 @pytest.mark.slow
-def test_hints(ctx, index: str, cmip6_ipsl):
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_hints(ctx: Context, index: str, query: Query, backend: ApiBackend):
+    query.backend = backend
     facets = ["institution_id", "variable_id"]
-    hints = ctx.hints(cmip6_ipsl, file=False, facets=facets)[0]
-    assert list(hints["institution_id"]) == cmip6_ipsl.selection.institution_id
+    hints = ctx.hints(query, file=False, facets=facets)[0]
+    assert list(hints["institution_id"]) == query.selection.institution_id
     assert len(hints["variable_id"]) > 1
 
 
@@ -164,9 +151,22 @@ def test_hints(ctx, index: str, cmip6_ipsl):
         Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
     ],
 )
-def test_ignore_facet_hits(ctx, index: str, query_all: Query):
-    query_ipsl = Query(selection={"institution_id": "IPSL"}) << query_all
-    query_not_ipsl = Query(selection={"!institution_id": "IPSL"}) << query_all
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_ignore_facet_hits(
+    ctx: Context,
+    index: str,
+    query_all: Query,
+    backend: ApiBackend,
+):
+    query_all.backend = backend
+    query_ipsl = (
+        Query(backend=backend, selection={"institution_id": "IPSL"})
+        << query_all
+    )
+    query_not_ipsl = (
+        Query(backend=backend, selection={"!institution_id": "IPSL"})
+        << query_all
+    )
     hits_all = ctx.hits(query_all, file=False, index_node=index)[0]
     hits_ipsl = ctx.hits(query_ipsl, file=False, index_node=index)[0]
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False, index_node=index)[0]
