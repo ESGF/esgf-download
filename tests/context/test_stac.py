@@ -11,10 +11,14 @@ from esgpull.context.stac import (
 )
 from esgpull.models import Query
 
-empty = Query()
-cmip6_ipsl = Query(
-    options={"distrib": False},
-    selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+base_project = Query(selection={"project": "CMIP6"})
+empty = Query() << base_project
+cmip6_ipsl = (
+    Query(
+        options={"distrib": False},
+        selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+    )
+    << base_project
 )
 
 
@@ -55,9 +59,10 @@ def test_hints(ctx: StacContext, query: Query):
 @pytest.mark.parametrize(
     "query_all",
     [
-        Query(),
-        Query(selection={"variable_id": "tas"}),
-        Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
+        Query() << base_project,
+        Query(selection={"variable_id": "tas"}) << base_project,
+        Query(selection={"experiment_id": "ssp*", "variable_id": "tas"})
+        << base_project,
     ],
 )
 def test_ignore_facet_hits(ctx: StacContext, query_all: Query):
