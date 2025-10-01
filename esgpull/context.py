@@ -117,25 +117,36 @@ class Result:
         #     query["start"] = format_date_iso(str(facets.pop("start")))
         # if "end" in facets:
         #     query["end"] = format_date_iso(str(facets.pop("end")))
-        solr_terms: list[str] = []
-        for name, values in self.query.selection.items():
-            value_term = " ".join(values)
-            if name == "query":  # freetext case
-                solr_terms.append(value_term)
-            else:
-                if len(values) > 1:
-                    value_term = f"({value_term})"
-                if name.startswith("!"):
-                    solr_terms.append(f"(NOT {name[1:]}:{value_term})")
-                else:
-                    solr_terms.append(f"{name}:{value_term}")
-        if solr_terms:
-            params["query"] = " AND ".join(solr_terms)
+
+        if index.is_bridge():
+            for k, values in self.query.selection.items():
+                params[k] = ",".join(values)
+        else:
+            solr_terms: list[str] = []
+            for name, values in self.query.selection.items():
+                value_term = " ".join(values)
+                if name == "query":  # freetext case
+                    solr_terms.append(value_term)
+                else: 
+                    if len(values) > 1:
+                        value_term = f"({value_term})"
+                    if name.startswith("!"):
+                        solr_terms.append(f"(NOT {name[1:]}:{value_term})")
+                    else:
+                        solr_terms.append(f"{name}:{value_term}")
+            if solr_terms:
+                params["query"] = " AND ".join(solr_terms)
         for name, option in self.query.options.items(use_default=True):
             if option.is_bool():
                 params[name] = option.name
         if index.is_bridge():
-            _ = params.pop("retracted", None)  # not supported in bridge API
+            # "retracted" is not supported in bridge API (it gives a 400), so remove this.
+            # "replica" is silently ignored by bridge API, thereby returning incorrect results.
+            # Remove this also, so that the user sees an expicit warning.
+            for key in ["retracted", "replica"]:
+                val = params.pop(key, None)
+                if val is not None:
+                    logger.warning(f"removed parameter {key}={val} (not supported in bridge API)")
         if params.get("distrib") == "true" and facets_star:
             raise SolrUnstableQueryError(pretty_repr(self.query))
         self.request = Request("GET", index.url, params=params)
