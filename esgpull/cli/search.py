@@ -125,7 +125,7 @@ def search(
             max_hits = nb
         ids = range(offset, offset + max_hits)
         if dry_run:
-            match query.backend:
+            match query.backend or ApiBackend.default():
                 case ApiBackend.solr:
                     search_results = esg.context._solr.prepare_search(
                         query,
