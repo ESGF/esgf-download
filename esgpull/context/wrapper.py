@@ -2,12 +2,14 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, TypeVar, overload
 
+from pydantic import BaseModel, Field, PrivateAttr
+
 from esgpull.config import Config
 from esgpull.context.solr import SolrContext
 from esgpull.context.stac import StacContext
 from esgpull.context.types import HintsDict
+from esgpull.context.utils import hits_from_hints
 from esgpull.models import ApiBackend, DatasetRecord, File, Query
-from pydantic import BaseModel, Field, PrivateAttr
 
 T = TypeVar("T")
 
@@ -202,3 +204,6 @@ class Context(BaseModel):
                         ),
                     )
         return results
+
+    def hits_from_hints(self, *hints: HintsDict) -> list[int]:
+        return hits_from_hints(*hints)

@@ -15,6 +15,7 @@ from pystac_client.item_search import FilterLike, ItemSearch
 
 from esgpull.config import Config
 from esgpull.context.types import HintsDict, IndexNode
+from esgpull.context.utils import hits_from_hints
 from esgpull.models import ApiBackend, DatasetRecord, File, Query
 from esgpull.tui import logger
 from esgpull.utils import sync
@@ -589,7 +590,7 @@ class StacContext(BaseModel):
         date_to: datetime | None = None,
     ) -> list[PreparedRequest]:
         # For STAC, distributed search is simplified since we're dealing with a single endpoint
-        hits = self.hits_from_hints(*hints)
+        hits = hits_from_hints(*hints)
         return self.prepare_search(
             *queries,
             file=file,
@@ -688,17 +689,6 @@ class StacContext(BaseModel):
             date_to=date_to,
         )
         return self._sync(self._hits(*results))
-
-    def hits_from_hints(self, *hints: HintsDict) -> list[int]:
-        result: list[int] = []
-        for hint in hints:
-            if len(hint) > 0:
-                key = next(iter(hint))
-                num = sum(hint[key].values())
-            else:
-                num = 0
-            result.append(num)
-        return result
 
     def hints(
         self,

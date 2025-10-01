@@ -52,12 +52,6 @@ def test_hints(ctx: StacContext, query: Query):
     assert len(hints["variable_id"]) > 1
 
 
-def test_hits_from_hints(ctx: StacContext):
-    hints = {"facet_name": {"value_a": 1, "value_b": 2, "value_c": 3}}
-    hits = ctx.hits_from_hints(hints)
-    assert hits == [6]
-
-
 @pytest.mark.parametrize(
     "query_all",
     [

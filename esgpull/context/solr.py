@@ -20,6 +20,7 @@ from rich.pretty import pretty_repr
 
 from esgpull.config import Config
 from esgpull.context.types import HintsDict, IndexNode
+from esgpull.context.utils import hits_from_hints
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
@@ -448,7 +449,7 @@ class SolrContext(BaseModel):
                 fields_param = FileFieldParams
             else:
                 fields_param = DatasetFieldParams
-        hits = self.hits_from_hints(*hints)
+        hits = hits_from_hints(*hints)
         if max_hits is not None:
             hits = _distribute_hits_impl(hits, max_hits)
         results = []
@@ -636,17 +637,6 @@ class SolrContext(BaseModel):
             date_to=date_to,
         )
         return self._sync(self._hits(*results))
-
-    def hits_from_hints(self, *hints: HintsDict) -> list[int]:
-        result: list[int] = []
-        for hint in hints:
-            if len(hint) > 0:
-                key = next(iter(hint))
-                num = sum(hint[key].values())
-            else:
-                num = 0
-            result.append(num)
-        return result
 
     def hints(
         self,
