@@ -183,10 +183,17 @@ def test_hits_from_hints(ctx):
     assert hits == [6]
 
 
-def test_ignore_facet_hits(ctx):
-    query_all = Query()
-    query_ipsl = Query(selection={"institution_id": "IPSL"})
-    query_not_ipsl = Query(selection={"!institution_id": "IPSL"})
+@pytest.mark.parametrize(
+    "query_all",
+    [
+        Query(),
+        Query(selection={"variable_id": "tas"}),
+        Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
+    ],
+)
+def test_ignore_facet_hits(ctx, query_all: Query):
+    query_ipsl = Query(selection={"institution_id": "IPSL"}) << query_all
+    query_not_ipsl = Query(selection={"!institution_id": "IPSL"}) << query_all
     hits_all = ctx.hits(query_all, file=False)[0]
     hits_ipsl = ctx.hits(query_ipsl, file=False)[0]
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
