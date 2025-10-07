@@ -443,12 +443,10 @@ class Query(Base):
         result = self.clone(compute_sha=False)
         # if self.name != child.require:
         #     raise ValueError(f"{self.name} is not required by {child.name}")
-        backend = self.backend or ApiBackend.default()
-        child_backend = child.backend or ApiBackend.default()
-        if backend != child_backend:
-            raise ValueError(
-                f"Incompatible backends for queries {self.name} ({backend.name}) and {child.name} ({child_backend.name})"
-            )
+        for backend in [child.backend, self.backend]:
+            if backend is not None:
+                result.backend = backend
+                break
         for tag in child.tags:
             if tag not in result.tags:
                 result.tags.append(tag)
@@ -489,8 +487,10 @@ class Query(Base):
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
-        backend = self.backend or ApiBackend.default()
-        title.append(f"\n│ backend  {backend.value}")
+        backend = (
+            self.backend.value if self.backend is not None else "not specified"
+        )
+        title.append(f"\n│ backend  {backend}")
         title.append(
             f"\n│ added    {format_date_iso(self.added_at)}"
             f"\n│ updated  {format_date_iso(self.updated_at)}"
