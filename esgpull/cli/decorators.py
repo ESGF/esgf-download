@@ -293,7 +293,7 @@ _backend: Dec = click.option(
     "--backend",
     "-b",
     type=EnumParam(ApiBackend),
-    default=ApiBackend.solr,
+    default=None,
 )
 
 # Query dates group
