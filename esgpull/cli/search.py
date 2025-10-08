@@ -143,7 +143,6 @@ def search(
                     search_results = esg.context._stac.prepare_search(
                         query,
                         file=file,
-                        hits=hits,
                         offset=offset,
                         max_hits=max_hits,
                         date_from=date_from,
