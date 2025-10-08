@@ -118,6 +118,7 @@ class PreparedRequest(BaseModel):
     file: bool
     stac_filter: FilterLike
     item_search: ItemSearch
+    offset: int
     limit: int
     max_items: int | None
     facets: list[str] | None
@@ -185,24 +186,26 @@ def prepare_request(
     facets_param: list[str] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
-    max_items: int | None = None,
+    max_items: int | None = 200,
 ) -> PreparedRequest:
     projects = get_projects(query)
     stac_filter = format_query_to_stac_filter(query)
     logger.info(f"{projects=}")
     logger.info(f"{stac_filter=}")
+    if max_items is not None:
+        max_items += offset
     item_search = client.search(
         filter=stac_filter,
         limit=page_limit,
         max_items=max_items,
         collections=projects,
     )
-
     return PreparedRequest(
         query=query,
         file=file,
         stac_filter=stac_filter,
         item_search=item_search,
+        offset=offset,
         limit=page_limit,
         max_items=max_items,
         facets=facets_param,
@@ -617,9 +620,13 @@ class StacContext(BaseModel):
     ) -> list[DatasetRecord]:
         datasets: list[DatasetRecord] = []
         ids: set[str] = set()
+        seen = 0
         for request in prepared_requests:
             processed = process_datasets(request)
             for d in processed.data:
+                if seen < request.offset:
+                    seen += 1
+                    continue
                 if not keep_duplicates and d.dataset_id in ids:
                     logger.debug(f"Duplicate dataset {d.dataset_id}")
                 else:
@@ -634,9 +641,13 @@ class StacContext(BaseModel):
     ) -> list[File]:
         files: list[File] = []
         shas: set[str] = set()
+        seen = 0
         for request in prepared_requests:
             processed = process_files(request)
             for f in processed.data:
+                if seen < request.offset:
+                    seen += 1
+                    continue
                 if not keep_duplicates and f.sha in shas:
                     logger.debug(f"Duplicate file {f.file_id}")
                 else:
