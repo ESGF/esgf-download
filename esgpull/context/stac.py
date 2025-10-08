@@ -5,6 +5,7 @@ from collections.abc import Coroutine, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, TypeVar
+from warnings import warn
 
 import esgvoc.api
 import httpx
@@ -108,6 +109,13 @@ def format_query_to_stac_filter(query: Query) -> FilterLike:
         if project_merged:
             filters.append(project_merged)
     merged = merge_with_op(filters, op="or")
+    if query.options.retracted.is_bool():
+        property_ref = {"property": "properties.retracted"}
+        retracted = {
+            "op": "=",
+            "args": [property_ref, bool(query.options.retracted)],
+        }
+        merged = merge_with_op([merged, retracted], op="and")
     return merged
 
 
@@ -280,7 +288,7 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
                 facets_to_aggregate.append(frequency_field)
 
         # Make aggregation request
-        payload = {
+        payload: FilterLike = {
             "filter-lang": "cql2-json",
             "filter": request.stac_filter,
             "aggregations": facets_to_aggregate,
@@ -578,6 +586,7 @@ class StacContext(BaseModel):
     _semaphores: dict[str, asyncio.Semaphore] = PrivateAttr(
         default_factory=dict,
     )
+    _warned_options_queries: set[str] = PrivateAttr(default_factory=set)
 
     def model_post_init(self, context: Any):
         index = IndexNode(
@@ -589,6 +598,19 @@ class StacContext(BaseModel):
             timeout=self.config.api.http_timeout,
         )
 
+    def _warn_unused_options(self, query: Query) -> None:
+        if query.sha in self._warned_options_queries:
+            return
+        IGNORED_OPTIONS = ["distrib", "replica", "latest"]
+        if len(self._warned_options_queries) == 0:
+            warn(f"STAC backend ignores options {IGNORED_OPTIONS}")
+        for name, option in query.options.items():
+            if name in IGNORED_OPTIONS:
+                logger.warning(
+                    f"STAC backend ignores option `{name}` (value: {option.name}) for query {query.name}"
+                )
+        self._warned_options_queries.add(query.sha)
+
     def prepare_hits(
         self,
         *queries: Query,
@@ -598,6 +620,7 @@ class StacContext(BaseModel):
     ) -> list[PreparedRequest]:
         results = []
         for query in queries:
+            self._warn_unused_options(query)
             prepared = prepare_request(
                 query=query,
                 file=file,
@@ -619,6 +642,7 @@ class StacContext(BaseModel):
     ) -> list[PreparedRequest]:
         results = []
         for query in queries:
+            self._warn_unused_options(query)
             prepared = prepare_request(
                 query=query,
                 file=file,
@@ -646,6 +670,7 @@ class StacContext(BaseModel):
 
         results: list[PreparedRequest] = []
         for query in queries:
+            self._warn_unused_options(query)
             prepared = prepare_request(
                 query=query,
                 file=file,
