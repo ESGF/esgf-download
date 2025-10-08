@@ -21,8 +21,8 @@ class QueryList(BaseModel):
         result: dict[ApiBackend, list[Query]]
         result = {backend: [] for backend in ApiBackend}
         for query in self.queries:
-            match query.backend:
-                case ApiBackend.solr | None:
+            match query.backend or ApiBackend.default():
+                case ApiBackend.solr:
                     result[ApiBackend.solr].append(query)
                 case ApiBackend.stac:
                     result[ApiBackend.stac].append(query)
@@ -35,8 +35,8 @@ class QueryList(BaseModel):
         result: list[T] = []
         cursors = dict.fromkeys(ApiBackend, 0)
         for query in self.queries:
-            match query.backend:
-                case ApiBackend.solr | None:
+            match query.backend or ApiBackend.default():
+                case ApiBackend.solr:
                     backend = ApiBackend.solr
                 case ApiBackend.stac:
                     backend = ApiBackend.stac
@@ -256,3 +256,69 @@ class Context(BaseModel):
                         ),
                     )
         return results
+
+    def number_of_requests(
+        self,
+        *queries: Query,
+        file: bool,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[int]:
+        ql = QueryList(queries=list(queries))
+        backend_queries_map = ql.split_by_backend()
+        backend_number_of_requests_map: dict[ApiBackend, list[int]]
+        backend_number_of_requests_map = {}
+        for backend, backend_queries in backend_queries_map.items():
+            match backend:
+                case ApiBackend.solr:
+                    hits = self._solr.hits(
+                        *backend_queries,
+                        file=file,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    requests = self._solr.prepare_search(
+                        *backend_queries,
+                        file=file,
+                        hits=hits,
+                        offset=offset,
+                        max_hits=max_hits,
+                        page_limit=page_limit,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    current_query = None
+                    backend_number_of_requests_map[backend] = []
+                    for r in requests:
+                        if r.query.sha != current_query:
+                            current_query = r.query.sha
+                            backend_number_of_requests_map[backend].append(0)
+                        backend_number_of_requests_map[backend][-1] += 1
+                case ApiBackend.stac:
+                    hits = self._stac.hits(
+                        *backend_queries,
+                        file=file,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    requests = self._stac.prepare_search(
+                        *backend_queries,
+                        file=file,
+                        offset=offset,
+                        max_hits=max_hits,
+                        page_limit=page_limit,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    backend_number_of_requests_map[backend] = []
+                    for hit, request in zip(hits, requests):
+                        if max_hits is not None:
+                            hit = min(hit, max_hits)
+                        nb_requests = hit // request.limit + 1
+                        backend_number_of_requests_map[backend].append(
+                            nb_requests
+                        )
+        return ql.reorder_from_backend(backend_number_of_requests_map)
