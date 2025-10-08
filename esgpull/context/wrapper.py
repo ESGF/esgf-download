@@ -211,3 +211,48 @@ class Context(BaseModel):
 
     def hits_from_hints(self, *hints: HintsDict) -> list[int]:
         return hits_from_hints(*hints)
+
+    def search_as_queries(
+        self,
+        *queries: Query,
+        file: bool,
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 1,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[Query]:
+        ql = QueryList(queries=list(queries))
+        backend_queries_map = ql.split_by_backend()
+        results: Sequence[Query] = []
+        for backend, backend_queries in backend_queries_map.items():
+            match backend:
+                case ApiBackend.solr:
+                    results.extend(
+                        self._solr.search_as_queries(
+                            *backend_queries,
+                            file=file,
+                            hits=hits,
+                            offset=offset,
+                            max_hits=max_hits,
+                            page_limit=page_limit,
+                            date_from=date_from,
+                            date_to=date_to,
+                            keep_duplicates=keep_duplicates,
+                        ),
+                    )
+                case ApiBackend.stac:
+                    results.extend(
+                        self._stac.search_as_queries(
+                            *backend_queries,
+                            file=file,
+                            offset=offset,
+                            max_hits=max_hits,
+                            page_limit=page_limit,
+                            date_from=date_from,
+                            date_to=date_to,
+                        ),
+                    )
+        return results

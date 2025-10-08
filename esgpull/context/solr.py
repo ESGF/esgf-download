@@ -261,6 +261,7 @@ class ResultSearchAsQueries(Result):
             for doc in self.json["response"]["docs"]:
                 query = Query._from_detailed_dict(doc)
                 query.sha = f"{sha}:{query.sha}"
+                query.backend = ApiBackend.solr
                 self.data.append(query)
             self.processed = True
 
