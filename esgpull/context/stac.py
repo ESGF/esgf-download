@@ -176,6 +176,19 @@ class ProcessedFiles(BaseModel):
         return self.exc is None
 
 
+class ProcessedSearchAsQueries(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+
+    query: Query
+    file: bool
+    data: Sequence[Query]
+    exc: BaseException | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.exc is None
+
+
 # Helper functions for state transitions
 def prepare_request(
     query: Query,
@@ -423,6 +436,70 @@ def process_files(request: PreparedRequest) -> ProcessedFiles:
         )
 
 
+def process_search_as_queries(
+    request: PreparedRequest,
+) -> ProcessedSearchAsQueries:
+    try:
+        queries: list[Query] = []
+        for item in request.item_search.items_as_dicts():
+            if (
+                request.max_items is not None
+                and len(queries) >= request.max_items
+            ):
+                break
+            dataset_id = item["id"]
+            properties = {
+                k.split(":")[-1]: v for k, v in item["properties"].items()
+            }
+            if not request.file:
+                query = Query._from_detailed_dict(
+                    {"dataset_id": dataset_id} | properties
+                )
+                query.sha = "DATASET"
+                query.backend = ApiBackend.stac
+                queries.append(query)
+                continue
+            for asset in item["assets"].values():
+                if (
+                    request.max_items is not None
+                    and len(queries) >= request.max_items
+                ):
+                    break
+                asset = stac_asset_or_any_alternate(asset)
+                if asset["type"] != "application/netcdf":
+                    continue
+                if not (
+                    asset["href"].startswith("http")
+                    or asset["href"].startswith("https")
+                ):
+                    continue
+
+                ## keep consistent with solr, this is only for display:
+                asset["url"] = asset["href"]
+                asset["data_node"] = asset["alternate:name"]
+                # asset = {k.split(":")[-1]: v for k, v in asset.items()}
+                print({"dataset_id": dataset_id} | properties | asset)
+                query = Query._from_detailed_dict(
+                    {"dataset_id": dataset_id} | properties | asset
+                )
+                query.sha = "FILE"
+                query.backend = ApiBackend.stac
+                queries.append(query)
+        return ProcessedSearchAsQueries(
+            query=request.query,
+            file=request.file,
+            data=queries,
+        )
+    except Exception as exc:
+        logger.exception(f"Failed to process STAC search: {exc}")
+        return ProcessedSearchAsQueries(
+            query=request.query,
+            file=request.file,
+            data=[],
+            exc=exc,
+        )
+
+
 def stac_asset_or_any_alternate(asset: dict[str, Any]) -> dict[str, Any]:
     # TODO: actually handle alternates. it needs db tables to store it.
     if "alternate" in asset:
@@ -663,10 +740,13 @@ class StacContext(BaseModel):
     async def _search_as_queries(
         self,
         *prepared_requests: PreparedRequest,
-        keep_duplicates: bool,
     ) -> list[Query]:
-        raise NotImplementedError
-        return []
+        queries: list[Query] = []
+        for request in prepared_requests:
+            processed = process_search_as_queries(request)
+            for query in processed.data:
+                queries.append(query)
+        return queries
 
     def free_semaphores(self) -> None:
         self._semaphores = {}
@@ -762,17 +842,23 @@ class StacContext(BaseModel):
         self,
         *queries: Query,
         file: bool,
-        hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 1,
         page_limit: int | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
-        keep_duplicates: bool = True,
     ) -> Sequence[Query]:
-        # For now, return empty list since this is not the priority
-        raise NotImplementedError()
-        return []
+        results = self.prepare_search(
+            *queries,
+            file=file,
+            offset=offset,
+            page_limit=page_limit,
+            max_hits=max_hits,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        coro = self._search_as_queries(*results)
+        return self._sync(coro)
 
     def search(
         self,
