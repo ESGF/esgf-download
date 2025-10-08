@@ -360,6 +360,11 @@ def process_files(request: PreparedRequest) -> ProcessedFiles:
             )
 
             for name, asset in item["assets"].items():
+                if (
+                    request.max_items is not None
+                    and len(files) >= request.max_items
+                ):
+                    break
                 file: File | None = None
                 asset = stac_asset_or_any_alternate(asset)
                 if asset["type"] != "application/netcdf":
