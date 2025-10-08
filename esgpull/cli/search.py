@@ -107,7 +107,8 @@ def search(
             esg.ui.raise_maybe_record(Exit(0))
         esg.graph.add(query, force=True)
         query = esg.graph.expand(query.sha)
-        probe_and_abort(esg)
+        if query.backend == ApiBackend.solr:
+            probe_and_abort(esg)
         hits = esg.context.hits(
             query,
             file=file,
