@@ -9,8 +9,11 @@ from click.exceptions import Abort, Exit
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
+from esgpull.context.solr import SolrContext
+from esgpull.context.stac import PreparedRequest, StacContext
 from esgpull.exceptions import UnsetOptionsError
 from esgpull.models import Dataset, File, FileStatus, Query
+from esgpull.models.query import ApiBackend
 from esgpull.tui import Verbosity
 from esgpull.utils import format_size
 
@@ -24,9 +27,12 @@ class QueryFiles:
     files: list[File] = field(default_factory=list)
     dataset_hits: int = field(init=False)
     hits: int = field(init=False)
-    hints: HintsDict = field(init=False)
-    results: list[ResultSearch] = field(init=False)
-    dataset_results: list[ResultSearch] = field(init=False)
+    hints: HintsDict | None = field(init=False)
+    results: list[ResultSearch] | list[PreparedRequest] = field(init=False)
+    dataset_results: list[ResultSearch] | list[PreparedRequest] = field(
+        init=False
+    )
+    ctx: SolrContext | StacContext = field(init=False)
 
 
 @click.command()
@@ -78,24 +84,45 @@ def update(
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             esg.ui.raise_maybe_record(Exit(0))
-        esg.context.probe()
-        hints = esg.context.hints(
-            *[qf.expanded for qf in qfs],
-            file=True,
-            facets=["index_node"],
-        )
+        if any(qf.query.backend == ApiBackend.solr for qf in qfs):
+            esg.context._solr.probe()
+        if esg.config.api.use_custom_distribution_algorithm:
+            if any(qf.query.backend == ApiBackend.stac for qf in qfs):
+                raise NotImplementedError(
+                    "custom distribution algorithm is only available for solr backend"
+                )
+            hints = esg.context.hints(
+                *[qf.expanded for qf in qfs],
+                file=True,
+                facets=["index_node"],
+            )
+            hits = [
+                sum(esg.context.hits_from_hints(query_hints))
+                for query_hints in hints
+            ]
+        else:
+            hints = [None for _ in qfs]
+            hits = esg.context.hits(
+                *[qf.expanded for qf in qfs],
+                file=True,
+            )
         dataset_hits = esg.context.hits(
             *[qf.expanded for qf in qfs],
             file=False,
         )
-        for qf, qf_hints, qf_dataset_hits in zip(qfs, hints, dataset_hits):
-            qf.hits = sum(esg.context.hits_from_hints(qf_hints))
-            if qf_hints:
-                qf.hints = qf_hints
-                qf.dataset_hits = qf_dataset_hits
-            else:
+        for qf, qf_hits, qf_hints, qf_dataset_hits in zip(
+            qfs, hits, hints, dataset_hits
+        ):
+            qf.hits = qf_hits
+            qf.hints = qf_hints
+            qf.dataset_hits = qf_dataset_hits
+            if not qf_hits:
                 qf.skip = True
-        for qf in qfs:
+            match qf.query.backend or ApiBackend.default():
+                case ApiBackend.solr:
+                    qf.ctx = esg.context._solr
+                case ApiBackend.stac:
+                    qf.ctx = esg.context._stac
             s = "s" if qf.hits > 1 else ""
             esg.ui.print(
                 f"{qf.query.rich_name} -> {qf.hits} file{s} (before replica de-duplication)."
@@ -112,27 +139,35 @@ def update(
         #   It might be interesting for the special case where all files already
         #   exist in db, then the detailed fetch could be skipped.
         for qf in qfs:
-            qf_dataset_results = esg.context.prepare_search(
+            qf_dataset_results = qf.ctx.prepare_search(
                 qf.expanded,
                 file=False,
                 hits=[qf.dataset_hits],
                 max_hits=None,
             )
             if esg.config.api.use_custom_distribution_algorithm:
-                qf_results = esg.context.prepare_search_distributed(
+                qf_results = qf.ctx.prepare_search_distributed(
                     qf.expanded,
                     file=True,
                     hints=[qf.hints],
                     max_hits=None,
                 )
             else:
-                qf_results = esg.context.prepare_search(
+                qf_results = qf.ctx.prepare_search(
                     qf.expanded,
                     file=True,
                     hits=[qf.hits],
                     max_hits=None,
                 )
-            nb_req = len(qf_dataset_results) + len(qf_results)
+            match qf.query.backend or ApiBackend.default():
+                case ApiBackend.solr:
+                    nb_req = len(qf_dataset_results) + len(qf_results)
+                case ApiBackend.stac:
+                    nb_datasets_req = (
+                        qf.dataset_hits // qf_dataset_results[0].limit
+                    )
+                    nb_files_req = qf.hits // qf_results[0].limit
+                    nb_req = nb_datasets_req + nb_files_req
             if nb_req > 50:
                 msg = (
                     f"{nb_req} requests will be sent to ESGF to"
@@ -156,11 +191,11 @@ def update(
         with esg.ui.spinner("Fetching datasets"):
             coros = []
             for qf in qfs:
-                coro = esg.context._datasets(
+                coro = qf.ctx._datasets(
                     *qf.dataset_results, keep_duplicates=False
                 )
                 coros.append(coro)
-            datasets = esg.context.sync_gather(*coros)
+            datasets = qf.ctx.sync_gather(*coros)
             for qf, qf_datasets in zip(qfs, datasets):
                 qf.datasets = [
                     Dataset(
@@ -172,9 +207,9 @@ def update(
         with esg.ui.spinner("Fetching files"):
             coros = []
             for qf in qfs:
-                coro = esg.context._files(*qf.results, keep_duplicates=False)
+                coro = qf.ctx._files(*qf.results, keep_duplicates=False)
                 coros.append(coro)
-            files = esg.context.sync_gather(*coros)
+            files = qf.ctx.sync_gather(*coros)
             for qf, qf_files in zip(qfs, files):
                 qf.files = qf_files
         for qf in qfs:
