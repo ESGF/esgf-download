@@ -198,8 +198,12 @@ class Context(BaseModel):
                         self._stac.search(
                             *backend_queries,
                             file=file,
+                            offset=offset,
+                            max_hits=max_hits,
+                            page_limit=page_limit,
                             date_from=date_from,
                             date_to=date_to,
+                            keep_duplicates=keep_duplicates,
                             ## TODO: handle additional arguments if possible
                         ),
                     )
