@@ -10,6 +10,7 @@ from typing import Any, Literal, TypeVar, overload
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+from esgpull.constants import ESGPULL_DEBUG, ESGPULL_DEBUG_LOCALS
 from esgpull.models import ApiBackend
 
 if sys.version_info < (3, 11):
@@ -402,6 +403,8 @@ class SolrContext(BaseModel):
         date_from: datetime | None = None,
         date_to: datetime | None = None,
     ) -> list[ResultSearch]:
+        if not queries:
+            return []
         if page_limit is None:
             page_limit = self.config.api.page_limit
         if fields_param is None:
@@ -516,14 +519,14 @@ class SolrContext(BaseModel):
                 excs.append(result.exc)
         if excs:
             group = BaseExceptionGroup("fetch", excs)
-            if self.noraise:
+            if not self.noraise or ESGPULL_DEBUG or ESGPULL_DEBUG_LOCALS:
+                raise group
+            else:
                 logger.error(group)
                 logger.exception(group)
                 for exc in excs:
                     logger.error(exc)
                     logger.exception(exc)
-            else:
-                raise group
 
     async def _hits(self, *results: ResultHits) -> list[int]:
         hits = []

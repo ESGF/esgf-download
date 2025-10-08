@@ -1,20 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Literal
 
 import click
 from click.exceptions import Abort, Exit
 
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
-from esgpull.context import HintsDict, ResultSearch
-from esgpull.context.solr import SolrContext
-from esgpull.context.stac import PreparedRequest, StacContext
+from esgpull.context import HintsDict
 from esgpull.exceptions import UnsetOptionsError
+from esgpull.graph import Graph
 from esgpull.models import Dataset, File, FileStatus, Query
-from esgpull.models.query import ApiBackend
-from esgpull.tui import Verbosity
+from esgpull.tui import UI, Verbosity
 from esgpull.utils import format_size
 
 
@@ -28,11 +28,45 @@ class QueryFiles:
     dataset_hits: int = field(init=False)
     hits: int = field(init=False)
     hints: HintsDict | None = field(init=False)
-    results: list[ResultSearch] | list[PreparedRequest] = field(init=False)
-    dataset_results: list[ResultSearch] | list[PreparedRequest] = field(
-        init=False
-    )
-    ctx: SolrContext | StacContext = field(init=False)
+    # results: list[ResultSearch] | list[PreparedRequest] = field(init=False)
+    # dataset_results: list[ResultSearch] | list[PreparedRequest] = field(
+    #     init=False
+    # )
+
+
+def parse_queries(
+    graph: Graph,
+    ui: UI,
+    query_id: str | None,
+    tag: str | None,
+    children: bool,
+) -> Iterator[Query]:
+    """Select which queries to update + setup."""
+    if query_id is None and tag is None:
+        graph.load_db()
+        yield from graph.queries.values()
+    elif not valid_name_tag(graph, ui, query_id, tag):
+        ui.raise_maybe_record(Exit(1))
+    else:
+        for q in get_queries(
+            graph,
+            query_id,
+            tag,
+            children=children,
+        ):
+            yield q
+
+
+def keep_tracked(qs: Iterator[Query], graph: Graph) -> Iterator[QueryFiles]:
+    for q in qs:
+        expanded = graph.expand(q.sha)
+        if not expanded.tracked:
+            continue
+        if q.sha == "LEGACY":
+            continue
+        if not expanded.trackable():
+            raise UnsetOptionsError(q.name)
+        yield QueryFiles(q, expanded)
 
 
 @click.command()
@@ -55,32 +89,14 @@ def update(
     """
     esg = init_esgpull(verbosity, record=record)
     with esg.ui.logging("update", onraise=Abort):
-        # Select which queries to update + setup
-        if query_id is None and tag is None:
-            esg.graph.load_db()
-            queries = list(esg.graph.queries.values())
-        else:
-            if not valid_name_tag(esg.graph, esg.ui, query_id, tag):
-                esg.ui.raise_maybe_record(Exit(1))
-            queries = get_queries(
-                esg.graph,
-                query_id,
-                tag,
-                children=children,
-            )
-        qfs: list[QueryFiles] = []
-        for query in queries:
-            expanded = esg.graph.expand(query.sha)
-            if query.tracked and not expanded.trackable():
-                esg.ui.print(query)
-                raise UnsetOptionsError(query.name)
-            elif query.tracked:
-                qfs.append(QueryFiles(query, expanded))
-        queries = [
-            query
-            for query in queries
-            if query.tracked and query.sha != "LEGACY"
-        ]
+        queries: Iterator[Query] = parse_queries(
+            esg.graph,
+            esg.ui,
+            query_id,
+            tag,
+            children,
+        )
+        qfs = list(keep_tracked(queries, esg.graph))
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             esg.ui.raise_maybe_record(Exit(0))
@@ -101,13 +117,9 @@ def update(
             qf.hits = qf_hits
             qf.hints = qf_hints
             qf.dataset_hits = qf_dataset_hits
-            if not qf_hits:
+            if not qf.hits:
                 qf.skip = True
-            match qf.query.backend or ApiBackend.default():
-                case ApiBackend.solr:
-                    qf.ctx = esg.context._solr
-                case ApiBackend.stac:
-                    qf.ctx = esg.context._stac
+                continue
             s = "s" if qf.hits > 1 else ""
             esg.ui.print(
                 f"{qf.query.rich_name} -> {qf.hits} file{s} (before replica de-duplication)."
@@ -123,76 +135,67 @@ def update(
         # [?] TODO: fetch FastFile first to determine what to fetch in detail later
         #   It might be interesting for the special case where all files already
         #   exist in db, then the detailed fetch could be skipped.
-        for qf in qfs:
-            qf_dataset_results = qf.ctx.prepare_search(
-                qf.expanded,
-                file=False,
-                hits=[qf.dataset_hits],
-                max_hits=None,
-            )
-            qf_results = qf.ctx.prepare_search(
-                qf.expanded,
-                file=True,
-                hits=[qf.hits],
-                max_hits=None,
-            )
-            match qf.query.backend or ApiBackend.default():
-                case ApiBackend.solr:
-                    nb_req = len(qf_dataset_results) + len(qf_results)
-                case ApiBackend.stac:
-                    nb_datasets_req = (
-                        qf.dataset_hits // qf_dataset_results[0].limit
-                    )
-                    nb_files_req = qf.hits // qf_results[0].limit
-                    nb_req = nb_datasets_req + nb_files_req
+        nb_files_requests = esg.context.number_of_requests(
+            *[qf.expanded for qf in qfs],
+            file=True,
+            max_hits=None,
+        )
+        nb_datasets_requests = esg.context.number_of_requests(
+            *[qf.expanded for qf in qfs],
+            file=False,
+            max_hits=None,
+        )
+        for qf, nb_files_req, nb_datasets_req in zip(
+            qfs,
+            nb_files_requests,
+            nb_datasets_requests,
+        ):
+            nb_req = nb_datasets_req + nb_files_req
             if nb_req > 50:
                 msg = (
                     f"{nb_req} requests will be sent to ESGF to"
                     f" update {qf.query.rich_name}. Send anyway?"
                 )
-                match esg.ui.choice(msg, ["y", "n", "u"], default="n"):
+                choice1: Literal["y", "n", "u"] = esg.ui.choice(
+                    msg, ["y", "n", "u"], default="n"
+                )
+                match choice1:
                     case "u":
                         esg.ui.print(f"{qf.query.rich_name} is now untracked.")
                         qf.query.tracked = False
-                        qf_results = []
-                        qf_dataset_results = []
+                        esg.db.add(qf.query)
+                        qf.skip = True
                     case "n":
-                        qf_results = []
-                        qf_dataset_results = []
-                    case _:
+                        qf.skip = True
+                    case "y":
                         ...
-            qf.results = qf_results
-            qf.dataset_results = qf_dataset_results
+        qfs = [qf for qf in qfs if not qf.skip]
         # Fetch files and update db
         # [?] TODO: dry_run to print urls here
         with esg.ui.spinner("Fetching datasets"):
-            coros = []
             for qf in qfs:
-                coro = qf.ctx._datasets(
-                    *qf.dataset_results, keep_duplicates=False
+                records = esg.context.search(
+                    qf.expanded,
+                    file=False,
+                    max_hits=None,
+                    keep_duplicates=False,
                 )
-                coros.append(coro)
-            datasets = qf.ctx.sync_gather(*coros)
-            for qf, qf_datasets in zip(qfs, datasets):
                 qf.datasets = [
                     Dataset(
                         dataset_id=record.dataset_id,
                         total_files=record.number_of_files,
                     )
-                    for record in qf_datasets
+                    for record in records
                 ]
         with esg.ui.spinner("Fetching files"):
-            coros = []
             for qf in qfs:
-                coro = qf.ctx._files(*qf.results, keep_duplicates=False)
-                coros.append(coro)
-            files = qf.ctx.sync_gather(*coros)
-            for qf, qf_files in zip(qfs, files):
-                qf.files = qf_files
+                files = esg.context.search(
+                    qf.expanded,
+                    file=True,
+                    max_hits=None,
+                )
+                qf.files = list(files)
         for qf in qfs:
-            if not qf.query.tracked:
-                esg.db.add(qf.query)
-                continue
             with esg.db.commit_context():
                 unregistered_datasets = [
                     f for f in qf.datasets if f not in esg.db
@@ -222,18 +225,19 @@ def update(
                 f" files ({format_size(download_size)}) to download."
                 f"\nLink to query and send to download queue?"
             )
+            choice2: Literal["y", "n", "show"]
             if yes:
-                choice = "y"
+                choice2 = "y"
             else:
                 while (
-                    choice := esg.ui.choice(
+                    choice2 := esg.ui.choice(
                         msg,
                         choices=["y", "n", "show"],
                         show_choices=True,
                     )
-                ) and choice == "show":
+                ) and choice2 == "show":
                     esg.ui.print(esg.graph.subgraph(qf.query, parents=True))
-            if choice == "y":
+            if choice2 == "y":
                 legacy = esg.legacy_query
                 has_legacy = legacy.state.persistent
                 applied_changes = False
