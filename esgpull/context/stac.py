@@ -15,7 +15,6 @@ from pystac_client.item_search import FilterLike, ItemSearch
 
 from esgpull.config import Config
 from esgpull.context.types import HintsDict, IndexNode
-from esgpull.context.utils import hits_from_hints
 from esgpull.models import ApiBackend, DatasetRecord, File, Query
 from esgpull.tui import logger
 from esgpull.utils import sync
@@ -551,18 +550,16 @@ class StacContext(BaseModel):
         self,
         *queries: Query,
         file: bool,
-        hits: list[int],
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        # fields_param: list[str] | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
     ) -> list[PreparedRequest]:
         if page_limit is None:
             page_limit = self.config.api.page_limit
 
-        results = []
+        results: list[PreparedRequest] = []
         for query in queries:
             prepared = prepare_request(
                 query=query,
@@ -581,30 +578,24 @@ class StacContext(BaseModel):
         self,
         *queries: Query,
         file: bool,
-        hints: list[HintsDict],
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
-        # fields_param: list[str] | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
     ) -> list[PreparedRequest]:
-        # For STAC, distributed search is simplified since we're dealing with a single endpoint
-        hits = hits_from_hints(*hints)
         return self.prepare_search(
             *queries,
             file=file,
-            hits=hits,
             offset=offset,
             max_hits=max_hits,
             page_limit=page_limit,
-            # fields_param=fields_param,
             date_from=date_from,
             date_to=date_to,
         )
 
     async def _hits(self, *prepared_requests: PreparedRequest) -> list[int]:
-        hits = []
+        hits: list[int] = []
         for request in prepared_requests:
             processed = process_hits(request)
             hits.append(processed.data)
@@ -658,7 +649,7 @@ class StacContext(BaseModel):
         *prepared_requests: PreparedRequest,
         keep_duplicates: bool,
     ) -> list[Query]:
-        # For now, return empty list since this is not the priority
+        raise NotImplementedError
         return []
 
     def free_semaphores(self) -> None:
@@ -710,7 +701,6 @@ class StacContext(BaseModel):
     def datasets(
         self,
         *queries: Query,
-        hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
@@ -718,12 +708,9 @@ class StacContext(BaseModel):
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> list[DatasetRecord]:
-        if hits is None:
-            hits = self.hits(*queries, file=False)
         results = self.prepare_search(
             *queries,
             file=False,
-            hits=hits,
             offset=offset,
             page_limit=page_limit,
             max_hits=max_hits,
@@ -736,7 +723,6 @@ class StacContext(BaseModel):
     def files(
         self,
         *queries: Query,
-        hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
@@ -744,12 +730,9 @@ class StacContext(BaseModel):
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> list[File]:
-        if hits is None:
-            hits = self.hits(*queries, file=True)
         results = self.prepare_search(
             *queries,
             file=True,
-            hits=hits,
             offset=offset,
             page_limit=page_limit,
             max_hits=max_hits,
@@ -779,7 +762,6 @@ class StacContext(BaseModel):
         self,
         *queries: Query,
         file: bool,
-        hits: list[int] | None = None,
         offset: int = 0,
         max_hits: int | None = 200,
         page_limit: int | None = None,
@@ -790,7 +772,6 @@ class StacContext(BaseModel):
         if file:
             return self.files(
                 *queries,
-                hits=hits,
                 offset=offset,
                 max_hits=max_hits,
                 page_limit=page_limit,
@@ -801,7 +782,6 @@ class StacContext(BaseModel):
         else:
             return self.datasets(
                 *queries,
-                hits=hits,
                 offset=offset,
                 max_hits=max_hits,
                 page_limit=page_limit,
