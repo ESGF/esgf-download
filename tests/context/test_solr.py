@@ -54,7 +54,7 @@ def test_adjust_hits(ctx: SolrContext):
     assert len(first_20) >= len(variable_ids) * 2
     variable_offsets = dict.fromkeys(variable_ids, 0)
     for result in first_20:
-        variable_id = result.query.selection.variable_id[0]
+        variable_id = result.query.selection["variable_id"][0]
         params = dict(result.request.url.params.items())
 
         assert int(params["offset"]) == variable_offsets[variable_id]
@@ -84,7 +84,7 @@ def test_adjust_hits(ctx: SolrContext):
         for i, variable_id in enumerate(variable_ids)
     }
     for result in offset_100:
-        variable_id = result.query.selection.variable_id[0]
+        variable_id = result.query.selection["variable_id"][0]
         params = dict(result.request.url.params.items())
         offset = int(params["offset"])
 
@@ -161,7 +161,7 @@ def test_more_files_than_datasets(ctx: SolrContext, query: Query):
 def test_hints(ctx: SolrContext, query: Query):
     facets = ["institution_id", "variable_id"]
     hints = ctx.hints(query, file=False, facets=facets)[0]
-    assert list(hints["institution_id"]) == query.selection.institution_id
+    assert list(hints["institution_id"]) == query.selection["institution_id"]
     assert len(hints["variable_id"]) > 1
 
 

@@ -71,6 +71,11 @@ src_paths = ["esgpull", "tests", "migrations", "examples"]
 [tool.mypy]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["esgvoc.*"]
+follow_imports = "skip"
+ignore_missing_imports = true
+
 [tool.pdm.scripts]
 doc = { shell = "cd docs && mkdocs serve", help = "Start doc server" }
 
