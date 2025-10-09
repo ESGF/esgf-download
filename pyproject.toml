@@ -71,6 +71,11 @@ src_paths = ["esgpull", "tests", "migrations", "examples"]
 [tool.mypy]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["esgvoc.*"]
+follow_imports = "skip"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "6.2.4"
 filterwarnings = ["ignore::DeprecationWarning"]
