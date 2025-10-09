@@ -142,7 +142,7 @@ def test_hints(ctx: Context, index: str, query: Query, backend: ApiBackend):
     query.backend = backend
     facets = ["institution_id", "variable_id"]
     hints = ctx.hints(query, file=False, facets=facets)[0]
-    assert list(hints["institution_id"]) == query.selection.institution_id
+    assert list(hints["institution_id"]) == query.selection["institution_id"]
     assert len(hints["variable_id"]) > 1
 
 
