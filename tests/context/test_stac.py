@@ -52,7 +52,7 @@ def test_more_files_than_datasets(ctx: StacContext, query: Query):
 def test_hints(ctx: StacContext, query: Query):
     facets = ["institution_id", "variable_id"]
     hints = ctx.hints(query, file=False, facets=facets)[0]
-    assert list(hints["institution_id"]) == query.selection.institution_id
+    assert list(hints["institution_id"]) == query.selection["institution_id"]
     assert len(hints["variable_id"]) > 1
 
 
