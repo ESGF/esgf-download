@@ -86,26 +86,11 @@ def update(
             esg.ui.raise_maybe_record(Exit(0))
         if any(qf.query.backend == ApiBackend.solr for qf in qfs):
             esg.context._solr.probe()
-        if esg.config.api.use_custom_distribution_algorithm:
-            if any(qf.query.backend == ApiBackend.stac for qf in qfs):
-                raise NotImplementedError(
-                    "custom distribution algorithm is only available for solr backend"
-                )
-            hints = esg.context.hints(
-                *[qf.expanded for qf in qfs],
-                file=True,
-                facets=["index_node"],
-            )
-            hits = [
-                sum(esg.context.hits_from_hints(query_hints))
-                for query_hints in hints
-            ]
-        else:
-            hints = [None for _ in qfs]
-            hits = esg.context.hits(
-                *[qf.expanded for qf in qfs],
-                file=True,
-            )
+        hints = [None for _ in qfs]
+        hits = esg.context.hits(
+            *[qf.expanded for qf in qfs],
+            file=True,
+        )
         dataset_hits = esg.context.hits(
             *[qf.expanded for qf in qfs],
             file=False,
@@ -145,20 +130,12 @@ def update(
                 hits=[qf.dataset_hits],
                 max_hits=None,
             )
-            if esg.config.api.use_custom_distribution_algorithm:
-                qf_results = qf.ctx.prepare_search_distributed(
-                    qf.expanded,
-                    file=True,
-                    hints=[qf.hints],
-                    max_hits=None,
-                )
-            else:
-                qf_results = qf.ctx.prepare_search(
-                    qf.expanded,
-                    file=True,
-                    hits=[qf.hits],
-                    max_hits=None,
-                )
+            qf_results = qf.ctx.prepare_search(
+                qf.expanded,
+                file=True,
+                hits=[qf.hits],
+                max_hits=None,
+            )
             match qf.query.backend or ApiBackend.default():
                 case ApiBackend.solr:
                     nb_req = len(qf_dataset_results) + len(qf_results)
