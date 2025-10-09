@@ -115,7 +115,6 @@ class API(BaseModel, validate_assignment=True):
     page_limit: int = 50
     default_options: DefaultOptions = Field(default_factory=DefaultOptions)
     default_query_id: str = ""
-    use_custom_distribution_algorithm: bool = False
 
 
 class Plugins(BaseModel, validate_assignment=True):
@@ -212,6 +211,16 @@ def fix_remove_auth(doc: dict) -> dict:
     return doc
 
 
+def fix_remove_use_custom_distribution_algorithm(doc: dict) -> dict:
+    if "api" in doc and "use_custom_distribution_algorithm" in doc["api"]:
+        logger.warn(
+            "Deprecated 'api.use_custom_distribution_algorithm' is present in your config, "
+            "you can remove it safely."
+        )
+        doc["api"].pop("use_custom_distribution_algorithm")
+    return doc
+
+
 def iter_keys(
     source: Mapping,
     path: ConfigKey | None = None,
@@ -243,7 +252,11 @@ def pop_and_clear_empty_parents(source: Mapping, ckey: ConfigKey):
             break  # Stop if we hit a non-empty container
 
 
-config_fixers = [fix_rename_search_api, fix_remove_auth]
+config_fixers = [
+    fix_rename_search_api,
+    fix_remove_auth,
+    fix_remove_use_custom_distribution_algorithm,
+]
 
 
 class TomlKitConfigSettingsSource(TomlConfigSettingsSource):
