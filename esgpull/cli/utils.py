@@ -14,7 +14,15 @@ from rich.text import Text
 
 from esgpull import Esgpull
 from esgpull.graph import Graph
-from esgpull.models import Dataset, File, Option, Options, Query, Selection
+from esgpull.models import (
+    ApiBackend,
+    Dataset,
+    File,
+    Option,
+    Options,
+    Query,
+    Selection,
+)
 from esgpull.tui import UI, TempUI, Verbosity, logger
 from esgpull.utils import format_size
 
@@ -156,6 +164,7 @@ def parse_query(
     latest: str | None,
     replica: str | None,
     retracted: str | None,
+    backend: ApiBackend | None,
 ) -> Query:
     logger.info(f"{facets=}")
     logger.info(f"{tags=}")
@@ -164,6 +173,7 @@ def parse_query(
     logger.info(f"{latest=}")
     logger.info(f"{replica=}")
     logger.info(f"{retracted=}")
+    logger.info(f"{backend=}")
     options = Options(
         distrib=distrib or Option.notset,
         latest=latest or Option.notset,
@@ -176,6 +186,7 @@ def parse_query(
         require=require,
         options=options,
         selection=selection,
+        backend=backend,
     )
 
 

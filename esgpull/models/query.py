@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, MutableMapping, Sequence
 from datetime import datetime, timezone
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal
 
 import sqlalchemy as sa
@@ -182,6 +183,17 @@ class QueryDict(TypedDict):
     files: NotRequired[list[FileDict]]
     added_at: NotRequired[str]
     updated_at: NotRequired[str]
+    backend: NotRequired[str]
+
+
+class ApiBackend(Enum):
+    solr = "solr"
+    stac = "stac"
+
+    @staticmethod
+    def default() -> ApiBackend:
+        ## TODO: change to stac once it should be the default search engine
+        return ApiBackend.solr
 
 
 class Query(Base):
@@ -219,6 +231,11 @@ class Query(Base):
         server_default=sa.func.now(),
         default_factory=lambda: datetime.now(timezone.utc),
     )
+    backend: Mapped[ApiBackend | None] = mapped_column(
+        sa.Enum(ApiBackend),
+        default=None,
+        nullable=True,
+    )
 
     def __init__(
         self,
@@ -231,6 +248,7 @@ class Query(Base):
         files: list[FileDict] | None = None,
         added_at: datetime | str | None = None,
         updated_at: datetime | str | None = None,
+        backend: ApiBackend | None = None,
     ) -> None:
         self.tracked = tracked
         self.require = require
@@ -267,6 +285,10 @@ class Query(Base):
             self.updated_at = parse_date(updated_at)
         else:
             self.updated_at = datetime.now(timezone.utc)
+        if isinstance(backend, str):
+            self.backend = ApiBackend(backend)
+        else:
+            self.backend = backend
 
     @property
     def has_files(self) -> bool:
@@ -304,6 +326,9 @@ class Query(Base):
 
     def _as_bytes(self) -> bytes:
         self_tuple = (self.require, self.options.sha, self.selection.sha)
+        if self.backend is not None:
+            ## Must include conditionally for backwards compatiblity
+            self_tuple += (self.backend.value,)
         return str(self_tuple).encode()
 
     def compute_sha(self) -> None:
@@ -346,6 +371,8 @@ class Query(Base):
             yield "options", self.options
         if self.selection:
             yield "selection", self.selection
+        if self.backend:
+            yield "backend", self.backend
 
     def asdict(self) -> QueryDict:
         result: QueryDict = {}
@@ -361,6 +388,8 @@ class Query(Base):
             result["options"] = self.options.asdict()
         if self.selection:
             result["selection"] = self.selection.asdict()
+        if self.backend:
+            result["backend"] = self.backend.value
         result["added_at"] = format_date(self.added_at)
         result["updated_at"] = format_date(self.updated_at)
         return result
@@ -414,6 +443,10 @@ class Query(Base):
         result = self.clone(compute_sha=False)
         # if self.name != child.require:
         #     raise ValueError(f"{self.name} is not required by {child.name}")
+        for backend in [child.backend, self.backend]:
+            if backend is not None:
+                result.backend = backend
+                break
         for tag in child.tags:
             if tag not in result.tags:
                 result.tags.append(tag)
@@ -454,6 +487,10 @@ class Query(Base):
         title = Text.from_markup(self.rich_name)
         if not self.tracked:
             title.append(" untracked", style="i red")
+        backend = (
+            self.backend.value if self.backend is not None else "not specified"
+        )
+        title.append(f"\n│ backend  {backend}")
         title.append(
             f"\n│ added    {format_date_iso(self.added_at)}"
             f"\n│ updated  {format_date_iso(self.updated_at)}"
