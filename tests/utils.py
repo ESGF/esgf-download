@@ -1,5 +1,10 @@
 from typing import Any, Mapping
 
+IPSL_NODE = "esgf-node.ipsl.upmc.fr"
+DRKZ_NODE = "esgf-data.dkrz.de"
+CEDA_NODE = "esgf.ceda.ac.uk"
+ORNL_BRIDGE = "esgf-node.ornl.gov/esgf-1-5-bridge"
+
 
 def dict_equals_ignore(
     d1: Mapping[str, Any],

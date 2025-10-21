@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, TypeAlias, TypeVar
+from urllib.parse import urlparse
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
@@ -18,7 +19,7 @@ from esgpull.config import Config
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
-from esgpull.utils import format_date_iso, index2url, sync
+from esgpull.utils import format_date_iso, sync
 
 # workaround for notebooks with running event loop
 if asyncio.get_event_loop().is_running():
@@ -37,6 +38,29 @@ DangerousFacets = {
     "tracking_id",
     "url",
 }
+
+
+@dataclass
+class IndexNode:
+    value: str
+
+    def is_bridge(self) -> bool:
+        return "esgf-1-5-bridge" in self.value
+
+    @property
+    def url(self) -> str:
+        parsed = urlparse(self.value)
+        result: str
+        match (parsed.scheme, parsed.netloc, parsed.path, self.is_bridge()):
+            case ("", "", path, True):
+                result = "https://" + parsed.path
+            case ("", "", path, False):
+                result = "https://" + parsed.path + "/esg-search/search"
+            case _:
+                result = self.value
+        if "." not in result:
+            raise ValueError(self.value)
+        return result
 
 
 @dataclass
@@ -70,12 +94,12 @@ class Result:
             "format": "application/solr+json",
             # "from": self.since,
         }
-        if index_url is None:
-            index_url = index2url(index_node)
-        if fields_param is not None:
-            params["fields"] = ",".join(fields_param)
-        else:
-            params["fields"] = "instance_id"
+        index = IndexNode(value=index_url or index_node)
+        if not index.is_bridge():
+            if fields_param is not None:
+                params["fields"] = ",".join(fields_param)
+            else:
+                params["fields"] = "instance_id"
         if date_from is not None:
             params["from"] = format_date_iso(date_from)
         if date_to is not None:
@@ -101,15 +125,20 @@ class Result:
             else:
                 if len(values) > 1:
                     value_term = f"({value_term})"
-                solr_terms.append(f"{name}:{value_term}")
+                if name.startswith("!"):
+                    solr_terms.append(f"NOT ({name[1:]}:{value_term})")
+                else:
+                    solr_terms.append(f"{name}:{value_term}")
         if solr_terms:
             params["query"] = " AND ".join(solr_terms)
         for name, option in self.query.options.items(use_default=True):
             if option.is_bool():
                 params[name] = option.name
+        if index.is_bridge():
+            _ = params.pop("retracted", None)  # not supported in bridge API
         if params.get("distrib") == "true" and facets_star:
             raise SolrUnstableQueryError(pretty_repr(self.query))
-        self.request = Request("GET", index_url, params=params)
+        self.request = Request("GET", index.url, params=params)
 
     def to(self, subtype: type[RT]) -> RT:
         result: RT = subtype(self.query, self.file)
