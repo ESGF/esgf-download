@@ -97,6 +97,45 @@ $ esgpull config --generate
     ```
 
 
+## Index Node Configuration
+
+The `api.index_node` setting determines which ESGF index node `esgpull` will query for dataset metadata and search results.
+
+### `esg-search` Index Nodes
+
+`esgpull` uses a single regional ESGF index node, backed by the `esg-search` API, the endpoint can be changed through configuration:
+
+```shell
+$ esgpull config api.index_node esgf-node.ipsl.upmc.fr
+```
+
+Other available index nodes include:
+
+- `esgf.ceda.ac.uk` (UK)
+- `esgf-data.dkrz.de` (Germany)
+- `esgf-node.ornl.gov/esgf-1-5-bridge` (USA, Bridge API)
+- find more at https://esgf.github.io/nodes.html
+
+### Bridge API
+
+The ORNL Bridge API node provides a temporary wrapper mimicking the API surface of the legacy esg-search code. This Bridge API has replaced the regular ORNL endpoint.
+
+To use the ORNL node, you must specify the Bridge API path:
+
+```shell
+$ esgpull config api.index_node esgf-node.ornl.gov/esgf-1-5-bridge
+```
+
+!!! note "Bridge API Compatibility"
+
+    The Bridge API has some limitations compared to standard ESGF index nodes:
+
+    - The `retracted` option is not supported and will be automatically removed from queries
+    - The `fields` parameter is not supported
+    - Facet queries may behave differently than on standard nodes
+
+    `esgpull` automatically detects when you're using a Bridge API endpoint (by checking for `esgf-1-5-bridge` in the URL) and adjusts query parameters accordingly to ensure compatibility.
+
 ## Login (deprecated)
 
 Login is not longer required and has been removed from `esgpull`.
