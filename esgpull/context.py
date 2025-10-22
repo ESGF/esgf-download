@@ -507,6 +507,8 @@ class Context:
             result.process()
             if result.processed:
                 hits.append(result.data)
+            else:
+                hits.append(0)
         return hits
 
     async def _hints(self, *results: ResultHints) -> list[HintsDict]:
@@ -756,3 +758,13 @@ class Context:
             date_to=date_to,
             keep_duplicates=keep_duplicates,
         )
+
+    def probe(self, index_node: str | None = None) -> None:
+        noraise = self.noraise
+        self.noraise = False
+        _ = self.hits(
+            Query(),
+            file=True,
+            index_node=index_node or self.config.api.index_node,
+        )
+        self.noraise = noraise
