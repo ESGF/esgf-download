@@ -25,9 +25,23 @@ from esgpull.models.replication_events import (
     ReplicationOperation,
     ReplicationStatus
 )
-
+# Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)  # Set the logger's overall level
+
+# Create a StreamHandler to output to console (sys.stdout in this case)
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+
+# Create a Formatter to define the message format
+formatter = logging.Formatter(
+    '%(asctime)s-%(name)s-%(levelname)s: %(message)s',
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+console_handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(console_handler)
 
 
 class ReplicationError(Exception):
@@ -84,20 +98,20 @@ class ReplicationStats:
     def print_summary(self):
         """Print formatted statistics summary"""
         summary = self.get_summary()
-        click.echo("=" * 60)
-        click.echo("Replication Statistics Summary")
-        click.echo("=" * 60)
-        click.echo(f"Total Events:       {summary['total_events']}")
-        click.echo(f"Processed:          {summary['processed']} ({self._percentage(summary['processed'], summary['total_events'])})")
-        click.echo(f"Failed:             {summary['failed']} ({self._percentage(summary['failed'], summary['total_events'])})")
-        click.echo(f"Validation Errors:  {summary['validation_errors']} ({self._percentage(summary['validation_errors'], summary['total_events'])})")
-        click.echo(f"Duration:           {summary['duration_seconds']:.2f} seconds")
-        click.echo(f"Rate:               {summary['events_per_second']:.2f} events/second")
-        click.echo("-" * 60)
-        click.echo("Events by Type:")
+        logger.info("=" * 60)
+        logger.info("Replication Statistics Summary")
+        logger.info("=" * 60)
+        logger.info(f"Total Events:       {summary['total_events']}")
+        logger.info(f"Processed:          {summary['processed']} ({self._percentage(summary['processed'], summary['total_events'])})")
+        logger.info(f"Failed:             {summary['failed']} ({self._percentage(summary['failed'], summary['total_events'])})")
+        logger.info(f"Validation Errors:  {summary['validation_errors']} ({self._percentage(summary['validation_errors'], summary['total_events'])})")
+        logger.info(f"Duration:           {summary['duration_seconds']:.2f} seconds")
+        logger.info(f"Rate:               {summary['events_per_second']:.2f} events/second")
+        logger.info("-" * 60)
+        logger.info("Events by Type:")
         for event_type, counts in summary['by_type'].items():
-            click.echo(f"  {event_type:30} Success: {counts['success']:5} Failed: {counts['failed']:5}")
-        click.echo("=" * 60)
+            logger.info(f"  {event_type:20} Success: {counts['success']} Failed: {counts['failed']}")
+        logger.info("=" * 60)
 
     @staticmethod
     def _percentage(value: int, total: int) -> str:
@@ -134,9 +148,9 @@ class KafkaReplicator:
         """Establish connection to Kafka cluster"""
         try:
             self.consumer = Consumer(self.kafka_config)
-            click.echo(f"Connected to Kafka cluster: {self.kafka_config['bootstrap.servers']}")
-            click.echo(f"Subscribing to topic: {self.topic}")
-            click.echo(f"Consumer group: {self.kafka_config['group.id']}")
+            logger.info(f"Connected to Kafka cluster: {self.kafka_config['bootstrap.servers']}")
+            logger.info(f"Subscribing to topic: {self.topic}")
+            logger.info(f"Consumer group: {self.kafka_config['group.id']}")
             self.consumer.subscribe([self.topic])
         except Exception as e:
             raise ReplicationError(f"Failed to connect to Kafka: {e}")
@@ -145,7 +159,7 @@ class KafkaReplicator:
         """Close Kafka consumer connection"""
         if self.consumer:
             self.consumer.close()
-            click.echo("Disconnected from Kafka cluster")
+            logger.info("Disconnected from Kafka cluster")
 
     def process_replication_event(self, event_data: Dict[str, Any]) -> bool:
         """
@@ -188,14 +202,14 @@ class KafkaReplicator:
             return success
 
         except ValidationError as e:
-            click.echo(f"Validation error in event: {e}")
+            logger.error(f"Validation error in event: {e}")
             self.stats.record_validation_error()
             # Log detailed validation errors for debugging
             for error in e.errors():
-                click.echo(f"  Field: {error['loc']}, Error: {error['msg']}")
+                logger.debug(f"  Field: {error['loc']}, Error: {error['msg']}")
             return False
         except Exception as e:
-            click.echo(f"Unexpected error processing event: {e}", exc_info=True)
+            logger.error(f"Unexpected error processing event: {e}", exc_info=True)
             return False
 
     def _handle_dataset_event(self, event, event_type) -> bool:
@@ -211,21 +225,29 @@ class KafkaReplicator:
         try:
             dataset = event["data"]["payload"]
             item = dataset.get("item", None)
+            dataset_master, version = item["id"].rsplit(".", 1)
+            logger.info(dataset_master)
+            logger.info(version)
 
+            # Extract asset details from dataset
             assets = item.get("assets", {})
-            files = len(assets)
             filesize = 0
-            if files:
+            netcdf_files = []
+            num_files = len(assets)
+            if num_files:
                 for asset_key in assets.keys():
                     asset = assets.get(asset_key)
+                    if asset.get("type") == "application/netcdf":
+                        netcdf_files.append(asset.get("href"))
                     filesize += asset.get("file:size", 0)
 
-            click.echo(f"Processing dataset event: {event_type} for {item["id"]}")
-            click.echo(f"✓ Added dataset: {item["id"]}")
-            click.echo(f"  Files: {files}, Size: {filesize / (1024**3):.2f} GB")
+            logger.info(f"Processing dataset event: {event_type} for {item["id"]}")
+            logger.info(f"✓ Added dataset: {item["id"]}")
+            logger.info(f"  Total Files: {num_files}, Size: {filesize / (1024**3):.2f} GB")
+            logger.info(f"  NetCDF files: {len(netcdf_files)}")
             return True
         except Exception as e:
-            click.echo(f"Failed to handle dataset event: {e}", exc_info=True)
+            logger.error(f"Failed to handle dataset event: {e}", exc_info=True)
             return False
 
     def _handle_file_event(self, event, event_type) -> bool:
@@ -258,14 +280,14 @@ class KafkaReplicator:
             # Update operation status in database
 
             if operation.status == ReplicationStatus.COMPLETED:
-                click.echo(f"✓ Replication completed: {operation.operation_id}")
+                logger.info(f"✓ Replication completed: {operation.operation_id}")
             elif operation.status == ReplicationStatus.FAILED:
-                click.echo(f"✗ Replication failed: {operation.operation_id}")
+                logger.error(f"✗ Replication failed: {operation.operation_id}")
 
             return True
 
         except Exception as e:
-            click.echo(f"Failed to update replication status: {e}")
+            logger.error(f"Failed to update replication status: {e}")
             return False
 
     def consume_events(self, max_messages: Optional[int] = None, timeout: float = 1.0):
@@ -284,12 +306,12 @@ class KafkaReplicator:
         last_progress_log = datetime.utcnow()
 
         try:
-            click.echo("Starting replication event consumption...")
+            logger.info("Starting replication event consumption...")
 
             while self.running:
                 # Check if we've reached the message limit
                 if max_messages and message_count >= max_messages:
-                    click.echo(f"Reached maximum message limit: {max_messages}")
+                    logger.info(f"Reached maximum message limit: {max_messages}")
                     break
 
                 # Poll for messages
@@ -301,10 +323,10 @@ class KafkaReplicator:
                 # Handle errors
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
-                        click.echo(f"Reached end of partition {msg.partition()}")
+                        logger.debug(f"Reached end of partition {msg.partition()}")
                         continue
                     else:
-                        click.echo(f"Kafka error: {msg.error()}")
+                        logger.error(f"Kafka error: {msg.error()}")
                         continue
 
                 try:
@@ -313,7 +335,7 @@ class KafkaReplicator:
 
                     # Process the event with Pydantic validation
                     if self.process_replication_event(event_data):
-                        click.echo(f"✓ Successfully processed message from partition {msg.partition()}, offset {msg.offset()}")
+                        logger.debug(f"✓ Successfully processed message from partition {msg.partition()}, offset {msg.offset()}")
 
                         # Commit offset after successful processing
                         self.consumer.commit(msg)
@@ -326,7 +348,7 @@ class KafkaReplicator:
                     now = datetime.utcnow()
                     if message_count % 100 == 0 or (now - last_progress_log).total_seconds() >= 30:
                         summary = self.stats.get_summary()
-                        click.echo(
+                        logger.info(
                             f"Progress: {summary['total_events']} events "
                             f"({summary['processed']} processed, {summary['failed']} failed, "
                             f"{summary['validation_errors']} validation errors) "
@@ -335,21 +357,21 @@ class KafkaReplicator:
                         last_progress_log = now
 
                 except json.JSONDecodeError as e:
-                    click.echo(f"Invalid JSON in message at offset {msg.offset()}: {e}")
+                    logger.error(f"Invalid JSON in message at offset {msg.offset()}: {e}")
                     self.stats.record_validation_error()
                 except KeyboardInterrupt:
-                    click.echo("Received interrupt signal, stopping consumer...")
+                    logger.info("Received interrupt signal, stopping consumer...")
                     self.stop()
                     break
                 except Exception as e:
-                    click.echo(f"Unexpected error processing message at offset {msg.offset()}: {e}", exc_info=True)
+                    logger.error(f"Unexpected error processing message at offset {msg.offset()}: {e}", exc_info=True)
 
         except KafkaException as e:
-            click.echo(f"Kafka exception: {e}")
+            logger.error(f"Kafka exception: {e}")
             raise ReplicationError(f"Kafka consumer error: {e}")
 
         finally:
-            click.echo("Consumer stopped.")
+            logger.info("Consumer stopped.")
             self.stats.print_summary()
 
     def stop(self):
@@ -407,8 +429,8 @@ def test_kafka_connection(config: Dict[str, Any], topic: str) -> bool:
         topic_metadata = metadata.topics[topic]
         partition_count = len(topic_metadata.partitions)
 
-        click.echo(f"Successfully connected to Kafka cluster: {config['bootstrap.servers']}")
-        click.echo(f"Topic '{topic}' found with {partition_count} partition(s)")
+        logger.info(f"Successfully connected to Kafka cluster: {config['bootstrap.servers']}")
+        logger.info(f"Topic '{topic}' found with {partition_count} partition(s)")
 
         return True
 
@@ -470,20 +492,20 @@ def replicate(topic, config, bootstrap_servers, group_id, max_messages, timeout,
     esgpull replicate esgf-events --config kafka.json --max-messages 100 --verbose
     """
 
-    click.echo("ESGF Replicator - Starting up")
-    click.echo(f"Topic: {topic}")
-    click.echo(f"Consumer Group: {group_id}")
+    logger.info("ESGF Replicator - Starting up")
+    logger.info(f"Topic: {topic}")
+    logger.info(f"Consumer Group: {group_id}")
 
     # Build Kafka configuration
     kafka_config = {}
 
     if config:
         kafka_config = validate_kafka_config(config)
-        click.echo(f"Loaded Kafka configuration from: {config}")
+        logger.info(f"Loaded Kafka configuration from: {config}")
 
     if bootstrap_servers:
         kafka_config['bootstrap.servers'] = bootstrap_servers
-        click.echo(f"Using bootstrap servers: {bootstrap_servers}")
+        logger.info(f"Using bootstrap servers: {bootstrap_servers}")
 
     if not kafka_config.get('bootstrap.servers'):
         raise click.ClickException(
@@ -514,12 +536,12 @@ def replicate(topic, config, bootstrap_servers, group_id, max_messages, timeout,
         replicator.consume_events(max_messages=max_messages, timeout=timeout)
 
     except KeyboardInterrupt:
-        click.echo("Received interrupt signal, shutting down...")
+        logger.info("Received interrupt signal, shutting down...")
     except ReplicationError as e:
-        click.echo(f"Replication error: {e}")
+        logger.error(f"Replication error: {e}")
         sys.exit(1)
     except Exception as e:
-        click.echo(f"Unexpected error: {e}", exc_info=True)
+        logger.error(f"Unexpected error: {e}", exc_info=True)
         sys.exit(1)
     finally:
         replicator.disconnect()
