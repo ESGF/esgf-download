@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.20">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.e53b48f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.84d31ad4.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -325,6 +325,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#index-node-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Index Node Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Index Node Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#esg-search-index-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      esg-search Index Nodes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bridge-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bridge API
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#login-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
       Login (deprecated)
@@ -494,6 +527,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#index-node-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Index Node Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Index Node Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#esg-search-index-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      esg-search Index Nodes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bridge-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bridge API
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#login-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
       Login (deprecated)
@@ -606,12 +672,40 @@ with default values for all missing options:</p>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>👍<span class="w"> </span>Config<span class="w"> </span>generated<span class="w"> </span>at<span class="w"> </span>/home/me/.esgpull/config.toml
 </code></pre></div></p>
 </div>
+<h2 id="index-node-configuration">Index Node Configuration<a class="headerlink" href="#index-node-configuration" title="Permanent link">&para;</a></h2>
+<p>The <code>api.index_node</code> setting determines which ESGF index node <code>esgpull</code> will query for dataset metadata and search results.</p>
+<h3 id="esg-search-index-nodes"><code>esg-search</code> Index Nodes<a class="headerlink" href="#esg-search-index-nodes" title="Permanent link">&para;</a></h3>
+<p><code>esgpull</code> uses a single regional ESGF index node, backed by the <code>esg-search</code> API, the endpoint can be changed through configuration:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>api.index_node<span class="w"> </span>esgf-node.ipsl.upmc.fr
+</code></pre></div>
+<p>Other available index nodes include:</p>
+<ul>
+<li><code>esgf.ceda.ac.uk</code> (UK)</li>
+<li><code>esgf-data.dkrz.de</code> (Germany)</li>
+<li><code>esgf-node.ornl.gov/esgf-1-5-bridge</code> (USA, Bridge API)</li>
+<li>find more at https://esgf.github.io/nodes.html</li>
+</ul>
+<h3 id="bridge-api">Bridge API<a class="headerlink" href="#bridge-api" title="Permanent link">&para;</a></h3>
+<p>The ORNL Bridge API node provides a temporary wrapper mimicking the API surface of the legacy esg-search code. This Bridge API has replaced the regular ORNL endpoint.</p>
+<p>To use the ORNL node, you must specify the Bridge API path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>api.index_node<span class="w"> </span>esgf-node.ornl.gov/esgf-1-5-bridge
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Bridge API Compatibility</p>
+<p>The Bridge API has some limitations compared to standard ESGF index nodes:</p>
+<ul>
+<li>The <code>retracted</code> option is not supported and will be automatically removed from queries</li>
+<li>The <code>fields</code> parameter is not supported</li>
+<li>Facet queries may behave differently than on standard nodes</li>
+</ul>
+<p><code>esgpull</code> automatically detects when you're using a Bridge API endpoint (by checking for <code>esgf-1-5-bridge</code> in the URL) and adjusts query parameters accordingly to ensure compatibility.</p>
+</div>
 <h2 id="login-deprecated">Login (deprecated)<a class="headerlink" href="#login-deprecated" title="Permanent link">&para;</a></h2>
 <p>Login is not longer required and has been removed from <code>esgpull</code>.
 Existing <code>auth</code> folder in esgpull installation folder can be removed safely.</p>
 <h2 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">&para;</a></h2>
 <p>Plugin functionality is disabled by default and can be enabled with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
 </code></pre></div>
 <p>Plugin-specific configurations are managed separately through the <code>esgpull plugins config</code> command and stored in a dedicated <code>plugins.toml</code> file. See the <a href="plugins">Plugins page</a> for more information.</p>
 
