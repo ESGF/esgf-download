@@ -25,6 +25,8 @@ from esgpull.utils import format_date_iso, sync
 try:
     asyncio.get_running_loop()
 except RuntimeError:
+    pass
+else:
     import nest_asyncio
 
     nest_asyncio.apply()
