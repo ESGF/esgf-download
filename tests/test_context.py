@@ -32,6 +32,9 @@ def query(request):
     return request.getfixturevalue(request.param)
 
 
+parametrized_index = pytest.mark.parametrize("index", [CEDA_NODE, ORNL_BRIDGE])
+
+
 def test_multi_index(ctx, empty):
     index_nodes = [CEDA_NODE, DRKZ_NODE]
     results = []
@@ -157,21 +160,24 @@ class Timer:
 #     logging.info(f"{t_distributed.duration}")
 
 
-def test_ipsl_hits_exist(ctx, cmip6_ipsl):
+@parametrized_index
+def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
     hits = ctx.hits(
         cmip6_ipsl,
         file=False,
-        index_node=CEDA_NODE,
+        index_node=index,
     )
     assert 1_000 < hits[0]
 
 
-def test_more_files_than_datasets(ctx, query):
+@parametrized_index
+def test_more_files_than_datasets(ctx, index: str, query):
     assert sum(ctx.hits(query, file=False)) < sum(ctx.hits(query, file=True))
 
 
+@parametrized_index
 @pytest.mark.slow
-def test_hints(ctx, cmip6_ipsl):
+def test_hints(ctx, index: str, cmip6_ipsl):
     facets = ["institution_id", "variable_id"]
     hints = ctx.hints(cmip6_ipsl, file=False, facets=facets)[0]
     assert list(hints["institution_id"]) == cmip6_ipsl.selection.institution_id
@@ -184,6 +190,7 @@ def test_hits_from_hints(ctx):
     assert hits == [6]
 
 
+@parametrized_index
 @pytest.mark.parametrize(
     "query_all",
     [
@@ -192,12 +199,12 @@ def test_hits_from_hints(ctx):
         Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
     ],
 )
-def test_ignore_facet_hits(ctx, query_all: Query):
+def test_ignore_facet_hits(ctx, index: str, query_all: Query):
     query_ipsl = Query(selection={"institution_id": "IPSL"}) << query_all
     query_not_ipsl = Query(selection={"!institution_id": "IPSL"}) << query_all
-    hits_all = ctx.hits(query_all, file=False)[0]
-    hits_ipsl = ctx.hits(query_ipsl, file=False)[0]
-    hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
+    hits_all = ctx.hits(query_all, file=False, index_node=index)[0]
+    hits_ipsl = ctx.hits(query_ipsl, file=False, index_node=index)[0]
+    hits_not_ipsl = ctx.hits(query_not_ipsl, file=False, index_node=index)[0]
     assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
     assert hits_all == hits_ipsl + hits_not_ipsl
 

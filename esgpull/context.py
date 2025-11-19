@@ -67,6 +67,16 @@ class IndexNode:
         return result
 
 
+def quote_str(s: str) -> str:
+    if "*" in s:
+        # don't quote when `*` is present, quotes enforce exact match
+        return s
+    elif not s.startswith('"') and not s.endswith('"'):
+        return f'"{s}"'
+    else:
+        return s
+
+
 @dataclass
 class Result:
     query: Query
@@ -123,7 +133,10 @@ class Result:
         #     query["end"] = format_date_iso(str(facets.pop("end")))
         solr_terms: list[str] = []
         for name, values in self.query.selection.items():
-            value_term = " ".join(values)
+            if index.is_bridge():
+                value_term = " ".join(quote_str(v) for v in values)
+            else:
+                value_term = " ".join(values)
             if name == "query":  # freetext case
                 solr_terms.append(value_term)
             else:
