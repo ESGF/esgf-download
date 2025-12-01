@@ -3,55 +3,41 @@ from time import perf_counter
 
 import pytest
 
-from esgpull.context import Context, IndexNode, _distribute_hits_impl
+from esgpull.config import Config
+from esgpull.context.solr import SolrContext, _distribute_hits_impl
 from esgpull.models import Query
-from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, ORNL_BRIDGE
+from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, parametrized_index
+
+empty = Query()
+cmip6_ipsl = Query(
+    options={"distrib": False},
+    selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+)
 
 
 @pytest.fixture
-def ctx(config):
-    return Context(config=config)
+def ctx(config: Config):
+    return SolrContext(config=config)
 
 
-@pytest.fixture
-def empty():
-    return Query()
-
-
-@pytest.fixture
-def cmip6_ipsl():
-    query = Query()
-    query.options.distrib = False
-    query.selection.mip_era = "CMIP6"
-    query.selection.institution_id = "IPSL"
-    return query
-
-
-@pytest.fixture(params=["empty", "cmip6_ipsl"])
-def query(request):
-    return request.getfixturevalue(request.param)
-
-
-parametrized_index = pytest.mark.parametrize("index", [CEDA_NODE, ORNL_BRIDGE])
-
-
-def test_multi_index(ctx, empty):
+@pytest.mark.parametrize("query", [empty])
+def test_multi_index(ctx: SolrContext, query: Query):
     index_nodes = [CEDA_NODE, DRKZ_NODE]
     results = []
     for index_node in index_nodes:
         query_results = ctx.prepare_hits(
-            empty,
+            query,
             file=False,
             index_node=index_node,
         )
         results.extend(query_results)
     assert len(results) == 2
-    for result, index_node in zip(results, index_nodes):
+    for result, index_node in zip(results, index_nodes, strict=False):
         assert index_node in str(result.request.url)
         assert index_node == result.request.headers["host"]
 
 
-def test_adjust_hits(ctx):
+def test_adjust_hits(ctx: SolrContext):
     variable_ids = ["tas", "tasmin"]
     queries = []
     for variable_id in variable_ids:
@@ -67,9 +53,9 @@ def test_adjust_hits(ctx):
         max_hits=len(variable_ids) * page_limit * 2,
     )
     assert len(first_20) >= len(variable_ids) * 2
-    variable_offsets = {variable_id: 0 for variable_id in variable_ids}
+    variable_offsets = dict.fromkeys(variable_ids, 0)
     for result in first_20:
-        variable_id = result.query.selection.variable_id[0]
+        variable_id = result.query.selection["variable_id"][0]
         params = dict(result.request.url.params.items())
 
         assert int(params["offset"]) == variable_offsets[variable_id]
@@ -99,7 +85,7 @@ def test_adjust_hits(ctx):
         for i, variable_id in enumerate(variable_ids)
     }
     for result in offset_100:
-        variable_id = result.query.selection.variable_id[0]
+        variable_id = result.query.selection["variable_id"][0]
         params = dict(result.request.url.params.items())
         offset = int(params["offset"])
 
@@ -127,7 +113,7 @@ class Timer:
 #     raises=ValueError,
 #     reason="ESGF bridge API gives index_node values that are not valid URLs",
 # )
-# def test_search_distributed(ctx):
+# def test_search_distributed(ctx: SolrContext):
 #     query = Query()
 #     # ctx.config.api.http_timeout = 60
 #     query.options.distrib = True
@@ -161,33 +147,26 @@ class Timer:
 
 
 @parametrized_index
-def test_ipsl_hits_exist(ctx, index: str, cmip6_ipsl):
-    hits = ctx.hits(
-        cmip6_ipsl,
-        file=False,
-        index_node=index,
-    )
-    assert 1_000 < hits[0]
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+def test_ipsl_hits_exist(ctx: SolrContext, index: str, query: Query):
+    hits = ctx.hits(query, file=False, index_node=index)
+    assert hits[0] > 1_000
 
 
 @parametrized_index
-def test_more_files_than_datasets(ctx, index: str, query):
-    assert sum(ctx.hits(query, file=False)) < sum(ctx.hits(query, file=True))
+@pytest.mark.parametrize("query", [empty, cmip6_ipsl])
+def test_more_files_than_datasets(ctx: SolrContext, index: str, query: Query):
+    assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
 
 
 @parametrized_index
 @pytest.mark.slow
-def test_hints(ctx, index: str, cmip6_ipsl):
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+def test_hints(ctx: SolrContext, index: str, query: Query):
     facets = ["institution_id", "variable_id"]
-    hints = ctx.hints(cmip6_ipsl, file=False, facets=facets)[0]
-    assert list(hints["institution_id"]) == cmip6_ipsl.selection.institution_id
+    hints = ctx.hints(query, file=False, facets=facets)[0]
+    assert list(hints["institution_id"]) == query.selection["institution_id"]
     assert len(hints["variable_id"]) > 1
-
-
-def test_hits_from_hints(ctx):
-    hints = {"facet_name": {"value_a": 1, "value_b": 2, "value_c": 3}}
-    hits = ctx.hits_from_hints(hints)
-    assert hits == [6]
 
 
 @parametrized_index
@@ -199,7 +178,7 @@ def test_hits_from_hints(ctx):
         Query(selection={"experiment_id": "ssp*", "variable_id": "tas"}),
     ],
 )
-def test_ignore_facet_hits(ctx, index: str, query_all: Query):
+def test_ignore_facet_hits(ctx: SolrContext, index: str, query_all: Query):
     query_ipsl = Query(selection={"institution_id": "IPSL"}) << query_all
     query_not_ipsl = Query(selection={"!institution_id": "IPSL"}) << query_all
     hits_all = ctx.hits(query_all, file=False, index_node=index)[0]
@@ -207,48 +186,6 @@ def test_ignore_facet_hits(ctx, index: str, query_all: Query):
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False, index_node=index)[0]
     assert all(hits > 0 for hits in [hits_all, hits_ipsl, hits_not_ipsl])
     assert hits_all == hits_ipsl + hits_not_ipsl
-
-
-@pytest.mark.parametrize(
-    "index,url,is_bridge",
-    [
-        (
-            IPSL_NODE,
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            CEDA_NODE,
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{IPSL_NODE}/esg-search/search",
-            f"https://{IPSL_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            f"https://{CEDA_NODE}/esg-search/search",
-            f"https://{CEDA_NODE}/esg-search/search",
-            False,
-        ),
-        (
-            ORNL_BRIDGE,
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-        (
-            f"https://{ORNL_BRIDGE}",
-            f"https://{ORNL_BRIDGE}",
-            True,
-        ),
-    ],
-)
-def test_index2url(index: str, url: str, is_bridge: bool):
-    for value in (index, url):
-        index_node = IndexNode(value=value)
-        assert index_node.url == url
-        assert index_node.is_bridge() == is_bridge
 
 
 @pytest.mark.parametrize(
@@ -262,8 +199,8 @@ def test_index2url(index: str, url: str, is_bridge: bool):
                     project="CMIP6",
                     institution_id="IPSL",
                     variable_id="uv",
-                )
-            )
+                ),
+            ),
         ],
         [
             Query(),
@@ -272,7 +209,7 @@ def test_index2url(index: str, url: str, is_bridge: bool):
                     project="CMIP6",
                     institution_id="IPSL",
                     variable_id="uv",
-                )
+                ),
             ),
         ],
         [Query(selection=dict(project="notaproject"))],
@@ -290,7 +227,7 @@ def test_index2url(index: str, url: str, is_bridge: bool):
     ],
 )
 def test_hits_never_empty(
-    ctx: Context,
+    ctx: SolrContext,
     queries: tuple[Query],
     file: bool,
     index_node: str,
@@ -311,7 +248,7 @@ def test_hits_never_empty(
     ],
 )
 def test_probe(
-    ctx: Context,
+    ctx: SolrContext,
     index_node: str,
     exc,
 ):

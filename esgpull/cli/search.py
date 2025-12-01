@@ -10,7 +10,7 @@ from esgpull.cli.utils import filter_keys, init_esgpull, parse_query, totable
 from esgpull.context import IndexNode
 from esgpull.exceptions import PageIndexError
 from esgpull.graph import Graph
-from esgpull.models import Query
+from esgpull.models import ApiBackend, Query
 from esgpull.tui import Verbosity
 
 
@@ -39,6 +39,7 @@ def search(
     latest: str | None,
     replica: str | None,
     retracted: str | None,
+    backend: ApiBackend | None,
     ## query_date
     date_from: datetime | None,
     date_to: datetime | None,
@@ -81,6 +82,7 @@ def search(
             latest=latest,
             replica=replica,
             retracted=retracted,
+            backend=backend,
         )
         query.compute_sha()
         esg.graph.resolve_require(query)
@@ -99,7 +101,8 @@ def search(
             esg.ui.raise_maybe_record(Exit(0))
         esg.graph.add(query, force=True)
         query = esg.graph.expand(query.sha)
-        esg.context.probe()
+        if query.backend == ApiBackend.solr:
+            esg.context._solr.probe()
         hits = esg.context.hits(
             query,
             file=file,
@@ -123,21 +126,46 @@ def search(
             max_hits = nb
         ids = range(offset, offset + max_hits)
         if dry_run:
-            search_results = esg.context.prepare_search(
-                query,
-                file=file,
-                hits=hits,
-                offset=offset,
-                max_hits=max_hits,
-                date_from=date_from,
-                date_to=date_to,
-            )
-            for result in search_results:
-                esg.ui.print(result.request.url)
+            match query.backend or ApiBackend.default():
+                case ApiBackend.solr:
+                    search_results = esg.context._solr.prepare_search(
+                        query,
+                        file=file,
+                        hits=hits,
+                        offset=offset,
+                        max_hits=max_hits,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    for result in search_results:
+                        esg.ui.print(result.request.url)
+                case ApiBackend.stac:
+                    search_results = esg.context._stac.prepare_search(
+                        query,
+                        file=file,
+                        offset=offset,
+                        max_hits=max_hits,
+                        date_from=date_from,
+                        date_to=date_to,
+                    )
+                    for result in search_results:
+                        esg.ui.print(result.item_search.url_with_parameters())
+                        print()
+                        esg.ui.print(result.item_search.url)
+                        esg.ui.print(
+                            result.item_search.get_parameters(), json=True
+                        )
             esg.ui.raise_maybe_record(Exit(0))
         if facets_hints:
+            if backend == ApiBackend.stac:
+                raise NotImplementedError(
+                    "`--facets` is not available with stac backend"
+                )
+            index = IndexNode(
+                value=esg.config.api.index_node,
+                backend=ApiBackend.solr,
+            )
             not_distrib_query = query << Query(options=dict(distrib=False))
-            index = IndexNode(esg.config.api.index_node)
             if index.is_bridge():
                 first_file_result = esg.context.search_as_queries(
                     not_distrib_query,
