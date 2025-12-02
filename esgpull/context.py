@@ -254,6 +254,10 @@ class ResultSearchAsQueries(Result):
 
 
 def _distribute_hits_impl(hits: list[int], max_hits: int) -> list[int]:
+    # catch empty hits
+    if not hits:
+        return []
+
     i = total = 0
     N = len(hits)
     accs = [0.0 for _ in range(N)]
@@ -279,6 +283,10 @@ def _distribute_hits(
     max_hits: int | None,
     page_limit: int,
 ) -> list[list[slice]]:
+    # early return if no hits
+    if not hits:
+        return []
+
     offsets = _distribute_hits_impl(hits, offset)
     hits_with_offset = [h - o for h, o in zip(hits, offsets)]
     hits = hits[:]
