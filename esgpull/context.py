@@ -134,18 +134,46 @@ class Result:
         solr_terms: list[str] = []
         for name, values in self.query.selection.items():
             if index.is_bridge():
-                value_term = " ".join(quote_str(v) for v in values)
-            else:
-                value_term = " ".join(values)
-            if name == "query":  # freetext case
-                solr_terms.append(value_term)
-            else:
-                if len(values) > 1:
-                    value_term = f"({value_term})"
-                if name.startswith("!"):
+                if name == "query":
+                    solr_terms.append(" ".join(values))
+                elif name.startswith("!"):
+                    value_term = " ".join(quote_str(v) for v in values)
+                    if len(values) > 1:
+                        value_term = f"({value_term})"
                     solr_terms.append(f"NOT ({name[1:]}:{value_term})")
                 else:
-                    solr_terms.append(f"{name}:{value_term}")
+                    has_wildcard = any("*" in v for v in values)
+                    no_wildcard = any("*" not in v for v in values)
+
+                    if has_wildcard and no_wildcard:
+                        logger.warning(
+                            (
+                                f"Facet {name} has mixed wildcard/non-wildcard values. "
+                                "Non-wildcard values may match partially."
+                            )
+                        )
+                        value_term = " ".join(quote_str(v) for v in values)
+                        if len(values) > 1:
+                            value_term = f"({value_term})"
+                        solr_terms.append(f"{name}:{value_term}")
+                    elif has_wildcard:
+                        value_term = " ".join(quote_str(v) for v in values)
+                        if len(values) > 1:
+                            value_term = f"({value_term})"
+                        solr_terms.append(f"{name}:{value_term}")
+                    else:
+                        params[name] = ",".join(values)
+            else:
+                value_term = " ".join(values)
+                if name == "query":
+                    solr_terms.append(value_term)
+                else:
+                    if len(values) > 1:
+                        value_term = f"({value_term})"
+                    if name.startswith("!"):
+                        solr_terms.append(f"NOT ({name[1:]}:{value_term})")
+                    else:
+                        solr_terms.append(f"{name}:{value_term}")
         if solr_terms:
             params["query"] = " AND ".join(solr_terms)
         for name, option in self.query.options.items(use_default=True):
