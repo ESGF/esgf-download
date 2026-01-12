@@ -22,7 +22,7 @@ def test_update_after_remove(root: Path, config: Config):
             "experiment_id:1pctCO2",
             "source_id:CNRM-ESM2-1",
             "--distrib",
-            "false",
+            "true",
             "--track",
         ],
     )
@@ -47,7 +47,7 @@ def test_update_after_remove(root: Path, config: Config):
             "experiment_id:1pctCO2",
             "source_id:CNRM-ESM2-1",
             "--distrib",
-            "false",
+            "true",
             "--track",
         ],
     )
