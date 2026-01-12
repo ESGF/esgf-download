@@ -48,7 +48,7 @@ def test_update_updates_timestamp(root: Path, config: Config):
             "variable_id:areacella",
             "experiment_id:1pctCO2",
             "--distrib",
-            "false",
+            "true",
             "--track",
         ],
     )
