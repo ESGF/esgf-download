@@ -318,3 +318,112 @@ def test_probe(
     ctx.config.api.index_node = index_node
     with exc:
         ctx.probe()
+
+
+def test_bridge_exact_match_params(ctx):
+    query = Query(selection=dict(source_id="CESM2", variable_id="tas"))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=ORNL_BRIDGE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "source_id" in params
+    assert params["source_id"] == "CESM2"
+    assert "variable_id" in params
+    assert params["variable_id"] == "tas"
+    assert "query" not in params or params["query"] == ""
+
+
+def test_bridge_wildcard_query_param(ctx):
+    query = Query(selection=dict(source_id='CESM*', variable_id='tas*'))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=ORNL_BRIDGE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "query" in params
+    assert "source_id" not in params
+    assert "variable_id" not in params
+    assert 'source_id:CESM*' in params["query"]
+    assert 'variable_id:tas*' in params["query"]
+
+
+def test_bridge_mixed_exact_wildcard(ctx):
+    query = Query(selection=dict(source_id="CESM2", variable_id='tas*'))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=ORNL_BRIDGE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "source_id" in params
+    assert params["source_id"] == "CESM2"
+    assert "query" in params
+    assert 'variable_id:tas*' in params["query"]
+    assert "variable_id" not in params
+
+
+def test_bridge_multi_value_exact(ctx):
+    query = Query(selection=dict(source_id=["CESM2", "CESM2-LENS2"]))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=ORNL_BRIDGE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "source_id" in params
+    assert params["source_id"] == "CESM2,CESM2-LENS2"
+    assert "query" not in params or params["query"] == ""
+
+
+def test_bridge_negated_query(ctx):
+    query = Query(selection=dict(**{"!institution_id": "IPSL"}))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=ORNL_BRIDGE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "query" in params
+    assert "institution_id" not in params
+    assert 'NOT (institution_id:"IPSL")' in params["query"]
+
+
+def test_bridge_mixed_wildcard_warning(ctx, caplog):
+    query = Query(selection=dict(source_id=["CESM2", "CESM*"]))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=ORNL_BRIDGE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "source_id" not in params
+    assert "query" in params
+    assert "source_id:" in params["query"]
+    assert any(
+        "source_id has mixed wildcard/non-wildcard values" in record.message
+        for record in caplog.records
+    )
+
+
+def test_solr_unchanged(ctx):
+    query = Query(selection=dict(source_id="CESM2", variable_id="tas"))
+    result = ctx.prepare_hits(
+        query,
+        file=False,
+        index_node=IPSL_NODE,
+    )[0]
+    params = dict(result.request.url.params.items())
+
+    assert "query" in params
+    assert params['query'] == 'source_id:CESM2 AND variable_id:tas'
+    assert "source_id" not in params
+    assert "variable_id" not in params
