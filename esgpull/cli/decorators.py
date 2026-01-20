@@ -109,6 +109,11 @@ class opts:
         is_flag=True,
         default=False,
     )
+    export: Dec = click.option(
+        "--export",
+        is_flag=True,
+        default=False,
+    )
     facets_hints: Dec = click.option(
         "facets_hints",
         "--facets",
