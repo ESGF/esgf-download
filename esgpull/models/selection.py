@@ -200,6 +200,7 @@ BaseFacets = [
     "cmor_table",
     "grid_label",
     "nominal_resolution",
+    "version",
 ]
 
 
