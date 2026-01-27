@@ -6,7 +6,7 @@ import click
 from click_params import StringListParamType
 
 from esgpull.cli.utils import EnumParam
-from esgpull.models import FileStatus, Option
+from esgpull.models import ApiBackend, FileStatus, Option
 from esgpull.tui import Verbosity
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -288,6 +288,13 @@ _retracted: Dec = click.option(
     "--retracted",
     type=OptionChoice,
 )
+_backend: Dec = click.option(
+    "backend",
+    "--backend",
+    "-b",
+    type=EnumParam(ApiBackend),
+    default=None,
+)
 
 # Query dates group
 datetime_type = click.DateTime(["%Y-%m-%d"])
@@ -341,6 +348,7 @@ class groups:
         _latest,
         _replica,
         _retracted,
+        _backend,
     )
     query_date: Dec = compose(
         _from,

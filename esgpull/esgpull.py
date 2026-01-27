@@ -118,7 +118,7 @@ class Esgpull:
             verbosity=verbosity,
             record=record,
         )
-        self.context = Context(self.config, noraise=True)
+        self.context = Context(config=self.config, noraise=True)
         if load_db:
             self.db = Database.from_config(self.config)
             self.graph = Graph(self.db)

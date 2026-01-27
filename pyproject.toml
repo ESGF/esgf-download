@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "esgpull"
-version = "0.9.4"
+version = "0.9.4+dev"
 classifiers = [
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
@@ -37,6 +37,8 @@ dependencies = [
     "packaging>=25.0",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
+    "pystac-client>=0.9.0",
+    "esgvoc>=1.0.1",
 ]
 license.text = "BSD-3-Clause"
 
@@ -67,6 +69,11 @@ line_length = 79
 src_paths = ["esgpull", "tests", "migrations", "examples"]
 
 [tool.mypy]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["esgvoc.*"]
+follow_imports = "skip"
 ignore_missing_imports = true
 
 [tool.pdm.scripts]
