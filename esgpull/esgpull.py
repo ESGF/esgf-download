@@ -21,7 +21,6 @@ from rich.progress import (
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
-from rich.text import Text
 
 from esgpull.config import Config
 from esgpull.context import Context
@@ -436,7 +435,9 @@ class Esgpull:
         if use_db:
             self.db.add(*processor.files)
         queue_size = len(processor.tasks)
-        main_task_id = main_progress.add_task("", total=queue_size, nb_errors=0)
+        main_task_id = main_progress.add_task(
+            "", total=queue_size, nb_errors=0
+        )
         # TODO: rename ? installed/downloaded/completed/...
         files: list[File] = []
         errors: list[Err] = []
@@ -480,7 +481,9 @@ class Esgpull:
                             result.data.file.status = FileStatus.Error
                             errors.append(result)
                             main_progress.update(
-                                main_task_id, total=queue_size, nb_errors=len(errors)
+                                main_task_id,
+                                total=queue_size,
+                                nb_errors=len(errors),
                             )
                             emit(
                                 Event.file_error,

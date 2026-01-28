@@ -107,7 +107,7 @@ class ErrorCountColumn(ProgressColumn):
 
         if nb_errors == 0:
             return Text("")
-        
+
         suffix = "" if nb_errors == 1 else "s"
         return Text(f"({nb_errors} download{suffix} failed)", style="red")
 
