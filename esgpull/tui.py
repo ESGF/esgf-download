@@ -101,6 +101,17 @@ class ExceptionToDebugFilter(logging.Filter):
         return True
 
 
+class ErrorCountColumn(ProgressColumn):
+    def render(self, task):
+        nb_errors = task.fields.get("nb_errors", 0)
+
+        if nb_errors == 0:
+            return Text("")
+
+        suffix = "" if nb_errors == 1 else "s"
+        return Text(f"({nb_errors} download{suffix} failed)", style="red")
+
+
 @define
 class UI:
     path: Path = field(converter=Path)
