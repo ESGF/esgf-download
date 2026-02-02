@@ -590,6 +590,7 @@ class Context:
     ) -> list[File]:
         files: list[File] = []
         shas: set[str] = set()
+        file_ids: set[str] = set()
         async for result in self._fetch(*results):
             files_result = result.to(ResultFiles)
             files_result.process()
@@ -597,9 +598,13 @@ class Context:
                 for file in files_result.data:
                     if not keep_duplicates and file.sha in shas:
                         logger.debug(f"Duplicate file {file.file_id}")
-                    else:
-                        files.append(file)
-                        shas.add(file.sha)
+                        continue
+                    if not keep_duplicates and file.file_id in file_ids:
+                        logger.debug(f"Duplicate file_id {file.file_id}")
+                        continue
+                    files.append(file)
+                    shas.add(file.sha)
+                    file_ids.add(file.file_id)
         return files
 
     async def _search_as_queries(
