@@ -433,7 +433,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rich", specifier = ">=12.6.0" },
     { name = "setuptools", specifier = ">=65.4.1" },
-    { name = "sqlalchemy", specifier = ">=2.0.0b2" },
+    { name = "sqlalchemy", specifier = ">=2.0.0b2,<2.1" },
     { name = "tomlkit", specifier = ">=0.11.5" },
 ]
 
