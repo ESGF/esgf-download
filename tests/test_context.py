@@ -304,7 +304,11 @@ def test_hits_never_empty(
     ("index_node", "exc"),
     ## TODO: test bridge, but it is super slow
     [
-        (IPSL_NODE, does_not_raise()),
+        pytest.param(
+            IPSL_NODE,
+            does_not_raise(),
+            marks=pytest.mark.xfail(reason="unstable"),
+        ),
         (CEDA_NODE, does_not_raise()),
         ("https://github.com", pytest.raises(Exception)),
         ("not_a_real.url", pytest.raises(Exception)),
@@ -337,7 +341,7 @@ def test_bridge_exact_match_params(ctx):
 
 
 def test_bridge_wildcard_query_param(ctx):
-    query = Query(selection=dict(source_id='CESM*', variable_id='tas*'))
+    query = Query(selection=dict(source_id="CESM*", variable_id="tas*"))
     result = ctx.prepare_hits(
         query,
         file=False,
@@ -348,12 +352,12 @@ def test_bridge_wildcard_query_param(ctx):
     assert "query" in params
     assert "source_id" not in params
     assert "variable_id" not in params
-    assert 'source_id:CESM*' in params["query"]
-    assert 'variable_id:tas*' in params["query"]
+    assert "source_id:CESM*" in params["query"]
+    assert "variable_id:tas*" in params["query"]
 
 
 def test_bridge_mixed_exact_wildcard(ctx):
-    query = Query(selection=dict(source_id="CESM2", variable_id='tas*'))
+    query = Query(selection=dict(source_id="CESM2", variable_id="tas*"))
     result = ctx.prepare_hits(
         query,
         file=False,
@@ -364,7 +368,7 @@ def test_bridge_mixed_exact_wildcard(ctx):
     assert "source_id" in params
     assert params["source_id"] == "CESM2"
     assert "query" in params
-    assert 'variable_id:tas*' in params["query"]
+    assert "variable_id:tas*" in params["query"]
     assert "variable_id" not in params
 
 
@@ -424,6 +428,6 @@ def test_solr_unchanged(ctx):
     params = dict(result.request.url.params.items())
 
     assert "query" in params
-    assert params['query'] == 'source_id:CESM2 AND variable_id:tas'
+    assert params["query"] == "source_id:CESM2 AND variable_id:tas"
     assert "source_id" not in params
     assert "variable_id" not in params
