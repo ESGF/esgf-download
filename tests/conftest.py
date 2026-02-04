@@ -4,6 +4,7 @@ import pytest
 
 from esgpull.config import Config
 from esgpull.constants import CONFIG_FILENAME
+from esgpull.database import Database
 from esgpull.install_config import InstallConfig
 from esgpull.models import File, FileStatus
 from tests.utils import CEDA_NODE
@@ -50,3 +51,8 @@ def file():
     )
     f.compute_sha()
     return f
+
+
+@pytest.fixture
+def db(config):
+    return Database.from_config(config)
