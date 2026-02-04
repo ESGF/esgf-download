@@ -506,3 +506,66 @@ def test_files_skips_duplicate_file_ids(ctx):
     ]
     assert len(duplicate_files) == 1
     assert duplicate_files[0].checksum == "abc123"
+
+
+def test_files_skips_existing_file_ids(ctx):
+    """Test that _files skips file_ids that are already in the database."""
+    import asyncio
+    from unittest.mock import patch, MagicMock
+    from esgpull.context import ResultFiles
+
+    # Create Solr response docs - one file already in DB, one new
+    solr_docs = [
+        {
+            "instance_id": "dataset.v1.existing.nc|node1.com",
+            "dataset_id": "dataset.v1|node1.com",
+            "title": "existing.nc",
+            "url": "https://node1.com/existing.nc|application/netcdf",
+            "data_node": "node1.com",
+            "checksum": "old123",
+            "checksum_type": "SHA256",
+            "size": 1000,
+            "directory_format_template_": "%(root)s/v1",
+        },
+        {
+            "instance_id": "dataset.v1.new.nc|node2.com",
+            "dataset_id": "dataset.v1|node2.com",
+            "title": "new.nc",
+            "url": "https://node2.com/new.nc|application/netcdf",
+            "data_node": "node2.com",
+            "checksum": "new456",
+            "checksum_type": "SHA256",
+            "size": 2000,
+            "directory_format_template_": "%(root)s/v1",
+        },
+    ]
+
+    # Create a ResultFiles with proper JSON
+    query = Query()
+    result = ResultFiles(query=query, file=True)
+    result.request = MagicMock()
+    result.json = {"response": {"docs": solr_docs}}
+
+    # Mock _fetch to yield our result
+    async def mock_fetch(*results):
+        yield result
+
+    # Simulate that "dataset.v1.existing.nc" is already in the database
+    existing_file_ids = {"dataset.v1.existing.nc"}
+
+    async def run_test():
+        with patch.object(ctx, "_fetch", mock_fetch):
+            return await ctx._files(
+                result,
+                keep_duplicates=False,
+                existing_file_ids=existing_file_ids,
+            )
+
+    result_files = asyncio.run(run_test())
+
+    # Should only have 1 file (the existing one is skipped)
+    assert len(result_files) == 1
+
+    # Verify only the new file is returned
+    assert result_files[0].file_id == "dataset.v1.new.nc"
+    assert result_files[0].checksum == "new456"
