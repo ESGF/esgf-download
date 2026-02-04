@@ -54,7 +54,7 @@ from esgpull.plugin import (
 )
 from esgpull.processor import Processor
 from esgpull.result import Err, Ok, Result
-from esgpull.tui import UI, DummyLive, Verbosity, logger
+from esgpull.tui import UI, DummyLive, ErrorCountColumn, Verbosity, logger
 from esgpull.utils import format_size
 
 
@@ -387,6 +387,7 @@ class Esgpull:
             SpinnerColumn(),
             MofNCompleteColumn(),
             TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+            ErrorCountColumn(),
         )
         file_columns: list[str | ProgressColumn] = [
             TextColumn("[cyan][{task.id}] [b blue]{task.fields[sha]}"),
@@ -434,7 +435,9 @@ class Esgpull:
         if use_db:
             self.db.add(*processor.files)
         queue_size = len(processor.tasks)
-        main_task_id = main_progress.add_task("", total=queue_size)
+        main_task_id = main_progress.add_task(
+            "", total=queue_size, nb_errors=0
+        )
         # TODO: rename ? installed/downloaded/completed/...
         files: list[File] = []
         errors: list[Err] = []
@@ -475,11 +478,13 @@ class Esgpull:
                                     )
                         case Err(_, err):
                             queue_size -= 1
-                            main_progress.update(
-                                main_task_id, total=queue_size
-                            )
                             result.data.file.status = FileStatus.Error
                             errors.append(result)
+                            main_progress.update(
+                                main_task_id,
+                                total=queue_size,
+                                nb_errors=len(errors),
+                            )
                             emit(
                                 Event.file_error,
                                 file=result.data.file,
