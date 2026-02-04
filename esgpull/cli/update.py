@@ -10,7 +10,7 @@ from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
-from esgpull.models import Dataset, File, FileStatus, Query
+from esgpull.models import Dataset, File, FileStatus, Query, sql
 from esgpull.tui import Verbosity
 from esgpull.utils import format_size
 
@@ -170,9 +170,14 @@ def update(
                     for record in qf_datasets
                 ]
         with esg.ui.spinner("Fetching files"):
+            existing_file_ids = set(esg.db.scalars(sql.file.all_file_ids()))
             coros = []
             for qf in qfs:
-                coro = esg.context._files(*qf.results, keep_duplicates=False)
+                coro = esg.context._files(
+                    *qf.results,
+                    keep_duplicates=False,
+                    existing_file_ids=existing_file_ids,
+                )
                 coros.append(coro)
             files = esg.context.sync_gather(*coros)
             for qf, qf_files in zip(qfs, files):

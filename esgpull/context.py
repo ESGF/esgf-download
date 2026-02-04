@@ -587,10 +587,11 @@ class Context:
         self,
         *results: ResultSearch,
         keep_duplicates: bool,
+        existing_file_ids: set[str] | None = None,
     ) -> list[File]:
         files: list[File] = []
         shas: set[str] = set()
-        file_ids: set[str] = set()
+        file_ids: set[str] = existing_file_ids or set()
         async for result in self._fetch(*results):
             files_result = result.to(ResultFiles)
             files_result.process()
