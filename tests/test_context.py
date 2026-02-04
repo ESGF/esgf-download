@@ -506,3 +506,70 @@ def test_files_skips_duplicate_file_ids(ctx):
     ]
     assert len(duplicate_files) == 1
     assert duplicate_files[0].checksum == "abc123"
+
+
+def test_update_checks_files_by_file_id_not_sha(db):
+    """Test that update separates files by file_id, not SHA.
+
+    This verifies the fix for the bug where re-adding a query after removal
+    would fail because files were checked by SHA instead of file_id.
+    When the same file appears with different checksums (different replicas),
+    it should still be recognized as the same file.
+    """
+    from esgpull.models import File, sql
+
+    # Create a file in the database with a specific SHA
+    existing_file = File(
+        file_id="dataset.v1.test.nc",
+        dataset_id="dataset.v1",
+        master_id="dataset.v1.test",
+        url="https://example.com/test.nc",
+        version="v1",
+        filename="test.nc",
+        local_path="dataset/v1/test.nc",
+        data_node="example.com",
+        checksum="original_checksum_abc123",
+        checksum_type="SHA256",
+        size=1000,
+    )
+    existing_file.compute_sha()
+    db.add(existing_file)
+
+    # Verify file is in DB
+    all_file_ids = set(db.scalars(sql.file.all_file_ids()))
+    assert "dataset.v1.test.nc" in all_file_ids
+
+    # Create a "fetched" file with same file_id but different SHA
+    # (This simulates what happens when fetching from a different replica)
+    fetched_file = File(
+        file_id="dataset.v1.test.nc",
+        dataset_id="dataset.v1",
+        master_id="dataset.v1.test",
+        url="https://other-node.com/test.nc",
+        version="v1",
+        filename="test.nc",
+        local_path="dataset/v1/test.nc",
+        data_node="other-node.com",
+        checksum="different_checksum_def456",
+        checksum_type="SHA256",
+        size=1000,
+    )
+    fetched_file.compute_sha()
+
+    # Verify the fetched file has a different SHA
+    assert fetched_file.sha != existing_file.sha
+
+    # The fetched file should be identified as existing by file_id
+    assert fetched_file.file_id in all_file_ids
+
+    # Fetch the existing file by file_id
+    existing_sha = db.scalars(sql.file.with_file_id(fetched_file.file_id))
+    assert existing_sha is not None
+    assert len(existing_sha) == 1
+    assert existing_sha[0] == existing_file.sha
+
+    # Get the existing file from DB
+    file_from_db = db.get(File, existing_sha[0])
+    assert file_from_db is not None
+    assert file_from_db.file_id == "dataset.v1.test.nc"
+    assert file_from_db.checksum == "original_checksum_abc123"
