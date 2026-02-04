@@ -304,7 +304,11 @@ def test_hits_never_empty(
     ("index_node", "exc"),
     ## TODO: test bridge, but it is super slow
     [
-        (IPSL_NODE, does_not_raise()),
+        pytest.param(
+            IPSL_NODE,
+            does_not_raise(),
+            marks=pytest.mark.xfail(reason="unstable"),
+        ),
         (CEDA_NODE, does_not_raise()),
         ("https://github.com", pytest.raises(Exception)),
         ("not_a_real.url", pytest.raises(Exception)),
@@ -337,7 +341,7 @@ def test_bridge_exact_match_params(ctx):
 
 
 def test_bridge_wildcard_query_param(ctx):
-    query = Query(selection=dict(source_id='CESM*', variable_id='tas*'))
+    query = Query(selection=dict(source_id="CESM*", variable_id="tas*"))
     result = ctx.prepare_hits(
         query,
         file=False,
@@ -348,12 +352,12 @@ def test_bridge_wildcard_query_param(ctx):
     assert "query" in params
     assert "source_id" not in params
     assert "variable_id" not in params
-    assert 'source_id:CESM*' in params["query"]
-    assert 'variable_id:tas*' in params["query"]
+    assert "source_id:CESM*" in params["query"]
+    assert "variable_id:tas*" in params["query"]
 
 
 def test_bridge_mixed_exact_wildcard(ctx):
-    query = Query(selection=dict(source_id="CESM2", variable_id='tas*'))
+    query = Query(selection=dict(source_id="CESM2", variable_id="tas*"))
     result = ctx.prepare_hits(
         query,
         file=False,
@@ -364,7 +368,7 @@ def test_bridge_mixed_exact_wildcard(ctx):
     assert "source_id" in params
     assert params["source_id"] == "CESM2"
     assert "query" in params
-    assert 'variable_id:tas*' in params["query"]
+    assert "variable_id:tas*" in params["query"]
     assert "variable_id" not in params
 
 
@@ -424,6 +428,81 @@ def test_solr_unchanged(ctx):
     params = dict(result.request.url.params.items())
 
     assert "query" in params
-    assert params['query'] == 'source_id:CESM2 AND variable_id:tas'
+    assert params["query"] == "source_id:CESM2 AND variable_id:tas"
     assert "source_id" not in params
     assert "variable_id" not in params
+
+
+def test_files_skips_duplicate_file_ids(ctx):
+    """Test that _files skips duplicate file_ids to prevent DB constraint violations."""
+    import asyncio
+    from unittest.mock import patch, MagicMock
+    from esgpull.context import ResultFiles
+
+    # Create Solr response docs that will be deserialized by File.serialize()
+    # Two files with same file_id (dataset.v1.file.nc) but different checksums
+    solr_docs = [
+        {
+            "instance_id": "dataset.v1.file.nc|node1.com",
+            "dataset_id": "dataset.v1|node1.com",
+            "title": "file.nc",
+            "url": "https://node1.com/file.nc|application/netcdf",
+            "data_node": "node1.com",
+            "checksum": "abc123",
+            "checksum_type": "SHA256",
+            "size": 1000,
+            "directory_format_template_": "%(root)s/v1",  # Simple template
+        },
+        {
+            "instance_id": "dataset.v1.file.nc|node2.com",
+            "dataset_id": "dataset.v1|node2.com",
+            "title": "file.nc",
+            "url": "https://node2.com/file.nc|application/netcdf",
+            "data_node": "node2.com",
+            "checksum": "def456",  # Different checksum!
+            "checksum_type": "SHA256",
+            "size": 1000,
+            "directory_format_template_": "%(root)s/v1",  # Simple template
+        },
+        {
+            "instance_id": "dataset.v1.other.nc|node1.com",
+            "dataset_id": "dataset.v1|node1.com",
+            "title": "other.nc",
+            "url": "https://node1.com/other.nc|application/netcdf",
+            "data_node": "node1.com",
+            "checksum": "xyz789",
+            "checksum_type": "SHA256",
+            "size": 2000,
+            "directory_format_template_": "%(root)s/v1",  # Simple template
+        },
+    ]
+
+    # Create a ResultFiles with proper JSON that will be parsed by process()
+    query = Query()
+    result = ResultFiles(query=query, file=True)
+    result.request = MagicMock()
+    result.json = {"response": {"docs": solr_docs}}
+
+    # Mock _fetch to yield our result
+    async def mock_fetch(*results):
+        yield result
+
+    async def run_test():
+        with patch.object(ctx, "_fetch", mock_fetch):
+            return await ctx._files(result, keep_duplicates=False)
+
+    result_files = asyncio.run(run_test())
+
+    # Should only have 2 files (second one with duplicate file_id is skipped)
+    assert len(result_files) == 2
+
+    # Verify the file_ids in the result
+    file_ids = {f.file_id for f in result_files}
+    assert file_ids == {"dataset.v1.file.nc", "dataset.v1.other.nc"}
+
+    # The first file with dataset.v1.file.nc should be kept (abc123 checksum)
+    duplicate_files = [
+        f for f in result_files if f.file_id == "dataset.v1.file.nc"
+    ]
+    assert len(duplicate_files) == 1
+    assert duplicate_files[0].checksum == "abc123"
