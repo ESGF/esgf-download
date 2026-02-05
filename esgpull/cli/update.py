@@ -10,7 +10,7 @@ from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
-from esgpull.models import Dataset, File, FileStatus, Query
+from esgpull.models import Dataset, File, FileStatus, Query, sql
 from esgpull.tui import Verbosity
 from esgpull.utils import format_size
 
@@ -190,11 +190,26 @@ def update(
                         f"Adding {len(unregistered_datasets)} new datasets to database."
                     )
                     esg.db.session.add_all(unregistered_datasets)
-                files_from_db = [
-                    esg.db.get(File, f.sha) for f in qf.files if f in esg.db
-                ]
-                registered_files = [f for f in files_from_db if f is not None]
-                unregistered_files = [f for f in qf.files if f not in esg.db]
+                # Get existing file_ids from DB to check by file_id (not SHA)
+                # This handles cases where the same file has different checksums
+                existing_file_ids = {
+                    fid for fid in esg.db.scalars(sql.file.all_file_ids())
+                }
+                registered_files = []
+                unregistered_files = []
+                for f in qf.files:
+                    if f.file_id in existing_file_ids:
+                        # File exists in DB - fetch it by file_id
+                        existing_sha = esg.db.scalars(
+                            sql.file.with_file_id(f.file_id)
+                        )
+                        if existing_sha:
+                            existing_file = esg.db.get(File, existing_sha[0])
+                            if existing_file is not None:
+                                registered_files.append(existing_file)
+                    else:
+                        # New file - not in DB yet
+                        unregistered_files.append(f)
                 if len(unregistered_files) > 0:
                     esg.ui.print(
                         f"Adding {len(unregistered_files)} new files to database."
