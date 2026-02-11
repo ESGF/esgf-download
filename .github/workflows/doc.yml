@@ -13,18 +13,19 @@ jobs:
   documentation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the repository
+        uses: actions/checkout@v6
 
-      - name: Install the latest version of rye
-        uses: eifinger/setup-rye@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
-      - name: Sync dependencies
-        run: rye sync
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
 
       - name: build
-        run: rye run mkdocs build -f docs/mkdocs.yml
+        run: uv run mkdocs build -f docs/mkdocs.yml
 
       - name: deploy
         uses: peaceiris/actions-gh-pages@v3
