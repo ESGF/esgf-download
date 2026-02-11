@@ -6,7 +6,13 @@ import click
 from click.exceptions import Abort, Exit
 
 from esgpull.cli.decorators import args, groups, opts
-from esgpull.cli.utils import filter_keys, init_esgpull, parse_query, totable
+from esgpull.cli.utils import (
+    filter_keys,
+    init_esgpull,
+    parse_query,
+    probe_and_abort,
+    totable,
+)
 from esgpull.context import IndexNode
 from esgpull.exceptions import PageIndexError
 from esgpull.graph import Graph
@@ -99,7 +105,7 @@ def search(
             esg.ui.raise_maybe_record(Exit(0))
         esg.graph.add(query, force=True)
         query = esg.graph.expand(query.sha)
-        esg.context.probe()
+        probe_and_abort(esg)
         hits = esg.context.hits(
             query,
             file=file,

@@ -7,7 +7,12 @@ import click
 from click.exceptions import Abort, Exit
 
 from esgpull.cli.decorators import args, opts
-from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
+from esgpull.cli.utils import (
+    get_queries,
+    init_esgpull,
+    probe_and_abort,
+    valid_name_tag,
+)
 from esgpull.context import HintsDict, ResultSearch
 from esgpull.exceptions import UnsetOptionsError
 from esgpull.models import Dataset, File, FileStatus, Query, sql
@@ -78,7 +83,7 @@ def update(
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             esg.ui.raise_maybe_record(Exit(0))
-        esg.context.probe()
+        probe_and_abort(esg)
         hints = esg.context.hints(
             *[qf.expanded for qf in qfs],
             file=True,
