@@ -76,7 +76,6 @@ doc = { shell = "cd docs && mkdocs serve", help = "Start doc server" }
 minversion = "6.2.4"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = ["slow: mark test as slow to run"]
-addopts = "-r aR -n auto --cov=esgpull --cov-config=pyproject.toml --cov-report term-missing:skip-covered --mypy"
 testpaths = ["tests/"]
 
 [tool.ruff]
