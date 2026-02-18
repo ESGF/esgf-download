@@ -248,7 +248,7 @@ config_fixers = [fix_rename_search_api, fix_remove_auth]
 class TomlKitConfigSettingsSource(TomlConfigSettingsSource):
     def _read_file(self, file_path: Path) -> dict[str, Any]:
         with open(file_path, mode="rb") as toml_file:
-            doc = tomlkit.load(toml_file)
+            doc: dict[str, Any] = tomlkit.load(toml_file)
             for fixer in config_fixers:
                 try:
                     doc = fixer(doc)
