@@ -97,7 +97,7 @@ class Options(Base):
         name: str,
         value: Option | str | bool | None,
     ) -> None:
-        if name in self.__sql_attrs__:
+        if name in self.__sql_attrs__:   # type: ignore[has-type]
             super().__setattr__(name, value)
         elif name in self._names:
             super().__setattr__(name, Option(value))

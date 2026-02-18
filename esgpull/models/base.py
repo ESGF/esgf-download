@@ -19,7 +19,7 @@ Sha = sa.String(40)
 # Base class for all models - provides core SQLAlchemy functionality
 class _BaseModel(MappedAsDataclass, DeclarativeBase):
     __dataclass_fields__: ClassVar[dict[str, Field]]
-    __sql_attrs__: ClassVar[tuple[str, ...]] = ("id", "_sa_instance_state", "__dataclass_fields__")
+    __sql_attrs__ = ("id", "_sa_instance_state", "__dataclass_fields__")  # type: ignore
 
     @property
     def _names(self) -> tuple[str, ...]:
@@ -41,7 +41,7 @@ class _BaseModel(MappedAsDataclass, DeclarativeBase):
 # Base class for models that use SHA as primary key
 class Base(_BaseModel):
     __abstract__ = True
-    __sql_attrs__ = ("id", "sha", "_sa_instance_state", "__dataclass_fields__")
+    __sql_attrs__ = ("id", "sha", "_sa_instance_state", "__dataclass_fields__")  # type: ignore
 
     sha: Mapped[str] = mapped_column(
         Sha,
@@ -60,7 +60,7 @@ class Base(_BaseModel):
 # Base class for models that don't use SHA (e.g., Dataset)
 class BaseNoSHA(_BaseModel):
     __abstract__ = True
-    __sql_attrs__ = ("id", "_sa_instance_state", "__dataclass_fields__")
+    __sql_attrs__ = ("id", "_sa_instance_state", "__dataclass_fields__")  # type: ignore
 
 
 # Keep SHAKeyMixin for backward compatibility if needed
