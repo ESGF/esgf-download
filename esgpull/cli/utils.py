@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 import click
 import yaml
-from click.exceptions import BadArgumentUsage
+from click.exceptions import Abort, BadArgumentUsage
 from rich.box import MINIMAL_DOUBLE_HEAD
 from rich.table import Table
 from rich.text import Text
@@ -258,3 +258,13 @@ def extract_subdict(doc: dict, key: str | None) -> dict:
     for part in key.split(".")[::-1]:
         doc = {part: doc}
     return doc
+
+
+def probe_and_abort(esg: Esgpull) -> None:
+    try:
+        esg.context.probe()
+    except Exception as err:
+        index_node = esg.config.api.index_node
+        esg.ui.print(err.args)
+        esg.ui.print(f"[red]ERROR[/] '{index_node}' is not responding")
+        esg.ui.raise_maybe_record(Abort)
