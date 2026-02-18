@@ -4,11 +4,15 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import InitVar, dataclass, field
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, TYPE_CHECKING
 
 import alembic.command
 import sqlalchemy as sa
 import sqlalchemy.orm
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Mapper
+
 from alembic.config import Config as AlembicConfig
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
@@ -162,7 +166,7 @@ class Database:
             return False
 
     def __contains__(self, item: Base | BaseNoSHA) -> bool:
-        mapper = inspect(item.__class__)
+        mapper: Mapper = inspect(item.__class__)
         pk_col = mapper.primary_key[0]
         pk_value = getattr(item, pk_col.name)
         stmt = sa.exists().where(pk_col == pk_value)

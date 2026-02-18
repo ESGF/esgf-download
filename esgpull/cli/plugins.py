@@ -46,7 +46,7 @@ def list_plugins(verbosity: Verbosity, json_output: bool = False):
             result = {}
             for name, p in esg.plugin_manager.plugins.items():
                 # Get handlers by event type
-                handlers = {}
+                handlers: dict[str, list[dict]] = {}
                 for h in p.handlers:
                     event_type = h.event.value
                     if event_type not in handlers:
@@ -81,7 +81,7 @@ def list_plugins(verbosity: Verbosity, json_output: bool = False):
 
                 # Collect event handlers with their details
                 handler_rows = []
-                events_by_type = {}
+                events_by_type: dict[str, list[str]] = {}
                 for h in p.handlers:
                     event_type = h.event.value
                     if event_type not in events_by_type:
