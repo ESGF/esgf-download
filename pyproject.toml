@@ -77,7 +77,7 @@ minversion = "6.2.4"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = ["slow: mark test as slow to run"]
 addopts = "-r aR -n auto --cov=esgpull --cov-config=pyproject.toml --cov-report term-missing:skip-covered --mypy"
-testpaths = ["tests/"]
+testpaths = ["tests/", "esgpull/"]
 
 [tool.ruff]
 line-length = 79
