@@ -21,8 +21,6 @@ from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
 from esgpull.utils import format_date_iso, sync
 
-if TYPE_CHECKING:
-    from esgpull.models import Dataset
 
 # workaround for notebooks with running event loop
 try:
@@ -795,8 +793,8 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> Sequence[File | Dataset]:
-        fun: Callable[..., Sequence[File | Dataset]]
+    ) -> Sequence[File | DatasetRecord]:
+        fun: Callable[..., Sequence[File | DatasetRecord]]
         if file:
             fun = self.files
         else:

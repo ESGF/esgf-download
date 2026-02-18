@@ -14,7 +14,7 @@ from rich.text import Text
 
 from esgpull import Esgpull
 from esgpull.graph import Graph
-from esgpull.models import Dataset, File, Option, Options, Query, Selection
+from esgpull.models import DatasetRecord, File, Option, Options, Query, Selection
 from esgpull.tui import UI, TempUI, Verbosity, logger
 from esgpull.utils import format_size
 
@@ -74,7 +74,7 @@ class EnumParam(click.Choice):
 
 
 def filter_keys(
-    docs: Sequence[File | Dataset],
+    docs: Sequence[File | DatasetRecord],
     ids: range,
     size: bool = True,
     data_node: bool = False,

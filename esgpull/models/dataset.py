@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +23,9 @@ class DatasetRecord:
     data_node: str
     size: int
     number_of_files: int
+
+    def asdict(self) -> Mapping[str, Any]:
+        return asdict(self)
 
     @classmethod
     def serialize(cls, source: dict) -> DatasetRecord:
