@@ -16,7 +16,7 @@ empty = Query() << base_project
 cmip6_ipsl = (
     Query(
         options={"distrib": False},
-        selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+        selection={"institution_id": "IPSL"},
     )
     << base_project
 )
