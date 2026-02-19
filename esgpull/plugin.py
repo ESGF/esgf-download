@@ -151,7 +151,7 @@ class PluginConfig:
     enabled: set[str] = field(default_factory=set)
     disabled: set[str] = field(default_factory=set)
     plugins: dict[str, dict[str, Any]] = field(default_factory=dict)
-    _raw: tomlkit.TOMLDocument = field(default_factory=tomlkit.TOMLDocument)
+    _raw: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if "plugins" not in self._raw:

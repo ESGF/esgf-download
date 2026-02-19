@@ -115,7 +115,7 @@ class File(Base):
             size=source["size"],
         )
         if "status" in source:
-            result.status = FileStatus(source.get("status").lower())
+            result.status = FileStatus(source["status"].lower())
         return result
 
     @classmethod

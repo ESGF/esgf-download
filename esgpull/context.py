@@ -792,8 +792,8 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> Sequence[File | Dataset]:
-        fun: Callable[..., Sequence[File | Dataset]]
+    ) -> Sequence[File | DatasetRecord]:
+        fun: Callable[..., Sequence[File | DatasetRecord]]
         if file:
             fun = self.files
         else:

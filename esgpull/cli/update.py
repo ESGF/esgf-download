@@ -159,13 +159,13 @@ def update(
         # Fetch files and update db
         # [?] TODO: dry_run to print urls here
         with esg.ui.spinner("Fetching datasets"):
-            coros = []
+            dataset_coros = []
             for qf in qfs:
-                coro = esg.context._datasets(
+                dataset_coro = esg.context._datasets(
                     *qf.dataset_results, keep_duplicates=False
                 )
-                coros.append(coro)
-            datasets = esg.context.sync_gather(*coros)
+                dataset_coros.append(dataset_coro)
+            datasets = esg.context.sync_gather(*dataset_coros)
             for qf, qf_datasets in zip(qfs, datasets):
                 qf.datasets = [
                     Dataset(
@@ -175,12 +175,12 @@ def update(
                     for record in qf_datasets
                 ]
         with esg.ui.spinner("Fetching files"):
-            coros = []
+            file_coros = []
             for qf in qfs:
-                coro = esg.context._files(*qf.results, keep_duplicates=False)
-                coros.append(coro)
-            files = esg.context.sync_gather(*coros)
-            for qf, qf_files in zip(qfs, files):
+                file_coro = esg.context._files(*qf.results, keep_duplicates=False)
+                file_coros.append(file_coro)
+            files_per_qf = esg.context.sync_gather(*file_coros)
+            for qf, qf_files in zip(qfs, files_per_qf):
                 qf.files = qf_files
         for qf in qfs:
             if not qf.query.tracked:

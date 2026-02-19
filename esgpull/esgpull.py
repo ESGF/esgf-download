@@ -126,7 +126,7 @@ class Esgpull:
         plugin_config_path = self.config.paths.plugins / "plugins.toml"
         try:
             self.plugin_manager = get_plugin_manager()
-            self.plugin_manager.__init__(config_path=plugin_config_path)
+            PluginManager.__init__(self.plugin_manager, config_path=plugin_config_path)
         except ValueError:
             self.plugin_manager = PluginManager(config_path=plugin_config_path)
             set_plugin_manager(self.plugin_manager)
