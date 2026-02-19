@@ -12,7 +12,7 @@ empty = Query() << base_project
 cmip6_ipsl = (
     Query(
         options={"distrib": False},
-        selection={"mip_era": "CMIP6", "institution_id": "IPSL"},
+        selection={"institution_id": "IPSL"},
     )
     << base_project
 )
@@ -23,7 +23,7 @@ def ctx(config: Config):
     return Context(config=config)
 
 
-def test_multi_index(ctx, empty):
+def test_multi_index(ctx):
     index_nodes = [CEDA_NODE, DRKZ_NODE]
     results = []
     for index_node in index_nodes:
