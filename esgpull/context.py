@@ -6,7 +6,7 @@ import sys
 from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias, TypeVar, TYPE_CHECKING
+from typing import Any, TypeAlias, TypeVar
 from urllib.parse import urlparse
 
 if sys.version_info < (3, 11):
@@ -20,7 +20,6 @@ from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
 from esgpull.utils import format_date_iso, sync
-
 
 # workaround for notebooks with running event loop
 try:
