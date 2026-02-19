@@ -113,4 +113,6 @@ dev = [
     "pytest-cov>=6.1.1",
     "pytest-mypy>=1.0.1",
     "pytest-xdist>=3.6.1",
+    "types-aiofiles>=25.1.0.20251011",
+    "types-pyyaml>=6.0.12.20250915",
 ]
