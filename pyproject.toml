@@ -69,9 +69,6 @@ src_paths = ["esgpull", "tests", "migrations", "examples"]
 [tool.mypy]
 ignore_missing_imports = true
 
-[tool.pdm.scripts]
-doc = { shell = "cd docs && mkdocs serve", help = "Start doc server" }
-
 [tool.pytest.ini_options]
 minversion = "6.2.4"
 filterwarnings = ["ignore::DeprecationWarning"]
