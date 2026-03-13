@@ -7,9 +7,7 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar
 from warnings import warn
 
-import esgvoc.api
 import httpx
-from esgvoc.apps import DrsGenerator
 from pydantic import BaseModel, Field, PrivateAttr
 from pystac_client import Client
 from pystac_client.item_search import FilterLike, ItemSearch
@@ -370,25 +368,10 @@ def process_files(request: PreparedRequest) -> ProcessedFiles:
             ):
                 break
             dataset_id = item["id"]
-            properties = item["properties"]
             dataset_master_id, version = (
                 dataset_id.rsplit(".", 1)
                 if "." in dataset_id
                 else (dataset_id, "1")
-            )
-            stac_collection = item["collection"]
-            projects = esgvoc.api.get_all_projects()
-            projects_lower = [p.lower() for p in projects]
-            esgvoc_collection = projects[
-                projects_lower.index(stac_collection.lower())
-            ]
-            drs_gen = DrsGenerator(esgvoc_collection)
-            collection_properties = {
-                name.split(":")[-1]: value
-                for name, value in properties.items()
-            } | {"version": version}
-            collection_properties = fix_collection_name_properties(
-                collection_properties
             )
 
             for name, asset in item["assets"].items():
@@ -407,13 +390,9 @@ def process_files(request: PreparedRequest) -> ProcessedFiles:
                 ):
                     continue
 
-                drs = drs_gen.generate_directory_from_mapping(
-                    collection_properties
-                )
-                if drs.errors:
-                    raise ValueError(drs.errors)
-
-                local_path = drs.generated_drs_expression
+                local_path = asset.get("file:local_path")
+                if local_path is None:
+                    local_path = str(Path(asset["href"]).parent)
                 data_node: str = asset["alternate:name"]
                 size: int = asset["file:size"]
                 checksum: str = asset["file:checksum"]
@@ -525,19 +504,6 @@ def stac_asset_or_any_alternate(asset: dict[str, Any]) -> dict[str, Any]:
         return list(asset["alternate"].values())[0]
     else:
         return asset
-
-
-def fix_collection_name_properties(props: dict[str, Any]) -> dict[str, Any]:
-    fixers = [
-        lambda name: name if name != "variable" else "variable_id",
-    ]
-
-    def run_fixers(x: str) -> str:
-        for fixer in fixers:
-            x = fixer(x)
-        return x
-
-    return {run_fixers(name): value for name, value in props.items()}
 
 
 def stac_item_to_dataset_record(
