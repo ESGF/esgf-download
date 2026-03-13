@@ -669,6 +669,8 @@ class StacContext(BaseModel):
             page_limit = self.config.api.page_limit
 
         results: list[PreparedRequest] = []
+        if max_hits == 0:
+            return results
         for query in queries:
             self._warn_unused_options(query)
             prepared = prepare_request(
