@@ -369,8 +369,8 @@ def process_files(request: PreparedRequest) -> ProcessedFiles:
                 and len(files) >= request.max_items
             ):
                 break
+            dataset_id = item["id"]
             properties = item["properties"]
-            dataset_id = properties.get("cmip6:dataset_id", item["id"])
             dataset_master_id, version = (
                 dataset_id.rsplit(".", 1)
                 if "." in dataset_id
