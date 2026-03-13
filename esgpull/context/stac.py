@@ -266,14 +266,15 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
         if request.item_search.client is None:
             raise ValueError(request.item_search.client)
         client = request.item_search.client
-        cmip6 = client.get_collection("CMIP6")
-        aggregations_link = cmip6.get_links("aggregations")[0]
-        aggregate_link = cmip6.get_links("aggregate")[0]
+        params = request.item_search.get_parameters()
+        collection = client.get_collection(params["collections"][0])
+        aggregations_link = collection.get_links("aggregations")[0]
+        aggregate_link = collection.get_links("aggregate")[0]
 
         # Get available aggregations
-        cmip6_aggregations = httpx.get(aggregations_link.href)
+        collection_aggregations = httpx.get(aggregations_link.href)
         aggregation_names = [
-            x["name"] for x in cmip6_aggregations.json()["aggregations"]
+            x["name"] for x in collection_aggregations.json()["aggregations"]
         ]
 
         # Map facets to aggregation field names
