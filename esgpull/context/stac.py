@@ -276,6 +276,7 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
         aggregation_names = [
             x["name"] for x in collection_aggregations.json()["aggregations"]
         ]
+        logger.info(f"{aggregation_names=}")
 
         # Map facets to aggregation field names
         facets_to_aggregate: list[str] = []
@@ -287,6 +288,7 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
                         f"Missing aggregation field: {frequency_field}"
                     )
                 facets_to_aggregate.append(frequency_field)
+        logger.info(f"{facets_to_aggregate=}")
 
         # Make aggregation request
         payload: FilterLike = {
@@ -294,6 +296,7 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
             "filter": request.stac_filter,
             "aggregations": facets_to_aggregate,
         }
+        logger.info(f"{payload=}")
         resp = httpx.post(aggregate_link.href, json=payload).raise_for_status()
 
         # Process the aggregation response
@@ -304,6 +307,7 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
             for x in resp.json()["aggregations"]
             for prefix in deduce_query_prefixes(request.query)
         }
+        logger.info(f"{data=}")
 
         return ProcessedHints(
             query=request.query,
