@@ -27,8 +27,11 @@ def to_property(name: str, prefix: str) -> dict[str, str]:
     return {"property": f"properties.{prefix}:{name}"}
 
 
-def to_frequency(name: str, prefix: str) -> str:
-    return f"{prefix}_{name}_frequency"
+def to_frequency(name: str, prefix: str | None) -> str:
+    if prefix is not None:
+        return f"{prefix}_{name}_frequency"
+    else:
+        return f"{name}_frequency"
 
 
 def from_frequency(freq: str, prefix: str) -> str:
@@ -281,14 +284,17 @@ def process_hints(request: PreparedRequest) -> ProcessedHints:
         # Map facets to aggregation field names
         facets_to_aggregate: list[str] = []
         for facet in request.facets:
-            for prefix in deduce_query_prefixes(request.query):
+            for prefix in deduce_query_prefixes(request.query) + [None]:
                 frequency_field = to_frequency(facet, prefix)
-                if frequency_field not in aggregation_names:
-                    raise ValueError(
+                if frequency_field in aggregation_names:
+                    facets_to_aggregate.append(frequency_field)
+                else:
+                    logger.warning(
                         f"Missing aggregation field: {frequency_field}"
                     )
-                facets_to_aggregate.append(frequency_field)
         logger.info(f"{facets_to_aggregate=}")
+        if len(facets_to_aggregate) == 0:
+            raise ValueError(f"No aggregations found for {request.facets}")
 
         # Make aggregation request
         payload: FilterLike = {
