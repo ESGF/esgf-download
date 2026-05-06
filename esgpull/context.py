@@ -510,6 +510,13 @@ class Context:
     async def _fetch_one(self, result: RT) -> RT:
         host = result.request.url.host
         semaphore = self.get_or_create_semaphore(host)
+
+        # The bridge API tends to produce non-standard errors when too many
+        # new connections open in a short time span. With no sleep, the 4th
+        # connection is always where it breaks. 50ms sleep seems to fix that.
+        if self.client is None:
+            await asyncio.sleep(0.005)
+
         client = self.get_or_create_client()
         async with semaphore:
             logger.debug(f"GET {host} params={result.request.url.params}")
