@@ -336,9 +336,10 @@ DatasetFieldParams = [
 @dataclass
 class Context:
     config: Config = field(default_factory=Config.default)
-    client: AsyncClient = field(
+    client: AsyncClient | None = field(
         init=False,
         repr=False,
+        default=None,
     )
     semaphores: dict[str, asyncio.Semaphore] = field(
         init=False,
@@ -358,17 +359,17 @@ class Context:
     #     # else:
     #     #     self.since = format_date_iso(since)
 
-    async def __aenter__(self) -> Context:
-        if hasattr(self, "client"):
-            raise Exception("Context is already initialized.")
-        self.client = AsyncClient(timeout=self.config.api.http_timeout)
-        return self
+    def get_or_create_client(self) -> AsyncClient:
+        if self.client is None:
+            timeout = self.config.api.http_timeout
+            self.client = AsyncClient(timeout=timeout)
+        return self.client
 
-    async def __aexit__(self, *exc) -> None:
-        if not hasattr(self, "client"):
-            raise Exception("Context is not initialized.")
-        await self.client.aclose()
-        del self.client
+    def get_or_create_semaphore(self, host: str) -> asyncio.Semaphore:
+        if host not in self.semaphores:
+            max_concurrent = self.config.api.max_concurrent
+            self.semaphores[host] = asyncio.Semaphore(max_concurrent)
+        return self.semaphores[host]
 
     def prepare_hits(
         self,
@@ -508,13 +509,12 @@ class Context:
 
     async def _fetch_one(self, result: RT) -> RT:
         host = result.request.url.host
-        if host not in self.semaphores:
-            max_concurrent = self.config.api.max_concurrent
-            self.semaphores[host] = asyncio.Semaphore(max_concurrent)
-        async with self.semaphores[host]:
+        semaphore = self.get_or_create_semaphore(host)
+        client = self.get_or_create_client()
+        async with semaphore:
             logger.debug(f"GET {host} params={result.request.url.params}")
             try:
-                resp = await self.client.send(result.request)
+                resp = await client.send(result.request)
                 resp.raise_for_status()
                 result.json = json.loads(
                     resp.content.decode(encoding="latin-1")
@@ -621,14 +621,8 @@ class Context:
                     queries.append(query)
         return queries
 
-    async def _with_client(self, coro: Coroutine[None, None, T]) -> T:
-        """
-        Async wrapper to create client before await future.
-        This is required since asyncio does not provide a way
-        to enter an async context in a sync function.
-        """
-        async with self:
-            return await coro
+    def free_client(self) -> None:
+        self.client = None
 
     def free_semaphores(self) -> None:
         self.semaphores = {}
@@ -636,10 +630,10 @@ class Context:
     def _sync(self, coro: Coroutine[None, None, T]) -> T:
         """
         Reset semaphore to ensure none is bound to an expired event loop.
-        Run through `_with_client` wrapper to use `async with` synchronously.
         """
+        self.free_client()
         self.free_semaphores()
-        return sync(self._with_client(coro))
+        return sync(coro)
 
     async def _gather(self, *coros: Coroutine[None, None, T]) -> list[T]:
         return await asyncio.gather(*coros)
