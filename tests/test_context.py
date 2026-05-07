@@ -3,7 +3,12 @@ from time import perf_counter
 
 import pytest
 
-from esgpull.context import Context, IndexNode, _distribute_hits_impl
+from esgpull.context import (
+    Context,
+    IndexNode,
+    _distribute_hits_impl,
+    ResultSearch,
+)
 from esgpull.models import Query
 from tests.utils import CEDA_NODE, DRKZ_NODE, IPSL_NODE, ORNL_BRIDGE
 
@@ -573,3 +578,33 @@ def test_update_checks_files_by_file_id_not_sha(db):
     assert file_from_db is not None
     assert file_from_db.file_id == "dataset.v1.test.nc"
     assert file_from_db.checksum == "original_checksum_abc123"
+
+
+async def simple_fetch(ctx: Context, prepared: ResultSearch) -> ResultSearch:
+    async for result in ctx._fetch(prepared):
+        return result
+    assert False
+
+
+def test_bridge_client_connection(ctx: Context):
+    # query as seen in issue #148
+    query = Query(
+        selection={
+            "project": "CMIP6",
+            "activity_id": "HighResMIP",
+            "variable_id": "areacello",
+        }
+    )
+    file_hits = ctx.hits(query, file=True)
+    assert len(file_hits) > 0
+    assert file_hits[0] > 0
+    dataset_hits = ctx.hits(query, file=False)
+    assert len(dataset_hits) > 0
+    assert dataset_hits[0] > 0
+    file_prepared = ctx.prepare_search(query, file=True, hits=file_hits)
+    dataset_prepared = ctx.prepare_search(query, file=False, hits=dataset_hits)
+    file_result = ctx._sync(simple_fetch(ctx, file_prepared[0]))
+    dataset_result = ctx._sync(simple_fetch(ctx, dataset_prepared[0]))
+    assert file_result.exc is None
+    assert dataset_result.exc is None
+    # project:CMIP6 activity_id:HighResMIP variable_id:areacello --distrib true
