@@ -30,6 +30,7 @@ from esgpull.models.utils import (
     get_local_path,
     rich_measure_impl,
     short_sha,
+    extract_httpserver_url,
 )
 from esgpull.utils import format_date_iso, format_size
 
@@ -122,7 +123,9 @@ class File(Base):
     def serialize(cls, source: dict) -> File:
         dataset_id = find_str(source["dataset_id"]).partition("|")[0]
         filename = find_str(source["title"])
-        url = find_str(source["url"]).partition("|")[0]
+        url = extract_httpserver_url(source["url"])
+        if url is None:
+            raise ValueError(f'No valid url found from "{source["url"]}"')
         url = url.replace("http://", "https://")  # TODO: is this always true ?
         data_node = find_str(source["data_node"])
         checksum = find_str(source["checksum"])
