@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 
 from esgpull.utils import format_date, format_date_iso, parse_date
+from esgpull.models.utils import extract_httpserver_url
 
 
 def test_parse_date():
@@ -37,3 +38,54 @@ def test_format_date_iso():
         format_date_iso("20220101")
     with pytest.raises(ValueError):
         format_date_iso(20220101)
+
+
+@pytest.mark.parametrize(
+    [
+        "url",
+        "expected",
+    ],
+    [
+        pytest.param(
+            [
+                "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc|application/netcdf|HTTPServer",
+                "https://esgf.ceda.ac.uk/thredds/dodsC/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc.html|application/opendap-html|OPENDAP",
+            ],
+            "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc",
+            id="common case",
+        ),
+        pytest.param(
+            "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc|application/netcdf|HTTPServer",
+            "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc",
+            id="str correct url case",
+        ),
+        pytest.param(
+            "https://esgf.ceda.ac.uk/thredds/dodsC/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc.html|application/opendap-html|OPENDAP",
+            None,
+            id="str wrong url case",
+        ),
+        pytest.param(
+            [
+                "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc|application/netcdf|HTTPServer"
+            ],
+            "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc",
+            id="single item correct url case",
+        ),
+        pytest.param(
+            [
+                "https://esgf.ceda.ac.uk/thredds/dodsC/esg_cmip6/CMIP6/AerChemMIP/CNRM-CERFACS/CNRM-ESM2-1/hist-1950HC/r1i1p1f2/fx/sftlf/gr/v20190621/sftlf_fx_CNRM-ESM2-1_hist-1950HC_r1i1p1f2_gr.nc.html|application/opendap-html|OPENDAP",
+            ],
+            None,
+            id="single item wrong url case",
+        ),
+        pytest.param(
+            123,
+            None,
+            marks=pytest.mark.xfail(raises=TypeError, strict=True),
+            id="wrong type",
+        ),
+    ],
+)
+def test_extract_httpserver_url(url: str | list[str], expected: str | None):
+    result = extract_httpserver_url(url)
+    assert result == expected
