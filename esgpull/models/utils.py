@@ -52,3 +52,21 @@ def get_local_path(source: dict, version: str) -> str:
         rcm_model = institute + "-" + rcm_name
         flat_raw["rcm_model"] = rcm_model
     return template.format(version=version, **flat_raw)
+
+
+def extract_httpserver_url(url: list[str] | str) -> str | None:
+    match url:
+        case str(candidate):
+            parts = candidate.split("|")
+            if any(part == "HTTPServer" for part in parts):
+                return parts[0]
+            else:
+                return None
+        case list(candidates):
+            for item in candidates:
+                candidate = extract_httpserver_url(item)
+                if candidate is not None:
+                    return candidate
+            return None
+        case _:
+            raise TypeError(url)
