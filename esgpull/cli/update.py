@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+import json
 import click
 from click.exceptions import Abort, Exit
 
@@ -40,6 +41,7 @@ class QueryFiles:
 @opts.children
 @opts.yes
 @opts.record
+@opts.export
 @opts.verbosity
 def update(
     query_id: str | None,
@@ -47,6 +49,7 @@ def update(
     children: bool,
     yes: bool,
     record: bool,
+    export: bool,
     verbosity: Verbosity,
 ) -> None:
     """
@@ -183,6 +186,19 @@ def update(
             for qf, qf_files in zip(qfs, files_per_qf):
                 qf.files = qf_files
         for qf in qfs:
+            shas = {f.sha for f in qf.query.files}
+            new_files = [file for file in qf.files if file.sha not in shas]
+            nb_files = len(new_files)
+            if export:
+                hash = qf.query.name.strip("<>")
+                for descrip, file_list, dfl_fn in [("all files", qf.files, f"{hash}_all_files.json"),
+                                                   ("new files", new_files, f"{hash}_new_files.json")]:
+                    fn = esg.ui.prompt(f"Filename to export {descrip} list:", dfl_fn)
+                    with open(fn, "w") as fout:
+                        json.dump([file.asdict() for file in file_list],
+                                  fout,
+                                  indent=4)
+                    print(f"{len(file_list)} files - written to {fn}")
             if not qf.query.tracked:
                 esg.db.add(qf.query)
                 continue
