@@ -91,6 +91,52 @@ def merge_with_op(
             return {"op": op, "args": multiple_filters}
 
 
+def _count_files_via_alternate_name(
+    request: PreparedRequest,
+) -> int | None:
+    """Try to count total files using an aggregation over alternate_name."""
+    try:
+        if request.item_search.client is None:
+            return None
+        client = request.item_search.client
+        params = request.item_search.get_parameters()
+        collection = client.get_collection(params["collections"][0])
+        aggregations_link = collection.get_links("aggregations")[0]
+        aggregate_link = collection.get_links("aggregate")[0]
+
+        collection_aggregations = httpx.get(aggregations_link.href)
+        aggregation_names = [
+            x["name"] for x in collection_aggregations.json()["aggregations"]
+        ]
+
+        target_aggregations: list[str] = []
+        for prefix in deduce_query_prefixes(request.query) + [None]:
+            freq_field = to_frequency("alternate_name", prefix)
+            if freq_field in aggregation_names:
+                target_aggregations.append(freq_field)
+
+        if not target_aggregations:
+            return None
+
+        payload: FilterLike = {
+            "filter-lang": "cql2-json",
+            "filter": request.stac_filter,
+            "aggregations": target_aggregations,
+        }
+        logger.info(f"file_hits_payload={payload}")
+        resp = httpx.post(aggregate_link.href, json=payload).raise_for_status()
+
+        total = 0
+        for agg in resp.json().get("aggregations", []):
+            for bucket in agg.get("buckets", []):
+                total += bucket.get("frequency", 0)
+        logger.info(f"file_hits_total={total}")
+        return total if total > 0 else None
+    except Exception as exc:
+        logger.debug(f"Failed to count files via aggregation: {exc}")
+        return None
+
+
 def format_query_to_stac_filter(query: Query) -> FilterLike:
     prefixes = deduce_query_prefixes(query)
     filters: list[dict[str, Any]] = []
@@ -236,13 +282,18 @@ def prepare_request(
 
 def process_hits(request: PreparedRequest) -> ProcessedHits:
     try:
-        count: int | None = request.item_search.matched()
+        count: int | None = None
+        if request.file:
+            count = _count_files_via_alternate_name(request)
+
         if count is None:
-            try:
-                page = next(request.item_search.pages_as_dicts())
-                count = page.get("numMatched", 0)
-            except StopIteration:
-                count = 0
+            count = request.item_search.matched()
+            if count is None:
+                try:
+                    page = next(request.item_search.pages_as_dicts())
+                    count = page.get("numMatched", 0)
+                except StopIteration:
+                    count = 0
         if count is None:
             raise NotImplementedError("API did not give back a count")
         return ProcessedHits(
