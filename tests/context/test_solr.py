@@ -5,9 +5,9 @@ import pytest
 
 from esgpull.config import Config
 from esgpull.context.solr import (
+    ResultSearch,
     SolrContext,
     _distribute_hits_impl,
-    ResultSearch,
 )
 from esgpull.models import Query
 from tests.utils import (
@@ -166,7 +166,9 @@ def test_ipsl_hits_exist(ctx: SolrContext, index: str, query: Query):
 @parametrized_index
 @pytest.mark.parametrize("query", [empty, cmip6_ipsl])
 def test_more_files_than_datasets(ctx: SolrContext, index: str, query: Query):
-    assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
+    assert sum(ctx.hits(query, file=False, index_node=index)) <= sum(
+        ctx.hits(query, file=True, index_node=index)
+    )
 
 
 @parametrized_index
@@ -174,7 +176,7 @@ def test_more_files_than_datasets(ctx: SolrContext, index: str, query: Query):
 @pytest.mark.parametrize("query", [cmip6_ipsl])
 def test_hints(ctx: SolrContext, index: str, query: Query):
     facets = ["institution_id", "variable_id"]
-    hints = ctx.hints(query, file=False, facets=facets)[0]
+    hints = ctx.hints(query, file=False, facets=facets, index_node=index)[0]
     assert list(hints["institution_id"]) == query.selection["institution_id"]
     assert len(hints["variable_id"]) > 1
 
