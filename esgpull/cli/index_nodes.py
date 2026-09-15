@@ -4,23 +4,25 @@ from collections import OrderedDict
 
 import click
 from click.exceptions import Abort, Exit
+from httpx import HTTPError
 
-from esgpull import Context
 from esgpull.cli.decorators import groups, opts
 from esgpull.cli.utils import init_esgpull, totable
+from esgpull.context.solr import SolrContext
 from esgpull.models import Query
 from esgpull.tui import Verbosity, logger
 
 
-def check_node(c: Context, node: str) -> bool:
+def check_node(c: SolrContext, node: str) -> bool:
+    result = True
     try:
         c.probe(index_node=node)
-        return True
-    except:
-        return False
+    except* HTTPError:
+        result = False
+    return result
 
 
-def find_nodes(c: Context, node: str) -> list[str]:
+def find_nodes(c: SolrContext, node: str) -> list[str]:
     try:
         hints = c.hints(
             Query(), file=False, index_node=node, facets=["index_node"]
@@ -64,12 +66,12 @@ def index_nodes(
                 if not nodes:
                     break
                 node = nodes.pop()
-                if node in node_status:
+                if node in node_status or node == "us-index":
                     continue
                 logger.info(f"check: {node}")
-                node_status[node] = check_node(esg.context, node)
+                node_status[node] = check_node(esg.context._solr, node)
                 logger.info(f"{node}\tok: {node_status[node]}")
-                for node in find_nodes(esg.context, node):
+                for node in find_nodes(esg.context._solr, node):
                     if node not in node_status:
                         nodes.append(node)
                         logger.info(f"found index_node: {node}")
