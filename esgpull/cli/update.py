@@ -199,6 +199,7 @@ def update(
                     qf.expanded,
                     file=True,
                     max_hits=None,
+                    keep_duplicates=False,
                 )
                 qf.files = list(files)
         for qf in qfs:
