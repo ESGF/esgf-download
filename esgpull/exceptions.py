@@ -127,6 +127,11 @@ class UnsetOptionsError(EsgpullException):
     {} has some unset options.
     """
 
+class UnknownMultihashError(EsgpullException):
+    msg = """
+    Unknown multihash algorithm code ({}) for checksum: {}
+    """
+
 
 class UnregisteredInstallPath(InstallException):
     msg = "{}"
