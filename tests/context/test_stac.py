@@ -67,8 +67,8 @@ def test_hints(ctx: StacContext, query: Query):
     ],
 )
 def test_ignore_facet_hits(ctx: StacContext, query_all: Query):
-    query_ipsl = Query(selection={"institution_id": "IPSL"}) << query_all
-    query_not_ipsl = Query(selection={"!institution_id": "IPSL"}) << query_all
+    query_ipsl = Query(selection={"member_id": "r1i1p1f1"}) << query_all
+    query_not_ipsl = Query(selection={"!member_id": "r1i1p1f1"}) << query_all
     hits_all = ctx.hits(query_all, file=False)[0]
     hits_ipsl = ctx.hits(query_ipsl, file=False)[0]
     hits_not_ipsl = ctx.hits(query_not_ipsl, file=False)[0]
