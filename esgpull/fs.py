@@ -1,4 +1,5 @@
 from __future__ import annotations
+from esgpull.multihash import MultihashAlg, detect_multihash_algo, varint_encode
 
 import hashlib
 from collections.abc import Iterator
@@ -33,9 +34,23 @@ class FileCheck(Enum):
 class Digest:
     file: InitVar[File]
     alg: hashlib._Hash = field(init=False)
+    multihash_alg: MultihashAlg | None = field(init=False, default=None)
 
     def __post_init__(self, file: File) -> None:
         match file.checksum_type:
+            case "MULTIHASH":
+                self.multihash_alg = detect_multihash_algo(file.checksum)
+                match self.multihash_alg:
+                    case MultihashAlg.sha1:
+                        self.alg = hashlib.sha1()
+                    case MultihashAlg.sha256:
+                        self.alg = hashlib.sha256()
+                    case MultihashAlg.sha512:
+                        self.alg = hashlib.sha512()
+                    case MultihashAlg.sha3_256:
+                        self.alg = hashlib.sha3_256()
+                    case MultihashAlg.sha3_512:
+                        self.alg = hashlib.sha3_512()
             case "SHA256":
                 self.alg = hashlib.sha256()
             case _:
@@ -58,7 +73,13 @@ class Digest:
         self.alg.update(chunk)
 
     def hexdigest(self) -> str:
-        return self.alg.hexdigest()
+        if self.multihash_alg is not None:
+            digest = self.alg.digest()
+            multihash_code = varint_encode(self.multihash_alg.value)
+            digest_length = varint_encode(len(digest))
+            return (multihash_code + digest_length + digest).hex()
+        else:
+            return self.alg.hexdigest()
 
 
 @dataclass
