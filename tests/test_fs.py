@@ -1,10 +1,12 @@
 import asyncio
+from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 
 import pytest
 
 from esgpull.config import Config
-from esgpull.fs import FileCheck, Filesystem
+from esgpull.exceptions import UnknownMultihashError
+from esgpull.fs import Digest, FileCheck, Filesystem
 from esgpull.models import File
 
 
@@ -174,3 +176,60 @@ def test_check(
             f.write(str(content).encode())
     check = fs.check(file)
     assert check == expected_check
+
+
+@pytest.mark.parametrize(
+    ("checksum", "exc"),
+    [
+        pytest.param(
+            "1220ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73",
+            does_not_raise(),
+            id="sha256",
+        ),
+        pytest.param(
+            "1114040f06fd774092478d450774f5ba30c5da78acc8",
+            does_not_raise(),
+            id="sha1",
+        ),
+        pytest.param(
+            "1340b2d1d285b5199c85f988d03649c37e44fd3dde01e5d69c50fef90651962f48110e9340b60d49a479c4c0b53f5f07d690686dd87d2481937a512e8b85ee7c617f",
+            does_not_raise(),
+            id="sha512",
+        ),
+        pytest.param(
+            "14400e16bc8f42243e3cd44391411ea2e756646f5683bfb4875c82e7ad6cc9d4230ba4f74b7207d424ce2a63cf43e31b03fd3819b16b0ad4e88c73e1f47438d32049",
+            does_not_raise(),
+            id="sha3-512",
+        ),
+        pytest.param(
+            "162073a38b9e525c9c2ae262feeaa3c2947ab19bce3a173f075c75341e5e7fa080b6",
+            does_not_raise(),
+            id="sha3-256",
+        ),
+        pytest.param(
+            "402073a38b9e525c9c2ae262feeaa3c2947ab19bce3a173f075c75341e5e7fa080b6",
+            pytest.raises(UnknownMultihashError),
+            id="Wrong algo code",
+        ),
+        pytest.param(
+            "test",
+            pytest.raises(ValueError),
+            id="Not hexadecimal checksum",
+        ),
+    ],
+)
+def test_digest_multihash(
+    file: File,
+    tmp_path: Path,
+    checksum: str,
+    exc,
+):
+    content = "content"
+    file.checksum_type = "MULTIHASH"
+    file.checksum = checksum
+    path = tmp_path / "file"
+    with path.open("wb") as f:
+        f.write(str(content).encode())
+    with exc:
+        digest = Digest.from_path(file, path)
+        assert digest.hexdigest() == checksum
