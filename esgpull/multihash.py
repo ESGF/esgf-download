@@ -11,6 +11,8 @@ class MultihashAlg(Enum):
     sha3_256 = 0x16
 
 
+# Code initially from esgf-prepare :
+# https://github.com/ESGF/esgf-prepare/blob/58d6b19369d9a0d5e00d68c299b663b0a6addeb0/esgprep/_utils/checksum.py#L49
 def varint_encode(n: int) -> bytes:
     """
     Encode an integer as varint (variable-length integer encoding).
