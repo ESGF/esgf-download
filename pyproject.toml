@@ -8,14 +8,15 @@ version = "0.9.6+dev"
 classifiers = [
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 description = "ESGF data discovery, download, replication tool"
 authors = [{ name = "Sven Rodriguez", email = "srodriguez@ipsl.fr" }]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "aiofiles>=22.1.0",
     "alembic>=1.8.1",
