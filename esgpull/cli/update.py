@@ -106,7 +106,7 @@ def update(
         if not qfs:
             esg.ui.print(":stop_sign: Trying to update untracked queries.")
             esg.ui.raise_maybe_record(Exit(0))
-        if any(qf.query.backend == ApiBackend.solr for qf in qfs):
+        if any(qf.query.backend_or_default == ApiBackend.solr for qf in qfs):
             probe_and_abort(esg)
         hints = [None for _ in qfs]
         hits = esg.context.hits(

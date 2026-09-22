@@ -294,6 +294,13 @@ class Query(Base):
             self.backend = backend
 
     @property
+    def backend_or_default(self) -> ApiBackend:
+        if self.backend is None:
+            return ApiBackend.default()
+        else:
+            return self.backend
+
+    @property
     def has_files(self) -> bool:
         stmt: sa.Select[tuple[int]] = (
             sa.select(sa.func.count("*"))
