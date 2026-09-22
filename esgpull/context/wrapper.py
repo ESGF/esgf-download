@@ -21,7 +21,7 @@ class QueryList(BaseModel):
         result: dict[ApiBackend, list[Query]]
         result = {backend: [] for backend in ApiBackend}
         for query in self.queries:
-            match query.backend or ApiBackend.default():
+            match query.backend_or_default:
                 case ApiBackend.solr:
                     result[ApiBackend.solr].append(query)
                 case ApiBackend.stac:
@@ -35,7 +35,7 @@ class QueryList(BaseModel):
         result: list[T] = []
         cursors = dict.fromkeys(ApiBackend, 0)
         for query in self.queries:
-            match query.backend or ApiBackend.default():
+            match query.backend_or_default:
                 case ApiBackend.solr:
                     backend = ApiBackend.solr
                 case ApiBackend.stac:

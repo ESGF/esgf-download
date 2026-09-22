@@ -107,7 +107,7 @@ def search(
             esg.ui.raise_maybe_record(Exit(0))
         esg.graph.add(query, force=True)
         query = esg.graph.expand(query.sha)
-        if query.backend == ApiBackend.solr:
+        if query.backend_or_default == ApiBackend.solr:
             probe_and_abort(esg)
         hits = esg.context.hits(
             query,
@@ -132,7 +132,7 @@ def search(
             max_hits = nb
         ids = range(offset, offset + max_hits)
         if dry_run:
-            match query.backend or ApiBackend.default():
+            match query.backend_or_default:
                 case ApiBackend.solr:
                     search_results = esg.context._solr.prepare_search(
                         query,
