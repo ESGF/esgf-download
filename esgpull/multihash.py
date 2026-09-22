@@ -75,8 +75,7 @@ def detect_multihash_algo(hash_hex: str) -> MultihashAlg:
     code, offset = varint_decode(hash_bytes, 0)
 
     # Find the algorithm by code
-    if code in MultihashAlg:
+    if code in [e.value for e in MultihashAlg]:
         return MultihashAlg(code)
     else:
         raise UnknownMultihashError(code, hash_hex)
-
