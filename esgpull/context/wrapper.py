@@ -17,15 +17,17 @@ T = TypeVar("T")
 class QueryList(BaseModel):
     queries: list[Query]
 
-    def split_by_backend(self) -> dict[ApiBackend, list[Query]]:
-        result: dict[ApiBackend, list[Query]]
+    def split_by_backend(
+        self, objs_list: list[T]
+    ) -> dict[ApiBackend, list[T]]:
+        result: dict[ApiBackend, list[T]]
         result = {backend: [] for backend in ApiBackend}
-        for query in self.queries:
+        for i, query in enumerate(self.queries):
             match query.backend_or_default:
                 case ApiBackend.solr:
-                    result[ApiBackend.solr].append(query)
+                    result[ApiBackend.solr].append(objs_list[i])
                 case ApiBackend.stac:
-                    result[ApiBackend.stac].append(query)
+                    result[ApiBackend.stac].append(objs_list[i])
         return result
 
     def reorder_from_backend(
@@ -69,7 +71,7 @@ class Context(BaseModel):
         date_to: datetime | None = None,
     ) -> list[int]:
         ql = QueryList(queries=list(queries))
-        backend_queries_map = ql.split_by_backend()
+        backend_queries_map = ql.split_by_backend(ql.queries)
         backend_hits_map: dict[ApiBackend, list[int]]
         backend_hits_map = {}
         for backend, backend_queries in backend_queries_map.items():
@@ -106,7 +108,7 @@ class Context(BaseModel):
         date_to: datetime | None = None,
     ) -> list[HintsDict]:
         ql = QueryList(queries=list(queries))
-        backend_queries_map = ql.split_by_backend()
+        backend_queries_map = ql.split_by_backend(ql.queries)
         backend_hints_map: dict[ApiBackend, list[HintsDict]]
         backend_hints_map = {}
         for backend, backend_queries in backend_queries_map.items():
@@ -175,16 +177,20 @@ class Context(BaseModel):
         keep_duplicates: bool = True,
     ) -> Sequence[File | DatasetRecord]:
         ql = QueryList(queries=list(queries))
-        backend_queries_map = ql.split_by_backend()
+        backend_queries_map = ql.split_by_backend(ql.queries)
         results: Sequence[File | DatasetRecord] = []
         for backend, backend_queries in backend_queries_map.items():
             match backend:
                 case ApiBackend.solr:
+                    if hits is not None:
+                        solr_hits = ql.split_by_backend(hits)[ApiBackend.solr]
+                    else:
+                        solr_hits = None
                     results.extend(
                         self._solr.search(
                             *backend_queries,
                             file=file,
-                            hits=hits,
+                            hits=solr_hits,
                             offset=offset,
                             max_hits=max_hits,
                             page_limit=page_limit,
@@ -225,7 +231,7 @@ class Context(BaseModel):
         keep_duplicates: bool = True,
     ) -> Sequence[Query]:
         ql = QueryList(queries=list(queries))
-        backend_queries_map = ql.split_by_backend()
+        backend_queries_map = ql.split_by_backend(ql.queries)
         results: Sequence[Query] = []
         for backend, backend_queries in backend_queries_map.items():
             match backend:
@@ -268,7 +274,7 @@ class Context(BaseModel):
         date_to: datetime | None = None,
     ) -> list[int]:
         ql = QueryList(queries=list(queries))
-        backend_queries_map = ql.split_by_backend()
+        backend_queries_map = ql.split_by_backend(ql.queries)
         backend_number_of_requests_map: dict[ApiBackend, list[int]]
         backend_number_of_requests_map = {}
         for backend, backend_queries in backend_queries_map.items():
