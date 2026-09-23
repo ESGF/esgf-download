@@ -256,6 +256,14 @@ def prepare_request(
     date_to: datetime | None = None,
     max_items: int | None = 200,
 ) -> PreparedRequest:
+    if date_from is not None:
+        raise NotImplementedError(
+            "`--from` (date_from) is not yet implemented for STAC queries"
+        )
+    if date_to is not None:
+        raise NotImplementedError(
+            "`--to` (date_to) is not yet implemented for STAC queries"
+        )
     projects = get_projects(query)
     stac_filter = format_query_to_stac_filter(query)
     logger.info(f"{projects=}")
