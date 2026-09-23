@@ -1,0 +1,90 @@
+import pytest
+
+from esgpull.config import Config
+from esgpull.context import Context
+from esgpull.models import ApiBackend, Query
+
+base_project = Query(selection={"project": "CMIP6"})
+empty = Query() << base_project
+cmip6_ipsl = (
+    Query(
+        options={"distrib": False},
+        selection={"institution_id": "IPSL"},
+    )
+    << base_project
+)
+
+
+@pytest.fixture
+def ctx(config: Config):
+    config.api.stac_url = "https://discovery-int.west.esgf.io/"
+    return Context(config=config)
+
+
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_ipsl_hits_exist(ctx: Context, query: Query, backend: ApiBackend):
+    query.backend = backend
+    hits = ctx.hits(query, file=False)
+    assert hits[0] > 0
+
+
+@pytest.mark.parametrize("query", [empty, cmip6_ipsl])
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_more_files_than_datasets(
+    ctx: Context,
+    query: Query,
+    backend: ApiBackend,
+):
+    query.backend = backend
+    assert sum(ctx.hits(query, file=False)) <= sum(ctx.hits(query, file=True))
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("query", [cmip6_ipsl])
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+def test_hints(ctx: Context, query: Query, backend: ApiBackend):
+    query.backend = backend
+    facets = ["institution_id", "variable_id"]
+    hints = ctx.hints(query, file=False, facets=facets)[0]
+    assert list(hints["institution_id"]) == query.selection["institution_id"]
+    assert len(hints["variable_id"]) > 1
+
+
+@pytest.mark.parametrize(
+    "query_all",
+    [
+        Query() << base_project,
+        Query(selection={"variable_id": "tas"}) << base_project,
+        Query(selection={"experiment_id": "ssp*", "variable_id": "tas"})
+        << base_project,
+    ],
+)
+@pytest.mark.parametrize("backend", [ApiBackend.solr, ApiBackend.stac])
+@pytest.mark.parametrize(
+    "member_id",
+    [
+        pytest.param("r1i1p1f1"),
+        pytest.param("r*i1p1f1", marks=pytest.mark.xfail(raises=ValueError)),
+    ],
+)
+def test_ignore_facet_hits(
+    ctx: Context,
+    query_all: Query,
+    backend: ApiBackend,
+    member_id: str,
+):
+    query_all.backend = backend
+    query_with = (
+        Query(backend=backend, selection={"member_id": member_id}) << query_all
+    )
+    query_without = (
+        Query(backend=backend, selection={"!member_id": member_id})
+        << query_all
+    )
+    hits_all = ctx.hits(query_all, file=False)[0]
+    hits_with = ctx.hits(query_with, file=False)[0]
+    hits_without = ctx.hits(query_without, file=False)[0]
+    if not all(hits > 0 for hits in [hits_all, hits_with, hits_without]):
+        raise ValueError()
+    assert hits_all == hits_with + hits_without

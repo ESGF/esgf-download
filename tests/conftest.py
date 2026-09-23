@@ -54,5 +54,5 @@ def file():
 
 
 @pytest.fixture
-def db(config):
+def db(config: Config):
     return Database.from_config(config)

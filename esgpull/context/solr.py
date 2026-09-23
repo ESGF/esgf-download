@@ -3,11 +3,15 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
+from collections.abc import AsyncIterator, Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias, TypeVar
-from urllib.parse import urlparse
+from typing import Any, Literal, TypeVar, overload
+
+from pydantic import BaseModel, Field, PrivateAttr
+
+from esgpull.constants import ESGPULL_DEBUG, ESGPULL_DEBUG_LOCALS
+from esgpull.models import ApiBackend
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
@@ -16,6 +20,8 @@ from httpx import AsyncClient, HTTPError, Request
 from rich.pretty import pretty_repr
 
 from esgpull.config import Config
+from esgpull.context.types import HintsDict, IndexNode
+from esgpull.context.utils import hits_from_hints
 from esgpull.exceptions import SolrUnstableQueryError
 from esgpull.models import DatasetRecord, File, Query
 from esgpull.tui import logger
@@ -34,7 +40,6 @@ else:
 
 T = TypeVar("T")
 RT = TypeVar("RT", bound="Result")
-HintsDict: TypeAlias = dict[str, dict[str, int]]
 DangerousFacets = {
     "instance_id",
     "dataset_id",
@@ -42,29 +47,6 @@ DangerousFacets = {
     "tracking_id",
     "url",
 }
-
-
-@dataclass
-class IndexNode:
-    value: str
-
-    def is_bridge(self) -> bool:
-        return "esgf-1-5-bridge" in self.value
-
-    @property
-    def url(self) -> str:
-        parsed = urlparse(self.value)
-        result: str
-        match (parsed.scheme, parsed.netloc, parsed.path, self.is_bridge()):
-            case ("", "", path, True):
-                result = "https://" + parsed.path
-            case ("", "", path, False):
-                result = "https://" + parsed.path + "/esg-search/search"
-            case _:
-                result = self.value
-        if "." not in result:
-            raise ValueError(self.value)
-        return result
 
 
 def quote_str(s: str) -> str:
@@ -108,7 +90,10 @@ class Result:
             "format": "application/solr+json",
             # "from": self.since,
         }
-        index = IndexNode(value=index_url or index_node)
+        index = IndexNode(
+            backend=ApiBackend.solr,
+            value=index_url or index_node,
+        )
         if not index.is_bridge():
             if fields_param is not None:
                 params["fields"] = ",".join(fields_param)
@@ -277,6 +262,7 @@ class ResultSearchAsQueries(Result):
             for doc in self.json["response"]["docs"]:
                 query = Query._from_detailed_dict(doc)
                 query.sha = f"{sha}:{query.sha}"
+                query.backend = ApiBackend.solr
                 self.data.append(query)
             self.processed = True
 
@@ -333,20 +319,18 @@ DatasetFieldParams = [
 ]
 
 
-@dataclass
-class Context:
+class SolrContext(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+
     config: Config = field(default_factory=Config.default)
-    client: AsyncClient | None = field(
-        init=False,
-        repr=False,
-        default=None,
-    )
-    semaphores: dict[str, asyncio.Semaphore] = field(
-        init=False,
-        repr=False,
-        default_factory=dict,
-    )
     noraise: bool = False
+    _client: AsyncClient | None = PrivateAttr(default=None)
+    _semaphores: dict[str, asyncio.Semaphore] = PrivateAttr(
+        default_factory=dict
+    )
+
+    def model_post_init(self, context: Any) -> None:
+        self._client = None
 
     # def __init__(
     #     self,
@@ -360,16 +344,16 @@ class Context:
     #     #     self.since = format_date_iso(since)
 
     def get_or_create_client(self) -> AsyncClient:
-        if self.client is None:
+        if self._client is None:
             timeout = self.config.api.http_timeout
-            self.client = AsyncClient(timeout=timeout)
-        return self.client
+            self._client = AsyncClient(timeout=timeout)
+        return self._client
 
     def get_or_create_semaphore(self, host: str) -> asyncio.Semaphore:
-        if host not in self.semaphores:
+        if host not in self._semaphores:
             max_concurrent = self.config.api.max_concurrent
-            self.semaphores[host] = asyncio.Semaphore(max_concurrent)
-        return self.semaphores[host]
+            self._semaphores[host] = asyncio.Semaphore(max_concurrent)
+        return self._semaphores[host]
 
     def prepare_hits(
         self,
@@ -431,6 +415,8 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
     ) -> list[ResultSearch]:
+        if not queries:
+            return []
         if page_limit is None:
             page_limit = self.config.api.page_limit
         if fields_param is None:
@@ -479,7 +465,7 @@ class Context:
                 fields_param = FileFieldParams
             else:
                 fields_param = DatasetFieldParams
-        hits = self.hits_from_hints(*hints)
+        hits = hits_from_hints(*hints)
         if max_hits is not None:
             hits = _distribute_hits_impl(hits, max_hits)
         results = []
@@ -514,7 +500,7 @@ class Context:
         # The bridge API tends to produce non-standard errors when too many
         # new connections open in a short time span. With no sleep, the 4th
         # connection is always where it breaks. 50ms sleep seems to fix that.
-        if self.client is None:
+        if self._client is None:
             await asyncio.sleep(0.005)
 
         client = self.get_or_create_client()
@@ -546,12 +532,14 @@ class Context:
                 excs.append(result.exc)
         if excs:
             group = BaseExceptionGroup("fetch", excs)
-            if self.noraise:
+            if not self.noraise or ESGPULL_DEBUG or ESGPULL_DEBUG_LOCALS:
+                raise group
+            else:
+                logger.error(group)
                 logger.exception(group)
                 for exc in excs:
+                    logger.error(exc)
                     logger.exception(exc)
-            else:
-                raise group
 
     async def _hits(self, *results: ResultHits) -> list[int]:
         hits = []
@@ -629,10 +617,10 @@ class Context:
         return queries
 
     def free_client(self) -> None:
-        self.client = None
+        self._client = None
 
     def free_semaphores(self) -> None:
-        self.semaphores = {}
+        self._semaphores = {}
 
     def _sync(self, coro: Coroutine[None, None, T]) -> T:
         """
@@ -667,17 +655,6 @@ class Context:
         )
         return self._sync(self._hits(*results))
 
-    def hits_from_hints(self, *hints: HintsDict) -> list[int]:
-        result: list[int] = []
-        for hint in hints:
-            if len(hint) > 0:
-                key = next(iter(hint))
-                num = sum(hint[key].values())
-            else:
-                num = 0
-            result.append(num)
-        return result
-
     def hints(
         self,
         *queries: Query,
@@ -709,7 +686,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[DatasetRecord]:
+    ) -> Sequence[DatasetRecord]:
         if hits is None:
             hits = self.hits(*queries, file=False)
         results = self.prepare_search(
@@ -735,7 +712,7 @@ class Context:
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
-    ) -> list[File]:
+    ) -> Sequence[File]:
         if hits is None:
             hits = self.hits(*queries, file=True)
         results = self.prepare_search(
@@ -782,6 +759,34 @@ class Context:
         )
         return self._sync(coro)
 
+    @overload
+    def search(
+        self,
+        *queries: Query,
+        file: Literal[False],
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[DatasetRecord]: ...
+
+    @overload
+    def search(
+        self,
+        *queries: Query,
+        file: Literal[True],
+        hits: list[int] | None = None,
+        offset: int = 0,
+        max_hits: int | None = 200,
+        page_limit: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        keep_duplicates: bool = True,
+    ) -> Sequence[File]: ...
+
     def search(
         self,
         *queries: Query,
@@ -794,21 +799,28 @@ class Context:
         date_to: datetime | None = None,
         keep_duplicates: bool = True,
     ) -> Sequence[File | DatasetRecord]:
-        fun: Callable[..., Sequence[File | DatasetRecord]]
         if file:
-            fun = self.files
+            return self.files(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                date_from=date_from,
+                date_to=date_to,
+                keep_duplicates=keep_duplicates,
+            )
         else:
-            fun = self.datasets
-        return fun(
-            *queries,
-            hits=hits,
-            offset=offset,
-            max_hits=max_hits,
-            page_limit=page_limit,
-            date_from=date_from,
-            date_to=date_to,
-            keep_duplicates=keep_duplicates,
-        )
+            return self.datasets(
+                *queries,
+                hits=hits,
+                offset=offset,
+                max_hits=max_hits,
+                page_limit=page_limit,
+                date_from=date_from,
+                date_to=date_to,
+                keep_duplicates=keep_duplicates,
+            )
 
     def probe(self, index_node: str | None = None) -> None:
         noraise = self.noraise
