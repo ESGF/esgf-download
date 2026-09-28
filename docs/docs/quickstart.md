@@ -11,6 +11,7 @@ For a detailed explanation of the `search` command, read the [data discovery pag
 
 ```shell
 $ esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon
+$ esgpull search -b stac project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon
 $ esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon --show
 $ esgpull search project:CMIP6 variable_id:tas experiment_id:'ssp*' member_id:r1i1p1f1 frequency:mon --detail 0
 $ esgpull add project:CMIP6 member_id:r1i1p1f1 frequency:mon --tag cmip6_monthly

@@ -23,6 +23,13 @@ It handles scanning, downloading and updating **datasets**, **files** and *queri
         ```
         ![esgpull search](images/intro_1.svg)
 
+    === "Backend type"
+
+        ```sh title="Select the type of backend to run the search : 'solr' (default) or 'stac'"
+        esgpull search project:CMIP6 -b stac
+        ```
+        ![esgpull search](images/intro_7.svg)
+
     === "Free-text terms"
 
         ```sh title="Narrow down the results with free-text term 'temperature'"
