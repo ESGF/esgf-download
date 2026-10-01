@@ -6,3 +6,6 @@ __Facet__
 
 __Plugin__
 : custom code that extends `esgpull` functionality by responding to specific events.
+
+__STAC__
+: STAC (SpatioTemporal Asset Catalog) is an open specification designed to standardize how geospatial asset metadata is structured and queried. A STAC Catalog is a JSON object that represents a logical grouping of other Catalog, Collection, and Item objects, enabling hierarchical and interoperable organization of geospatial data.

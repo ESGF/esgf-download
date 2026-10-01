@@ -31,6 +31,7 @@ disable_ssl = false
 
 [api]
 index_node = "esgf-node.ipsl.upmc.fr"
+stac_url = "api.stac.esgf.ceda.ac.uk"
 http_timeout = 20
 max_concurrent = 5
 page_limit = 50
@@ -135,6 +136,21 @@ $ esgpull config api.index_node esgf-node.ornl.gov/esgf-1-5-bridge
     - Facet queries may behave differently than on standard nodes
 
     `esgpull` automatically detects when you're using a Bridge API endpoint (by checking for `esgf-1-5-bridge` in the URL) and adjusts query parameters accordingly to ensure compatibility.
+
+## Stac URL Configuration
+
+The `api.stac_url` setting determines which regional endpoint (East or West) `esgpull` queries for dataset metadata and search results.
+
+`esgpull` uses a single regional STAC catalog endpoints, backed by the `esg-search` API, the endpoint is configurable:
+
+```shell
+$ esgpull config api.stac_url api.stac.esgf.ceda.ac.uk
+```
+
+Available STAC endpoints are:
+
+- [search.west.esgf.io](https://search.west.esgf.io/) (hosted in UK)
+- [search.east.esgf.io](https://search.east.esgf.io/) (hosted in USA)
 
 ## Login (deprecated)
 
