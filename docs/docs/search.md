@@ -53,7 +53,7 @@ $ esgpull search !institution_id:IPSL
 
 ### Specifying a backend search type
 
-The type of backend used to search datasets can be specified by using the `-b`/`--backend` option. Two values are available : `solr` (endpoint stored in config as api.index_node) and `stac` (endpoint stored in config as api.stac_url). The default value is `solr`.
+The type of backend used in search can be precised by using the `-b`/`--backend` flag. Two values are accepted: `solr` (endpoint stored in config as api.index_node) and `stac` (endpoint stored in config as api.stac_url). By default esgpull reverts to `solr` for search backend.
 
 ```sh title="Specify the STAC backend"
 $ esgpull search -b stac project:CMIP6
