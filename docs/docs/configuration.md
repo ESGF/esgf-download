@@ -141,7 +141,7 @@ $ esgpull config api.index_node esgf-node.ornl.gov/esgf-1-5-bridge
 
 The `api.stac_url` setting determines which regional endpoint (East or West) `esgpull` queries for dataset metadata and search results.
 
-`esgpull` uses a single regional STAC catalog endpoints, backed by the `esg-search` API, the endpoint is configurable:
+`esgpull` uses a single regional STAC catalog endpoint, the endpoint is configurable:
 
 ```shell
 $ esgpull config api.stac_url api.stac.esgf.ceda.ac.uk
