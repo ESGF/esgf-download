@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
@@ -388,6 +388,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#stac-url-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stac URL Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#login-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -627,6 +638,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#stac-url-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stac URL Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#login-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -696,18 +718,19 @@
 <a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="o">[</span>api<span class="o">]</span>
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="nv">index_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;esgf-node.ipsl.upmc.fr&quot;</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="o">[</span>api.default_options<span class="o">]</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="o">[</span>plugins<span class="o">]</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="nv">stac_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;api.stac.esgf.ceda.ac.uk&quot;</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nv">http_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nv">max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="nv">page_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="o">[</span>api.default_options<span class="o">]</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nv">distrib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="nv">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="nv">replica</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;none&quot;</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nv">retracted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="o">[</span>plugins<span class="o">]</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="nv">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
 </code></pre></div>
 <p>To modify a config item from the command line, the dot-separated path to that item must
 be provided as the first argument along with the new value that item should get as the second argument:</p>
@@ -772,12 +795,22 @@ with default values for all missing options:</p>
 </ul>
 <p><code>esgpull</code> automatically detects when you're using a Bridge API endpoint (by checking for <code>esgf-1-5-bridge</code> in the URL) and adjusts query parameters accordingly to ensure compatibility.</p>
 </div>
+<h2 id="stac-url-configuration">Stac URL Configuration<a class="headerlink" href="#stac-url-configuration" title="Permanent link">&para;</a></h2>
+<p>The <code>api.stac_url</code> setting determines which regional endpoint (East or West) <code>esgpull</code> queries for dataset metadata and search results.</p>
+<p><code>esgpull</code> uses a single regional STAC catalog endpoint, the endpoint is configurable:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>api.stac_url<span class="w"> </span>api.stac.esgf.ceda.ac.uk
+</code></pre></div>
+<p>Available STAC endpoints are:</p>
+<ul>
+<li><a href="https://search.west.esgf.io/">search.west.esgf.io</a> (hosted in UK)</li>
+<li><a href="https://search.east.esgf.io/">search.east.esgf.io</a> (hosted in USA)</li>
+</ul>
 <h2 id="login-deprecated">Login (deprecated)<a class="headerlink" href="#login-deprecated" title="Permanent link">&para;</a></h2>
 <p>Login is not longer required and has been removed from <code>esgpull</code>.
 Existing <code>auth</code> folder in esgpull installation folder can be removed safely.</p>
 <h2 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">&para;</a></h2>
 <p>Plugin functionality is disabled by default and can be enabled with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>$<span class="w"> </span>esgpull<span class="w"> </span>config<span class="w"> </span>plugins.enabled<span class="w"> </span><span class="nb">true</span>
 </code></pre></div>
 <p>Plugin-specific configurations are managed separately through the <code>esgpull plugins config</code> command and stored in a dedicated <code>plugins.toml</code> file. See the <a href="plugins">Plugins page</a> for more information.</p>
 

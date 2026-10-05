@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
@@ -628,7 +628,7 @@ It handles scanning, downloading and updating <strong>datasets</strong>, <strong
 <div class="admonition tip">
 <p class="admonition-title">Search datasets</p>
 <p><code>esgpull</code> allows multiple ways for searching ESGF data, with <strong>facet</strong> and <strong>free-text</strong> terms together with <strong>options</strong>.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:6"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><input id="__tabbed_1_6" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Facet terms</label><label for="__tabbed_1_2">Free-text terms</label><label for="__tabbed_1_3">Facets hints</label><label for="__tabbed_1_4">Hints</label><label for="__tabbed_1_5">Finer grain query</label><label for="__tabbed_1_6">Date filter</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:7"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><input id="__tabbed_1_6" name="__tabbed_1" type="radio" /><input id="__tabbed_1_7" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Facet terms</label><label for="__tabbed_1_2">Backend type</label><label for="__tabbed_1_3">Free-text terms</label><label for="__tabbed_1_4">Facets hints</label><label for="__tabbed_1_5">Hints</label><label for="__tabbed_1_6">Finer grain query</label><label for="__tabbed_1_7">Date filter</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p><div class="highlight"><span class="filename">Query every CMIP6 dataset using facet syntax</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6
@@ -636,27 +636,32 @@ It handles scanning, downloading and updating <strong>datasets</strong>, <strong
 <img alt="esgpull search" src="images/intro_1.svg" /></p>
 </div>
 <div class="tabbed-block">
-<p><div class="highlight"><span class="filename">Narrow down the results with free-text term 'temperature'</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>temperature
+<p><div class="highlight"><span class="filename">Select the type of backend to run the search : 'solr' (default) or 'stac'</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>-b<span class="w"> </span>stac
+</code></pre></div>
+<img alt="esgpull search" src="images/intro_7.svg" /></p>
+</div>
+<div class="tabbed-block">
+<p><div class="highlight"><span class="filename">Narrow down the results with free-text term 'temperature'</span><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>temperature
 </code></pre></div>
 <img alt="esgpull search" src="images/intro_2.svg" /></p>
 </div>
 <div class="tabbed-block">
-<p><div class="highlight"><span class="filename">Find out which facets remain to be set with --facets</span><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>temperature<span class="w"> </span>--facets
+<p><div class="highlight"><span class="filename">Find out which facets remain to be set with --facets</span><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>temperature<span class="w"> </span>--facets
 </code></pre></div>
 <img alt="esgpull search" src="images/intro_3.svg" /></p>
 </div>
 <div class="tabbed-block">
-<p><div class="highlight"><span class="filename">Get every potential facet value for the current query with --hints</span><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>temperature<span class="w"> </span>--hints<span class="w"> </span>variable_id
+<p><div class="highlight"><span class="filename">Get every potential facet value for the current query with --hints</span><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>temperature<span class="w"> </span>--hints<span class="w"> </span>variable_id
 </code></pre></div>
 <img alt="esgpull search" src="images/intro_4.svg" /></p>
 </div>
 <div class="tabbed-block">
-<p><div class="highlight"><span class="filename">Query all CMIP6 datasets with variable 'tas'</span><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas
+<p><div class="highlight"><span class="filename">Query all CMIP6 datasets with variable 'tas'</span><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas
 </code></pre></div>
 <img alt="esgpull search" src="images/intro_5.svg" /></p>
 </div>
 <div class="tabbed-block">
-<p><div class="highlight"><span class="filename">Query CMIP6 datasets with variable 'tas' published since Jan 1st, 2023</span><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>--from<span class="w"> </span><span class="m">2023</span>-01-01
+<p><div class="highlight"><span class="filename">Query CMIP6 datasets with variable 'tas' published since Jan 1st, 2023</span><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>esgpull<span class="w"> </span>search<span class="w"> </span>project:CMIP6<span class="w"> </span>variable_id:tas<span class="w"> </span>--from<span class="w"> </span><span class="m">2023</span>-01-01
 </code></pre></div>
 <img alt="esgpull search" src="images/intro_6.svg" /></p>
 </div>
