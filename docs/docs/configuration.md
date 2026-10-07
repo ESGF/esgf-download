@@ -144,7 +144,7 @@ The `api.stac_url` setting determines which regional endpoint (East or West) `es
 `esgpull` uses a single regional STAC catalog endpoint, the endpoint is configurable:
 
 ```shell
-$ esgpull config api.stac_url api.stac.esgf.ceda.ac.uk
+$ esgpull config api.stac_url search.east.esgf.io
 ```
 
 Available STAC endpoints are:
