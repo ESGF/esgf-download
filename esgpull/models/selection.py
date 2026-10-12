@@ -201,6 +201,7 @@ BaseFacets = [
     "grid_label",
     "nominal_resolution",
     "variable_branding_suffix",
+    "variable_branded_name",
 ]
 
 
