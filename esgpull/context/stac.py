@@ -450,8 +450,8 @@ def process_files(request: PreparedRequest) -> ProcessedFiles:
                     continue
 
                 local_path = asset.get("file:local_path")
-                if local_path is None:
-                    local_path = str(Path(asset["href"]).parent)
+                if local_path and Path(local_path).suffix:
+                    local_path = str(Path(local_path).parent)
                 data_node: str = asset["alternate:name"]
                 size: int = asset["file:size"]
                 checksum: str = asset["file:checksum"]
