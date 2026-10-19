@@ -5,7 +5,7 @@ from click.testing import CliRunner
 from esgpull.cli.flush import flush
 from esgpull.config import Config
 from esgpull.database import Database
-from esgpull.models import File, FileStatus, Query, sql
+from esgpull.models import File, FileStatus, Option, Query, sql
 
 
 def make_file(i: int, status: FileStatus = FileStatus.Queued) -> File:
@@ -101,3 +101,45 @@ def test_flush_done_keeps_disk(config: Config, db, tmp_path: Path):
     assert result.exit_code == 0, result.output
     assert flush_all_files(config) == []
     assert on_disk.exists()  # never deletes from disk
+
+
+def test_flush_warns_other_queries(config: Config, db):
+    query_a = Query()
+    query_a.selection["project"] = ["A"]
+    query_a.compute_sha()
+    query_b = Query()
+    query_b.selection["project"] = ["B"]
+    query_b.options.distrib = Option.false
+    query_b.compute_sha()
+    db.add(query_a, query_b)
+    file = make_file(0)
+    db.add(file)
+    db.link(query_a, file)
+    db.link(query_b, file)
+    commit(db)
+
+    runner = CliRunner()
+    result = runner.invoke(flush, [query_a.sha, "--yes"])
+    assert result.exit_code == 0, result.output
+    assert "also flushed files linked to" in result.output
+    # file removed entirely, so query_b no longer has it either
+    assert flush_all_files(config) == []
+
+
+def test_flush_output_lists_on_disk(config: Config, db):
+    file = make_file(0)
+    db.add(file)
+    commit(db)
+    on_disk = config.paths.data / file.local_path / file.filename
+    on_disk.parent.mkdir(parents=True, exist_ok=True)
+    on_disk.write_text("data")
+
+    runner = CliRunner()
+    result = runner.invoke(flush, ["--all", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert flush_all_files(config) == []
+    reports = list(config.paths.log.glob("flush-*.txt"))
+    assert len(reports) == 1
+    assert str(on_disk) in reports[0].read_text()
+
+

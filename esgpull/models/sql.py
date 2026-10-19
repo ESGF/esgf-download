@@ -229,6 +229,16 @@ class query:
         return sa.select(Query).where(Query.sha.in_(shas))
 
     @staticmethod
+    def shas_from_files(file_shas: set[str]) -> sa.Select[tuple[str]]:
+        if not file_shas:
+            raise ValueError(file_shas)
+        return (
+            sa.select(query_file_proxy.c.query_sha)
+            .where(query_file_proxy.c.file_sha.in_(file_shas))
+            .distinct()
+        )
+
+    @staticmethod
     def with_tag(tag: str) -> sa.Select[tuple[Query]]:
         return (
             sa.select(Query)
