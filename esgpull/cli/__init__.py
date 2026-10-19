@@ -8,6 +8,7 @@ from esgpull.cli.add import add
 from esgpull.cli.config import config
 from esgpull.cli.convert import convert
 from esgpull.cli.download import download
+from esgpull.cli.flush import flush
 from esgpull.cli.index_nodes import index_nodes
 from esgpull.cli.plugins import plugins
 from esgpull.cli.remove import remove
@@ -36,6 +37,7 @@ SUBCOMMANDS: list[click.Command] = [
     config,
     convert,
     download,
+    flush,
     # facet,
     # get,
     self,
