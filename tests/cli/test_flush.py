@@ -126,6 +126,32 @@ def test_flush_warns_other_queries(config: Config, db):
     assert flush_all_files(config) == []
 
 
+def test_flush_hints_update_command(config: Config, db):
+    query = make_query()
+    db.add(query)
+    files = [make_file(i) for i in range(2)]
+    db.add(*files)
+    for file in files:
+        db.link(query, file)
+    commit(db)
+
+    runner = CliRunner()
+    result = runner.invoke(flush, [query.sha, "--yes"])
+    assert result.exit_code == 0, result.output
+    assert f"esgpull update {query.sha[:6]}" in result.output
+
+
+def test_flush_orphans_no_update_hint(config: Config, db):
+    orphan = make_file(0)
+    db.add(orphan)
+    commit(db)
+
+    runner = CliRunner()
+    result = runner.invoke(flush, ["--orphans", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert "cannot be re-fetched" in result.output
+
+
 def test_flush_output_lists_on_disk(config: Config, db):
     file = make_file(0)
     db.add(file)
