@@ -144,3 +144,15 @@ def flush(
             )
         else:
             esg.ui.print("No flushed files remain on disk.")
+        esg.ui.print("\nTo re-fetch the flushed files, run:")
+        if query_id is not None:
+            esg.ui.print(f"\tesgpull update {queries[0].sha[:6]}")
+        elif tag is not None:
+            esg.ui.print(f"\tesgpull update --tag {tag}")
+        elif all_:
+            esg.ui.print("\tesgpull update")
+        else:
+            esg.ui.print(
+                "Orphan files are not linked to any query, so they cannot"
+                " be re-fetched with `esgpull update`."
+            )
