@@ -8,7 +8,7 @@ from click.exceptions import Abort, Exit
 from esgpull.cli.decorators import args, opts
 from esgpull.cli.utils import get_queries, init_esgpull, valid_name_tag
 from esgpull.fs import Filesystem
-from esgpull.models import File, FileStatus, Query, sql
+from esgpull.models import Dataset, File, FileStatus, Query, sql
 from esgpull.tui import FILE_DATE_FORMAT, Verbosity
 from esgpull.utils import format_size
 
@@ -131,6 +131,16 @@ def flush(
         if not yes and not esg.ui.ask("Continue?", default=True):
             raise Abort
         esg.db.delete(*files)
+        orphaned_datasets = list(
+            esg.db.scalars(sql.dataset.without_files())
+        )
+        if orphaned_datasets:
+            esg.db.delete(*orphaned_datasets)
+            esg.ui.print(
+                f":+1: removed {len(orphaned_datasets)} dataset"
+                f"{'s' if len(orphaned_datasets) > 1 else ''}"
+                " that no longer have any file."
+            )
         esg.ui.print(":+1:")
         if on_disk:
             date = datetime.utcnow().strftime(FILE_DATE_FORMAT)

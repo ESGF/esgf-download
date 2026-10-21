@@ -176,6 +176,13 @@ class dataset:
 
     @staticmethod
     @functools.cache
+    def without_files() -> sa.Select[tuple[Dataset]]:
+        return sa.select(Dataset).where(
+            ~sa.exists().where(File.dataset_id == Dataset.dataset_id)
+        )
+
+    @staticmethod
+    @functools.cache
     def is_complete(dataset: Dataset) -> sa.Select[tuple[bool]]:
         return sa.select(
             sa.func.count(sa.case((File.status == FileStatus.Done, 1)))
