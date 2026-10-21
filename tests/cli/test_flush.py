@@ -5,7 +5,7 @@ from click.testing import CliRunner
 from esgpull.cli.flush import flush
 from esgpull.config import Config
 from esgpull.database import Database
-from esgpull.models import File, FileStatus, Option, Query, sql
+from esgpull.models import Dataset, File, FileStatus, Option, Query, sql
 
 
 def make_file(i: int, status: FileStatus = FileStatus.Queued) -> File:
@@ -41,6 +41,10 @@ def flush_all_files(config: Config) -> list[str]:
     return [
         f.sha for f in Database.from_config(config).scalars(sql.file.all())
     ]
+
+
+def all_datasets(config: Config) -> list[Dataset]:
+    return list(Database.from_config(config).session.query(Dataset).all())
 
 
 def test_flush_requires_exclusive_target(config: Config):
@@ -150,6 +154,46 @@ def test_flush_orphans_no_update_hint(config: Config, db):
     result = runner.invoke(flush, ["--orphans", "--yes"])
     assert result.exit_code == 0, result.output
     assert "cannot be re-fetched" in result.output
+
+
+def test_flush_removes_datasets_without_files(config: Config, db):
+    db.add(*[make_file(i) for i in range(3)])
+    db.add(
+        Dataset(dataset_id="dataset0", total_files=1),
+        Dataset(dataset_id="dataset1", total_files=1),
+        Dataset(dataset_id="dataset2", total_files=1),
+    )
+    commit(db)
+
+    runner = CliRunner()
+    result = runner.invoke(flush, ["--all", "--yes"])
+    assert result.exit_code == 0, result.output
+
+    assert flush_all_files(config) == []
+    assert all_datasets(config) == []
+
+
+def test_flush_keeps_dataset_with_remaining_files(config: Config, db):
+    query = make_query()
+    db.add(query)
+    keep = make_file(0)  # dataset0, flushed
+    retain = make_file(1)  # dataset1, kept
+    retain.dataset_id = "dataset1"
+    retain.compute_sha()
+    db.add(keep, retain)
+    db.add(
+        Dataset(dataset_id="dataset0", total_files=1),
+        Dataset(dataset_id="dataset1", total_files=2),
+    )
+    db.link(query, keep)  # only keep is linked, so only it gets flushed
+    commit(db)
+
+    runner = CliRunner()
+    result = runner.invoke(flush, [query.sha, "--yes"])
+    assert result.exit_code == 0, result.output
+
+    assert flush_all_files(config) == [retain.sha]
+    assert [d.dataset_id for d in all_datasets(config)] == ["dataset1"]
 
 
 def test_flush_output_lists_on_disk(config: Config, db):
