@@ -154,6 +154,11 @@ class opts:
         is_flag=True,
         default=False,
     )
+    orphans: Dec = click.option(
+        "--orphans",
+        is_flag=True,
+        default=False,
+    )
     query_file: Dec = click.option(
         "--query-file",
         "-q",

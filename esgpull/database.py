@@ -143,7 +143,7 @@ class Database:
             for item in items:
                 self.session.refresh(item)
 
-    def delete(self, *items: Table) -> None:
+    def delete(self, *items: Base | BaseNoSHA) -> None:
         with self.safe:
             for item in items:
                 self.session.delete(item)

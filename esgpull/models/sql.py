@@ -176,6 +176,13 @@ class dataset:
 
     @staticmethod
     @functools.cache
+    def without_files() -> sa.Select[tuple[Dataset]]:
+        return sa.select(Dataset).where(
+            ~sa.exists().where(File.dataset_id == Dataset.dataset_id)
+        )
+
+    @staticmethod
+    @functools.cache
     def is_complete(dataset: Dataset) -> sa.Select[tuple[bool]]:
         return sa.select(
             sa.func.count(sa.case((File.status == FileStatus.Done, 1)))
@@ -227,6 +234,16 @@ class query:
         if not shas:
             raise ValueError(shas)
         return sa.select(Query).where(Query.sha.in_(shas))
+
+    @staticmethod
+    def shas_from_files(file_shas: set[str]) -> sa.Select[tuple[str]]:
+        if not file_shas:
+            raise ValueError(file_shas)
+        return (
+            sa.select(query_file_proxy.c.query_sha)
+            .where(query_file_proxy.c.file_sha.in_(file_shas))
+            .distinct()
+        )
 
     @staticmethod
     def with_tag(tag: str) -> sa.Select[tuple[Query]]:
