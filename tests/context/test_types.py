@@ -2,7 +2,7 @@ import pytest
 
 from esgpull.context.types import IndexNode
 from esgpull.models import ApiBackend
-from tests.utils import CEDA_NODE, CEDA_STAC, IPSL_NODE, ORNL_BRIDGE
+from tests.utils import CEDA_NODE, WEST_STAC, EAST_STAC, IPSL_NODE, ORNL_BRIDGE
 
 
 @pytest.mark.parametrize(
@@ -59,17 +59,33 @@ from tests.utils import CEDA_NODE, CEDA_STAC, IPSL_NODE, ORNL_BRIDGE
         (
             IndexNode(
                 backend=ApiBackend.stac,
-                value=CEDA_STAC,
+                value=WEST_STAC,
             ),
-            f"https://{CEDA_STAC}",
+            f"https://{WEST_STAC}",
             False,
         ),
         (
             IndexNode(
                 backend=ApiBackend.stac,
-                value=f"https://{CEDA_STAC}",
+                value=f"https://{WEST_STAC}",
             ),
-            f"https://{CEDA_STAC}",
+            f"https://{WEST_STAC}",
+            False,
+        ),
+        (
+            IndexNode(
+                backend=ApiBackend.stac,
+                value=EAST_STAC,
+            ),
+            f"https://{EAST_STAC}",
+            False,
+        ),
+        (
+            IndexNode(
+                backend=ApiBackend.stac,
+                value=f"https://{EAST_STAC}",
+            ),
+            f"https://{EAST_STAC}",
             False,
         ),
     ],
