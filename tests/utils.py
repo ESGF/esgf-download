@@ -6,7 +6,8 @@ IPSL_NODE = "esgf-node.ipsl.upmc.fr"
 DRKZ_NODE = "esgf-data.dkrz.de"
 CEDA_NODE = "esgf.ceda.ac.uk"
 ORNL_BRIDGE = "esgf-node.ornl.gov/esgf-1-5-bridge"
-CEDA_STAC = "api.stac.esgf.ceda.ac.uk"
+WEST_STAC = "search.west.esgf.io"
+EAST_STAC = "search.east.esgf.io"
 
 parametrized_index = pytest.mark.parametrize("index", [CEDA_NODE, ORNL_BRIDGE])
 
