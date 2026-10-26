@@ -31,7 +31,7 @@ disable_ssl = false
 
 [api]
 index_node = "esgf-node.ipsl.upmc.fr"
-stac_url = "api.stac.esgf.ceda.ac.uk"
+stac_url = "search.east.esgf.io"
 http_timeout = 20
 max_concurrent = 5
 page_limit = 50
@@ -149,8 +149,8 @@ $ esgpull config api.stac_url search.east.esgf.io
 
 Available STAC endpoints are:
 
-- [search.west.esgf.io](https://search.west.esgf.io/) (hosted in UK)
-- [search.east.esgf.io](https://search.east.esgf.io/) (hosted in USA)
+- [search.west.esgf.io](https://search.west.esgf.io/) (hosted in USA)
+- [search.east.esgf.io](https://search.east.esgf.io/) (hosted in UK)
 
 ## Login (deprecated)
 
