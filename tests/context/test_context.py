@@ -17,7 +17,6 @@ cmip6_ipsl = (
 
 @pytest.fixture
 def ctx(config: Config):
-    config.api.stac_url = "https://discovery-int.west.esgf.io/"
     return Context(config=config)
 
 
