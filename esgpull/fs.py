@@ -113,8 +113,8 @@ class Filesystem:
         for path in self.paths.data.glob("**/*.nc"):
             yield path.relative_to(self.paths.data)
 
-    def open(self, file: File) -> FileObject:
-        return FileObject(self[file])
+    def open(self, file: File, resume: bool = False) -> FileObject:
+        return FileObject(self[file], resume=resume)
 
     def isempty(self, path: Path) -> bool:
         if next(path.iterdir(), None) is None:
@@ -244,15 +244,27 @@ class FilePath:
 @dataclass
 class FileObject:
     path: FilePath
+    resume: bool = False
     buffer: AsyncBufferedIOBase = field(init=False)
 
     async def __aenter__(self) -> FileObject:
-        self.buffer = await aiofiles.open(self.path.tmp, "wb")
+        mode = "ab" if self.resume else "wb"
+        self.buffer = await aiofiles.open(self.path.tmp, mode)
         return self
 
     async def __aexit__(self, exc_type, exc_value, exc_traceback) -> None:
         if not self.buffer.closed:
             await self.buffer.close()
+
+    async def seed_digest(self, digest: Digest, chunk_size: int) -> None:
+        """
+        Feed the bytes already present in the `.part` file through
+        `digest`, so a resumed download can keep verifying checksums
+        incrementally.
+        """
+        async with aiofiles.open(self.path.tmp, "rb") as f:
+            while block := await f.read(chunk_size):
+                digest.update(block)
 
     async def write(self, chunk: bytes) -> None:
         await self.buffer.write(chunk)

@@ -9,7 +9,11 @@ from httpx import AsyncClient, HTTPError
 
 from esgpull.config import Config
 from esgpull.download import DownloadCtx, Simple
-from esgpull.exceptions import DownloadSizeError
+from esgpull.exceptions import (
+    DownloadSizeError,
+    RangeFallback,
+    RangeNoProgressError,
+)
 from esgpull.fs import Digest, Filesystem
 from esgpull.models import File
 from esgpull.result import Err, Ok, Result
@@ -49,8 +53,7 @@ class Task:
         self.config = config
         self.fs = fs
         self.ctx = DownloadCtx(file)
-        if not self.config.download.disable_checksum:
-            self.ctx.digest = Digest(file)
+        self.ctx.digest = self._make_digest()
         # if file is None and url is not None:
         #     self.file = self.fetch_file(url)
         # elif file is not None:
@@ -66,6 +69,27 @@ class Task:
     @property
     def file(self) -> File:
         return self.ctx.file
+
+    def _make_digest(self) -> Digest | None:
+        if self.config.download.disable_checksum:
+            return None
+        return Digest(self.file)
+
+    def _resume_offset(self) -> int:
+        """
+        Bytes already on disk in the `.part` file, safe to resume from.
+
+        Re-stat'ed at attempt time (never trusted from memory) so lost
+        buffered writes can never be double-counted. A `.part` that is
+        empty or >= the expected file size is treated as unusable.
+        """
+        tmp = self.fs[self.file].tmp
+        if not tmp.is_file():
+            return 0
+        size = tmp.stat().st_size
+        if 0 < size < self.file.size:
+            return size
+        return 0
 
     # def fetch_file(self, url: str) -> File:
     #     ctx = Context()
@@ -86,29 +110,65 @@ class Task:
     ) -> AsyncIterator[Result[DownloadCtx]]:
         ctx = self.ctx
         try:
-            async with semaphore, self.fs.open(ctx.file) as file_obj:
-                for callback in self.start_callbacks:
-                    callback()
-                stream = self.downloader.stream(
-                    client,
-                    ctx,
-                    self.config.download.chunk_size,
-                )
-                async for ctx in stream:
-                    if ctx.chunk is not None:
-                        await file_obj.write(ctx.chunk)
-                        ctx.chunk = None
-                    if ctx.error:
-                        err = DownloadSizeError(ctx.completed, ctx.file.size)
-                        yield Err(ctx, err)
-                        await stream.aclose()
-                        break
-                    elif ctx.finished:
-                        await file_obj.to_done()
-                    yield Ok(ctx)
+            async with semaphore:
+                allow_range = True
+                callbacks_done = False
+                # At most two attempts: the fallback pass sends no
+                # Range header, so `RangeFallback` cannot re-raise.
+                while True:
+                    # Only resume from `.part` while ranges are allowed:
+                    # on the fallback pass, stale bytes must be truncated
+                    # by the fresh plain GET (opened in "wb" mode).
+                    offset = self._resume_offset() if allow_range else 0
+                    resume = offset > 0
+                    ctx.completed = offset
+                    ctx.chunk = None
+                    ctx.digest = self._make_digest()
+                    try:
+                        async with self.fs.open(
+                            ctx.file, resume=resume
+                        ) as file_obj:
+                            if resume and ctx.digest is not None:
+                                await file_obj.seed_digest(
+                                    ctx.digest,
+                                    self.config.download.chunk_size,
+                                )
+                            if not callbacks_done:
+                                for callback in self.start_callbacks:
+                                    callback()
+                                callbacks_done = True
+                            stream = self.downloader.stream(
+                                client,
+                                ctx,
+                                self.config.download.chunk_size,
+                                range_size=(
+                                    self.config.download.range_size
+                                    if allow_range
+                                    else 0
+                                ),
+                            )
+                            async for ctx in stream:
+                                if ctx.chunk is not None:
+                                    await file_obj.write(ctx.chunk)
+                                    ctx.chunk = None
+                                if ctx.error:
+                                    err = DownloadSizeError(
+                                        ctx.completed, ctx.file.size
+                                    )
+                                    yield Err(ctx, err)
+                                    await stream.aclose()
+                                    break
+                                elif ctx.finished:
+                                    await file_obj.to_done()
+                                yield Ok(ctx)
+                            break  # stream finished cleanly
+                    except RangeFallback:
+                        allow_range = False
+                        continue
         except (
             HTTPError,
             DownloadSizeError,
+            RangeNoProgressError,
             GeneratorExit,
             ssl.SSLError,
             FileNotFoundError,

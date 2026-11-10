@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # from math import ceil
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
@@ -5,6 +7,7 @@ from datetime import datetime
 
 from httpx import AsyncClient
 
+from esgpull.exceptions import RangeFallback, RangeNoProgressError
 from esgpull.fs import Digest
 from esgpull.models import File
 
@@ -35,19 +38,74 @@ class DownloadCtx:
             self.digest.update(self.chunk)
 
 
+def build_range_header(start: int, end: int | None) -> str:
+    if end is None:
+        return f"bytes={start}-"
+    return f"bytes={start}-{end}"
+
+
+def parse_content_range(
+    value: str | None,
+) -> tuple[int, int, int | None] | None:
+    """
+    Parse a `Content-Range` header value ("bytes 1000-1999/3000").
+
+    Returns (start, end, total), with total=None for "*"; None if the
+    header is missing or malformed.
+    """
+    if value is None:
+        return None
+    try:
+        unit, spec = value.split(None, 1)
+        if unit.lower() != "bytes":
+            return None
+        span, _, total = spec.partition("/")
+        start_part, _, end_part = span.partition("-")
+        parsed_total = None if total == "*" else int(total)
+        return (int(start_part), int(end_part), parsed_total)
+    except ValueError:
+        return None
+
+
+def content_range_ok(header: str | None, start: int, size: int) -> bool:
+    """
+    Validate the server echoed our range start and the file total.
+
+    The `end` value is not checked: extra in-order bytes are harmless
+    (overshoot is still caught by `DownloadCtx.error`).
+    """
+    parsed = parse_content_range(header)
+    if parsed is None:
+        return False
+    res_start, _, res_total = parsed
+    if res_start != start:
+        return False
+    if res_total is not None and size > 0 and res_total != size:
+        return False
+    return True
+
+
 class BaseDownloader:
     def stream(
         self,
         client: AsyncClient,
         ctx: DownloadCtx,
         chunk_size: int,
+        range_size: int = 0,
     ) -> AsyncGenerator[DownloadCtx, None]:
         raise NotImplementedError
 
 
 class Simple(BaseDownloader):
     """
-    Simple chunked async downloader.
+    Simple chunked async downloader, with HTTP Range support.
+
+    Resumes from `ctx.completed` > 0 (bytes already on disk), and with
+    `range_size` > 0 fetches the remaining bytes in sequential windows
+    of at most that many bytes, to work around data nodes that cap the
+    size of a single response. Raises `RangeFallback` when the server
+    ignores or rejects the Range header (the caller must restart the
+    request without ranges, from offset 0).
     """
 
     async def stream(
@@ -55,15 +113,44 @@ class Simple(BaseDownloader):
         client: AsyncClient,
         ctx: DownloadCtx,
         chunk_size: int,
+        range_size: int = 0,
     ) -> AsyncGenerator[DownloadCtx, None]:
-        ctx.start_time = datetime.now()
-        async with client.stream("GET", ctx.file.url) as resp:
-            resp.raise_for_status()
-            async for chunk in resp.aiter_bytes(chunk_size=chunk_size):
-                ctx.completed += len(chunk)
-                ctx.chunk = chunk
-                ctx.update_digest()
-                yield ctx
+        if ctx.start_time is None:
+            ctx.start_time = datetime.now()
+        size = ctx.file.size
+        use_ranges = size > 0 and (ctx.completed > 0 or range_size > 0)
+        while True:
+            start = ctx.completed
+            if use_ranges and start >= size:
+                break
+            headers = {}
+            if use_ranges:
+                if range_size > 0:
+                    end = min(start + range_size, size) - 1
+                    headers = {"Range": build_range_header(start, end)}
+                else:
+                    headers = {"Range": build_range_header(start, None)}
+            async with client.stream(
+                "GET", ctx.file.url, headers=headers
+            ) as resp:
+                if headers and resp.status_code in (200, 400, 416):
+                    raise RangeFallback()
+                if resp.status_code not in (200, 206):
+                    resp.raise_for_status()
+                if resp.status_code == 206 and not content_range_ok(
+                    resp.headers.get("Content-Range"), start, size
+                ):
+                    raise RangeFallback()
+                progress_before = ctx.completed
+                async for chunk in resp.aiter_bytes(chunk_size=chunk_size):
+                    ctx.completed += len(chunk)
+                    ctx.chunk = chunk
+                    ctx.update_digest()
+                    yield ctx
+                if ctx.completed == progress_before:
+                    raise RangeNoProgressError(ctx.completed, size)
+            if range_size == 0 or not use_ranges:
+                break
 
 
 # class Distributed(BaseDownloader):

@@ -28,6 +28,7 @@ chunk_size = 67108864
 http_timeout = 20
 max_concurrent = 5
 disable_ssl = false
+range_size = 0
 
 [api]
 index_node = "esgf-node.ipsl.upmc.fr"

@@ -77,6 +77,25 @@ def test_generate_creates_serializable_config(root, config_path):
         assert str(value) == config._raw["paths"][key]
 
 
+def test_download_range_size_roundtrip(root, config_path):
+    root.mkdir(parents=True, exist_ok=True)
+    with config_path.open("w") as f:
+        tomlkit.dump({}, f)
+    config = Config.load(root)
+    assert config.download.range_size == 0
+    # strings (as passed by the CLI) are coerced to int
+    config.update_item("download.range_size", "1000000000")
+    assert config.download.range_size == 1000000000
+    with pytest.raises(ValueError):
+        config.update_item("download.range_size", -1)
+    config.write()
+    reloaded = Config.load(root)
+    assert reloaded.download.range_size == 1000000000
+    old_value = reloaded.set_default("download.range_size")
+    assert old_value == 1000000000
+    assert reloaded.download.range_size == 0
+
+
 def test_dump_and_set_default_from_partial_config(root, config_path):
     root.mkdir(parents=True, exist_ok=True)
     with config_path.open("w") as f:
