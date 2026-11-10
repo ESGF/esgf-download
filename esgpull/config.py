@@ -80,6 +80,9 @@ class Download(BaseModel, validate_assignment=True):
     disable_ssl: bool = False
     disable_checksum: bool = False
     show_filename: bool = False
+    # Max bytes per HTTP Range request (0 = disabled / single request).
+    # Resuming from `.part` files is always active, independently of this.
+    range_size: int = Field(0, ge=0)
 
 
 class DefaultOptions(BaseModel, validate_assignment=True):

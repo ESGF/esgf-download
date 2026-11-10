@@ -90,6 +90,32 @@ RAM usage for downloads is bounded by the following formula:
 RAM = Config::download.max_concurrent * Config::download.chunk_size
 ```
 
+### Resuming interrupted downloads
+
+Failed or interrupted downloads keep the bytes already received in a
+`.part` file. The next `esgpull download` (or after `esgpull retry`)
+will resume from those bytes using an HTTP `Range` request, instead of
+restarting the file from zero. No configuration is needed for this, and
+if a server does not support `Range` requests, `esgpull` automatically
+falls back to downloading the file again from the start.
+
+### Large files and slow-cutting data nodes
+
+Some data nodes close long downloads after a fixed amount of data
+(e.g. after ~1 GB, regardless of transfer speed). To work around this,
+`download.range_size` splits each file into sequential HTTP `Range`
+requests of at most that many bytes:
+
+```shell
+$ esgpull config download.range_size 1000000000
+```
+
+Each piece is verified against the same checksum as the whole file, and
+`range_size = 0` (the default) keeps the single-request behaviour.
+Like resuming, this requires the server to honour `Range` requests, and
+falls back to a plain download when it does not. It does not change the
+RAM usage formula above.
+
 ### Failed downloads
 
 For each failed download, their status will be set to **error**.

@@ -85,6 +85,19 @@ class DownloadSizeError(EsgpullException):
     """
 
 
+class RangeFallback(EsgpullException):
+    msg = """
+    Server did not honor the Range request; restarting with a plain GET.
+    """
+
+
+class RangeNoProgressError(EsgpullException):
+    msg = """
+    Server returned an empty response for a Range request at byte {}
+    (file size: {}).
+    """
+
+
 class DownloadCancelled(EsgpullException):
     msg = """
     Download cancelled by user.
