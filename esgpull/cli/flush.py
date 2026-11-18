@@ -96,11 +96,21 @@ def flush(
                 f" ({format_size(size_done)}) stay on disk and"
                 " will be re-fetched on next update."
             )
-        impacted_shas = set(
-            esg.db.scalars(
-                sql.query.shas_from_files({file.sha for file in files})
-            )
-        )
+
+        # The warning below is only useful for query/tag targets.  For
+        # --all, every query is already impacted; --orphans cannot be linked
+        # to any query.  Query targeted files in bounded batches so large
+        # selections do not exceed SQLite's host-parameter limit.
+        impacted_shas: set[str] = set()
+        if targeted:
+            file_shas = [file.sha for file in files]
+            batch_size = 500
+            for start in range(0, len(file_shas), batch_size):
+                batch = set(file_shas[start : start + batch_size])
+                impacted_shas.update(
+                    esg.db.scalars(sql.query.shas_from_files(batch))
+                )
+
         other_shas = impacted_shas - selected_shas
         if other_shas:
             other_queries = [
@@ -130,12 +140,23 @@ def flush(
         ]
         if not yes and not esg.ui.ask("Continue?", default=True):
             raise Abort
-        esg.db.delete(*files)
+
+        # Keep each SQLite write transaction bounded.  Deleting a large
+        # selection in one commit can grow the WAL until the filesystem is
+        # full.  Each committed batch is durable, and re-running flush after
+        # an interruption naturally continues with the remaining rows.
+        delete_batch_size = 500
+        for start in range(0, len(files), delete_batch_size):
+            esg.db.delete(*files[start : start + delete_batch_size])
+
         orphaned_datasets = list(
             esg.db.scalars(sql.dataset.without_files())
         )
         if orphaned_datasets:
-            esg.db.delete(*orphaned_datasets)
+            for start in range(0, len(orphaned_datasets), delete_batch_size):
+                esg.db.delete(
+                    *orphaned_datasets[start : start + delete_batch_size]
+                )
             esg.ui.print(
                 f":+1: removed {len(orphaned_datasets)} dataset"
                 f"{'s' if len(orphaned_datasets) > 1 else ''}"
