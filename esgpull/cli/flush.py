@@ -140,12 +140,23 @@ def flush(
         ]
         if not yes and not esg.ui.ask("Continue?", default=True):
             raise Abort
-        esg.db.delete(*files)
+
+        # Keep each SQLite write transaction bounded.  Deleting a large
+        # selection in one commit can grow the WAL until the filesystem is
+        # full.  Each committed batch is durable, and re-running flush after
+        # an interruption naturally continues with the remaining rows.
+        delete_batch_size = 500
+        for start in range(0, len(files), delete_batch_size):
+            esg.db.delete(*files[start : start + delete_batch_size])
+
         orphaned_datasets = list(
             esg.db.scalars(sql.dataset.without_files())
         )
         if orphaned_datasets:
-            esg.db.delete(*orphaned_datasets)
+            for start in range(0, len(orphaned_datasets), delete_batch_size):
+                esg.db.delete(
+                    *orphaned_datasets[start : start + delete_batch_size]
+                )
             esg.ui.print(
                 f":+1: removed {len(orphaned_datasets)} dataset"
                 f"{'s' if len(orphaned_datasets) > 1 else ''}"
