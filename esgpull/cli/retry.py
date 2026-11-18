@@ -24,8 +24,13 @@ def retry(
         status = FileStatus.retryable()
     esg = init_esgpull(verbosity)
     with esg.ui.logging("retry", onraise=Abort):
-        assert FileStatus.Done not in status
-        assert FileStatus.Queued not in status
+        if FileStatus.Queued in status:
+            raise click.UsageError(
+                "queued files are already in the download queue; "
+                "use `esgpull download` to fetch them"
+            )
+        if FileStatus.Done in status:
+            raise click.UsageError("cannot retry done files")
         files = list(esg.db.scalars(sql.file.with_status(*status)))
         status_str = "/".join(f"[bold red]{s.value}[/]" for s in status)
         if not files:
