@@ -618,21 +618,26 @@ class StacContext(BaseModel):
 
     config: Config = Field(default_factory=Config.default)
     noraise: bool = False
-    _client: Client = PrivateAttr()
+    _client: Client | None = PrivateAttr(default=None)
     _semaphores: dict[str, asyncio.Semaphore] = PrivateAttr(
         default_factory=dict,
     )
     _warned_options_queries: set[str] = PrivateAttr(default_factory=set)
 
-    def model_post_init(self, context: Any):
-        index = IndexNode(
-            backend=ApiBackend.stac,
-            value=self.config.api.stac_url,
-        )
-        self._client = Client.open(
-            url=index.url,
-            timeout=self.config.api.http_timeout,
-        )
+    def model_post_init(self, context: Any) -> None:
+        self._client = None
+
+    def get_or_create_client(self) -> Client:
+        if self._client is None:
+            index = IndexNode(
+                backend=ApiBackend.stac,
+                value=self.config.api.stac_url,
+            )
+            self._client = Client.open(
+                url=index.url,
+                timeout=self.config.api.http_timeout,
+            )
+        return self._client
 
     def _warn_unused_options(self, query: Query) -> None:
         if query.sha in self._warned_options_queries:
@@ -660,7 +665,7 @@ class StacContext(BaseModel):
             prepared = prepare_request(
                 query=query,
                 file=file,
-                client=self._client,
+                client=self.get_or_create_client(),
                 page_limit=1,  # For count queries, we only need the count metadata
                 date_from=date_from,
                 date_to=date_to,
@@ -682,7 +687,7 @@ class StacContext(BaseModel):
             prepared = prepare_request(
                 query=query,
                 file=file,
-                client=self._client,
+                client=self.get_or_create_client(),
                 page_limit=1,
                 facets_param=facets,
                 date_from=date_from,
@@ -712,7 +717,7 @@ class StacContext(BaseModel):
             prepared = prepare_request(
                 query=query,
                 file=file,
-                client=self._client,
+                client=self.get_or_create_client(),
                 offset=offset,
                 page_limit=page_limit,
                 max_items=max_hits,
