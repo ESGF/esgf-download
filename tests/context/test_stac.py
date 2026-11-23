@@ -4,6 +4,7 @@ from time import perf_counter
 import pytest
 
 from esgpull.config import Config
+from esgpull.context import Context
 from esgpull.context.stac import (
     StacContext,
     format_query_to_stac_filter,
@@ -25,6 +26,29 @@ cmip6_ipsl = (
 @pytest.fixture
 def ctx(config: Config):
     return StacContext(config=config)
+
+
+def test_unrelated_commands_no_crash_with_wrong_stac_url(config: Config) -> None:
+    """
+    Regression test for #177.
+
+    A wrong/unresponsive `api.stac_url` must NOT crash commands that do not
+    actually need the STAC client. The STAC client is now opened lazily via
+    `get_or_create_client`, so merely constructing the contexts must not
+    attempt to reach the configured STAC endpoint.
+    """
+    # Use an unroutable / non-listening address so any eager connection attempt
+    # would fail. Point at localhost port that is guaranteed to be closed.
+    config.api.stac_url = "http://127.0.0.1:1"
+    # Sanity: constructing the STAC context must not open the client.
+    stac = StacContext(config=config)
+    assert stac._client is None
+
+    # Constructing the full Context (which builds both solr and stac contexts)
+    # is enough to reproduce the original crash, as StacContext.model_post_init
+    # used to call `Client.open` eagerly.
+    Context(config=config)
+
 
 
 class Timer:
